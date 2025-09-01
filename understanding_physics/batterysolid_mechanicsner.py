@@ -3,174 +3,185 @@ import sqlite3
 import os
 import pandas as pd
 import spacy
-from collections import Counter, defaultdict
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import plotly.express as px
-import networkx as nx
 import plotly.graph_objects as go
+import networkx as nx
 
-# ----------------------------
-# App Config
-# ----------------------------
-st.set_page_config(page_title="Lithium Battery DB Explorer", layout="wide")
+# Load spaCy model
+@st.cache_resource
+def load_spacy_model():
+    return spacy.load("en_core_web_sm")
 
-st.title("Lithium Battery Papers – DB Explorer")
+nlp = load_spacy_model()
 
-# ----------------------------
-# Helper: find .db files
-# ----------------------------
-def list_db_files():
-    files = [f for f in os.listdir('.') if f.endswith('.db')]
-    return files
+# Utility to read DB
+def load_db(db_path):
+    conn = sqlite3.connect(db_path)
+    return conn
 
-db_files = list_db_files()
-selected_db = st.selectbox("Select a database file", db_files)
+# Find all .db files in working directory
+def get_db_files():
+    return [f for f in os.listdir(".") if f.endswith(".db")]
 
-if not selected_db:
-    st.warning("No .db files found in this directory. Please upload or place them here.")
+st.title("🔋 Lithium Battery DB Explorer")
+
+db_files = get_db_files()
+if not db_files:
+    st.error("No .db files found in the current directory.")
     st.stop()
 
-# ----------------------------
-# Connect to DB
-# ----------------------------
-conn = sqlite3.connect(selected_db)
+selected_db = st.selectbox("Select Database File", db_files)
+conn = load_db(selected_db)
 
-# ----------------------------
 # Tabs
-# ----------------------------
-tab1, tab2, tab3 = st.tabs(["🔎 Inspection", "📚 Common Term Analysis", "🧠 NER Analysis"])
+tab1, tab2, tab3 = st.tabs(["📂 Inspect Data", "🧩 Common Term Analysis", "🔎 NER & Visualizations"])
 
-# ----------------------------
-# Tab 1: Inspection
-# ----------------------------
+# -------------------- TAB 1: INSPECTION --------------------
 with tab1:
-    st.header("Database Inspection")
-
-    # Papers metadata
+    st.subheader("Inspect Papers Table")
     try:
-        df_meta = pd.read_sql("SELECT * FROM papers", conn)
-        st.subheader("Papers Metadata")
-        st.dataframe(df_meta, use_container_width=True)
-    except Exception:
-        st.info("No 'papers' table found.")
+        papers_df = pd.read_sql_query("SELECT * FROM papers", conn)
+        st.dataframe(papers_df)
+    except Exception as e:
+        st.warning(f"Could not load 'papers' table: {e}")
 
-    # Pages sample
+    st.subheader("Inspect Pages Table")
     try:
-        df_pages = pd.read_sql("SELECT * FROM pages LIMIT 200", conn)
-        st.subheader("Pages (sample)")
-        st.dataframe(df_pages, use_container_width=True)
-    except Exception:
-        st.info("No 'pages' table found.")
+        pages_df = pd.read_sql_query("SELECT * FROM pages", conn)
+        st.dataframe(pages_df)
+    except Exception as e:
+        st.warning(f"Could not load 'pages' table: {e}")
 
-# ----------------------------
-# Tab 2: Common Term Analysis
-# ----------------------------
+# -------------------- TAB 2: SEMANTIC SIMILARITY --------------------
 with tab2:
-    st.header("Common Term Semantic Similarity")
-
-    nlp = spacy.load("en_core_web_sm")
-
-    # Aggregate text per paper
+    st.subheader("Semantic Similarity of Papers")
     try:
-        df_pages = pd.read_sql("SELECT paper_checksum, text FROM pages", conn)
-    except Exception:
-        st.warning("No 'pages' table for term analysis.")
-        st.stop()
+        papers_df = pd.read_sql_query("SELECT id, fulltext FROM papers", conn)
+        if len(papers_df) > 1:
+            docs = [nlp(str(text)) for text in papers_df["fulltext"]]
+            similarities = []
+            for i in range(len(docs)):
+                for j in range(i + 1, len(docs)):
+                    sim = docs[i].similarity(docs[j])
+                    similarities.append({
+                        "Paper 1": papers_df["id"][i],
+                        "Paper 2": papers_df["id"][j],
+                        "Similarity": sim
+                    })
+            sim_df = pd.DataFrame(similarities)
+            st.dataframe(sim_df)
 
-    grouped = df_pages.groupby("paper_checksum")["text"].apply(lambda x: " ".join(x)).reset_index()
-    grouped["doc"] = grouped["text"].apply(nlp)
+            fig = px.imshow(
+                pd.pivot_table(sim_df, values="Similarity", index="Paper 1", columns="Paper 2"),
+                color_continuous_scale="Blues",
+                title="Semantic Similarity Heatmap"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Need at least 2 papers for similarity analysis.")
+    except Exception as e:
+        st.warning(f"Could not perform similarity analysis: {e}")
 
-    # Compute similarities
-    sims = []
-    for i in range(len(grouped)):
-        for j in range(i+1, len(grouped)):
-            s = grouped["doc"].iloc[i].similarity(grouped["doc"].iloc[j])
-            sims.append({
-                "paper_a": grouped["paper_checksum"].iloc[i],
-                "paper_b": grouped["paper_checksum"].iloc[j],
-                "similarity": s
-            })
-    df_sims = pd.DataFrame(sims)
-
-    st.subheader("Pairwise Semantic Similarity")
-    st.dataframe(df_sims, use_container_width=True)
-
-    fig = px.scatter(df_sims, x="paper_a", y="paper_b", size="similarity",
-                     color="similarity", title="Semantic Similarity Matrix")
-    st.plotly_chart(fig, use_container_width=True)
-
-# ----------------------------
-# Tab 3: NER Analysis
-# ----------------------------
+# -------------------- TAB 3: NER + VISUALIZATIONS --------------------
 with tab3:
-    st.header("Named Entity Recognition (NER) Analysis")
+    st.subheader("Named Entity Recognition (NER)")
 
     try:
-        df_pages = pd.read_sql("SELECT text FROM pages", conn)
-    except Exception:
-        st.warning("No 'pages' table for NER.")
-        st.stop()
+        papers_df = pd.read_sql_query("SELECT id, fulltext FROM papers", conn)
+        all_entities = []
+        entities_per_paper = {}
 
-    texts = " ".join(df_pages["text"].dropna().tolist())
-    doc = nlp(texts)
+        for _, row in papers_df.iterrows():
+            doc = nlp(str(row["fulltext"]))
+            entities = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "GPE", "PERSON", "MATERIAL", "PRODUCT", "FAC", "EVENT", "WORK_OF_ART"]]
+            all_entities.extend(entities)
+            entities_per_paper[row["id"]] = entities
 
-    ents = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "GPE", "PERSON", "MATERIAL", "PRODUCT", "FAC", "NORP"]]
-    counts = Counter(ents).most_common(50)
+        if not all_entities:
+            st.info("No entities found in database text.")
+        else:
+            # WordCloud
+            st.subheader("WordCloud of Entities")
+            wc = WordCloud(width=800, height=400, background_color="white").generate(" ".join(all_entities))
+            fig, ax = plt.subplots()
+            ax.imshow(wc, interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
 
-    # Wordcloud
-    st.subheader("Wordcloud of Entities")
-    wc = WordCloud(width=800, height=400, background_color="white").generate_from_frequencies(dict(counts))
-    fig_wc, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis("off")
-    st.pyplot(fig_wc)
+            # Histogram
+            st.subheader("Entity Frequency Histogram")
+            ent_series = pd.Series(all_entities).value_counts().head(20)
+            fig = px.bar(ent_series, x=ent_series.index, y=ent_series.values, labels={"x": "Entity", "y": "Count"})
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Histogram
-    st.subheader("Entity Frequency Histogram")
-    df_counts = pd.DataFrame(counts, columns=["Entity", "Count"])
-    fig_hist = px.bar(df_counts, x="Entity", y="Count")
-    st.plotly_chart(fig_hist, use_container_width=True)
+            # Radar Chart
+            st.subheader("Radar Chart of Top Entities")
+            top_entities = ent_series.head(8)
+            fig = go.Figure()
+            fig.add_trace(go.Scatterpolar(r=top_entities.values, theta=top_entities.index, fill="toself", name="Entities"))
+            fig.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Radar chart
-    st.subheader("Radar Chart of Top Entities")
-    fig_radar = go.Figure()
-    fig_radar.add_trace(go.Scatterpolar(
-        r=df_counts["Count"],
-        theta=df_counts["Entity"],
-        fill='toself'
-    ))
-    fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True)))
-    st.plotly_chart(fig_radar, use_container_width=True)
+            # Sunburst
+            st.subheader("Hierarchical Sunburst Chart")
+            ent_df = pd.DataFrame(ent_series.reset_index())
+            ent_df.columns = ["Entity", "Count"]
+            ent_df["Group"] = "Entities"
+            fig = px.sunburst(ent_df, path=["Group", "Entity"], values="Count")
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Sunburst
-    st.subheader("Hierarchical Sunburst Chart")
-    df_counts["Parent"] = "Entities"
-    fig_sun = px.sunburst(df_counts, path=["Parent", "Entity"], values="Count")
-    st.plotly_chart(fig_sun, use_container_width=True)
+            # Network chart
+            st.subheader("Entity Co-occurrence Network")
+            G = nx.Graph()
+            for paper_id, ents in entities_per_paper.items():
+                for i, e1 in enumerate(ents):
+                    for e2 in ents[i + 1:]:
+                        if e1 != e2:
+                            G.add_edge(e1, e2)
 
-    # Network
-    st.subheader("Entity Co-occurrence Network")
-    G = nx.Graph()
-    window_size = 5
-    tokens = [t.text for t in doc if not t.is_space]
-    for i in range(len(tokens)-window_size):
-        window = tokens[i:i+window_size]
-        ents_in_window = [t for t in window if t in dict(counts)]
-        for a in ents_in_window:
-            for b in ents_in_window:
-                if a != b:
-                    G.add_edge(a, b, weight=G[a][b]['weight']+1 if G.has_edge(a, b) else 1)
-    pos = nx.spring_layout(G, k=0.3)
-    edge_x, edge_y, node_x, node_y, node_text = [], [], [], [], []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-    for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        node_text.append(node)
-    fig_net = go.Figure()\n    fig_net.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=0.5, color='#888')))\n    fig_net.add_trace(go.Scatter(x=node_x, y=node_y, mode='markers+text', text=node_text, textposition=\"top center\"))\n    st.plotly_chart(fig_net, use_container_width=True)\n\nst.markdown(\"---\")\nst.info(\"This app explores lithium battery DB files: inspection, semantic similarity (spaCy), and NER visualizations.\")\n```  \n\n⚙️ **Dependencies**: \n```bash\npip install streamlit pandas spacy wordcloud matplotlib plotly networkx\npython -m spacy download en_core_web_sm\n```  \n\nWould you like me to make the **semantic similarity analysis** more focused on lithium-ion battery terms (custom dictionary), instead of generic spaCy embeddings?
+            pos = nx.spring_layout(G, k=0.3)
+            edge_x = []
+            edge_y = []
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+
+            node_x = []
+            node_y = []
+            node_text = []
+            for node in G.nodes():
+                x, y = pos[node]
+                node_x.append(x)
+                node_y.append(y)
+                node_text.append(node)
+
+            fig_net = go.Figure()
+            fig_net.add_trace(
+                go.Scatter(
+                    x=edge_x, y=edge_y,
+                    mode='lines',
+                    line=dict(width=0.5, color='#888'),
+                    hoverinfo='none'
+                )
+            )
+            fig_net.add_trace(
+                go.Scatter(
+                    x=node_x, y=node_y,
+                    mode='markers+text',
+                    text=node_text,
+                    textposition="top center",
+                    marker=dict(size=10, color='blue'),
+                    hoverinfo='text'
+                )
+            )
+            st.plotly_chart(fig_net, use_container_width=True)
+
+    except Exception as e:
+        st.warning(f"NER or visualization failed: {e}")
+
+st.markdown("---")
+st.info("This app explores lithium battery DB files: inspection, semantic similarity (spaCy), and NER visualizations.")
