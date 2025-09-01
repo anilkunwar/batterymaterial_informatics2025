@@ -40,8 +40,21 @@ DB_FILES = [
     os.path.join(DB_DIR, "lithiumbattery_miniuniverse.db")
 ]
 
-# Check which ones actually exist in current folder
-available_dbs = [f for f in default_db_files if os.path.exists(f)]
+# --- Initialize logging ---
+LOG_FILE = os.path.join(DB_DIR, "battery_db_explorer.log")
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.ERROR,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+# --- Select DB file ---
+available_dbs = [f for f in DB_FILES if os.path.exists(f)]
+
+if not available_dbs:
+    st.error(f"❌ No lithium battery .db files found in {DB_DIR}")
+    logging.error("No lithium battery .db files found.")
+    st.stop()
 
 # Add uploader option
 uploaded_db = st.sidebar.file_uploader("Or upload a .db file", type=["db"])
