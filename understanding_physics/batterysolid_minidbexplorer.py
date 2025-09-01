@@ -30,10 +30,14 @@ st.title("🔋 Lithium Battery DB Explorer")
 # --- Database selection ---
 st.sidebar.subheader("📂 Database Selection")
 
-# Explicit DB files we care about
-default_db_files = [
-    "lithiumbattery_minimetadata.db",
-    "lithiumbattery_miniuniverse.db"
+# --- Define the directory containing the database (same as script directory) ---
+DB_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Explicit DB files 
+# Default DB files to look for
+DB_FILES = [
+    os.path.join(DB_DIR, "lithiumbattery_minimetadata.db"),
+    os.path.join(DB_DIR, "lithiumbattery_miniuniverse.db")
 ]
 
 # Check which ones actually exist in current folder
