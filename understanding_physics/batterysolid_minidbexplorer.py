@@ -3,11 +3,16 @@ import sqlite3
 import os
 import pandas as pd
 import spacy
+import logging
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
+
+# Initialize logging
+LOG_FILE = "lithiumbattery_explorer.log"
+logging.basicConfig(filename=LOG_FILE, level=logging.ERROR)
 
 # Load spaCy model
 @st.cache_resource
@@ -21,10 +26,6 @@ def load_db(db_path):
     conn = sqlite3.connect(db_path)
     return conn
 
-# Find all .db files in working directory
-def get_db_files():
-    return [f for f in os.listdir(".") if f.endswith(".db")]
-
 st.title("🔋 Lithium Battery DB Explorer")
 
 # --- Database selection ---
@@ -34,22 +35,14 @@ st.sidebar.subheader("📂 Database Selection")
 DB_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Explicit DB files 
-# Default DB files to look for
 DB_FILES = [
     os.path.join(DB_DIR, "lithiumbattery_minimetadata.db"),
     os.path.join(DB_DIR, "lithiumbattery_miniuniverse.db")
 ]
 
-# --- Initialize logging ---
-LOG_FILE = os.path.join(DB_DIR, "battery_db_explorer.log")
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-# --- Select DB file ---
+# Check which ones actually exist in current folder
 available_dbs = [f for f in DB_FILES if os.path.exists(f)]
+
 
 if not available_dbs:
     st.error(f"❌ No lithium battery .db files found in {DB_DIR}")
