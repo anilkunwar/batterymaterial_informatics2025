@@ -27,13 +27,22 @@ def get_db_files():
 
 st.title("🔋 Lithium Battery DB Explorer")
 
-db_files = get_db_files()
+# Explicit DB files (you can add more later)
+db_files = [
+    "lithiumbattery_minimetadata.db",
+    "lithiumbattery_miniuniverse.db"
+]
+
+# Check which ones actually exist in current directory
+db_files = [f for f in db_files if os.path.exists(f)]
+
 if not db_files:
-    st.error("No .db files found in the current directory.")
+    st.error("❌ No lithium battery .db files found. Please place them in the same folder as this script.")
     st.stop()
 
 selected_db = st.selectbox("Select Database File", db_files)
 conn = load_db(selected_db)
+
 
 # Tabs
 tab1, tab2, tab3 = st.tabs(["📂 Inspect Data", "🧩 Common Term Analysis", "🔎 NER & Visualizations"])
