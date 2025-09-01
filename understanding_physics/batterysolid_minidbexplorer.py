@@ -27,20 +27,35 @@ def get_db_files():
 
 st.title("🔋 Lithium Battery DB Explorer")
 
-# Explicit DB files (you can add more later)
-db_files = [
+# --- Database selection ---
+st.sidebar.subheader("📂 Database Selection")
+
+# Explicit DB files we care about
+default_db_files = [
     "lithiumbattery_minimetadata.db",
     "lithiumbattery_miniuniverse.db"
 ]
 
-# Check which ones actually exist in current directory
-db_files = [f for f in db_files if os.path.exists(f)]
+# Check which ones actually exist in current folder
+available_dbs = [f for f in default_db_files if os.path.exists(f)]
 
-if not db_files:
-    st.error("❌ No lithium battery .db files found. Please place them in the same folder as this script.")
+# Add uploader option
+uploaded_db = st.sidebar.file_uploader("Or upload a .db file", type=["db"])
+
+if uploaded_db:
+    # Save uploaded file temporarily
+    temp_db_path = os.path.join("temp_uploaded.db")
+    with open(temp_db_path, "wb") as f:
+        f.write(uploaded_db.getbuffer())
+    selected_db = temp_db_path
+    st.sidebar.success(f"✅ Loaded uploaded DB: {uploaded_db.name}")
+elif available_dbs:
+    selected_db = st.sidebar.selectbox("Select Database File", available_dbs)
+else:
+    st.error("❌ No lithium battery .db files found. Please upload one or place it in the script folder.")
     st.stop()
 
-selected_db = st.selectbox("Select Database File", db_files)
+# Open connection
 conn = load_db(selected_db)
 
 
