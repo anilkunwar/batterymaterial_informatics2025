@@ -8,7 +8,6 @@ import re
 from collections import Counter
 from itertools import combinations
 import spacy
-from spacy.language import Language
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -33,12 +32,20 @@ st.write(
 )
 
 # -----------------------------
-# Load spaCy model
+# Load spaCy model with fallback
 # -----------------------------
+@st.cache_resource
+def load_spacy_model():
+    try:
+        return spacy.load("en_core_web_md")
+    except OSError:
+        st.warning("⚠️ Falling back to 'en_core_web_sm'. Install 'en_core_web_md' for better similarity results.")
+        return spacy.load("en_core_web_sm")
+
 try:
-    nlp = spacy.load("en_core_web_md")
+    nlp = load_spacy_model()
 except Exception as e:
-    st.error("Failed to load spaCy model. Please add 'en_core_web_md' (pip install spacy; python -m spacy download en_core_web_md).")
+    st.error("Failed to load spaCy model. Ensure 'en_core_web_sm' is installed (pip install spacy; python -m spacy download en_core_web_sm).")
     raise
 
 # -----------------------------
@@ -367,7 +374,7 @@ st.markdown(
 ---
 **Notes**
 - **Data Inspection**: View raw tables and basic stats. Full-text search requires FTS5 in `lithiumbattery_miniuniverse.db`.
-- **Term Analysis**: Uses spaCy's `en_core_web_md` for semantic similarity and term co-occurrence across papers.
+- **Term Analysis**: Uses spaCy's `en_core_web_md` (or `en_core_web_sm` fallback) for semantic similarity and term co-occurrence across papers.
 - **NER Visualizations**: Extracts entities (PERSON, ORG, GPE, PRODUCT, DATE) and visualizes them via word cloud, network, histogram, radar chart, and sunburst chart.
 - Replace `<your-repo>/<branch>` in DB URLs with the actual GitHub repository path.
 - Visualizations are limited to manageable data sizes for performance (e.g., top 50 terms, top 50 entity pairs).
