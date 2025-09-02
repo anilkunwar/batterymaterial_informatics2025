@@ -1,382 +1,1075 @@
-import streamlit as st
-import sqlite3
-import pandas as pd
-import requests
 import os
-from io import BytesIO
-import re
-from collections import Counter
-from itertools import combinations
+import sqlite3
+import streamlit as st
+import pandas as pd
 import spacy
+from spacy.language import Language
+from collections import Counter
+import re
+from transformers import AutoModel, AutoTokenizer
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
+import torch
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import logging
 import networkx as nx
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
-from typing import List, Dict, Tuple, Set
+from nltk import ngrams
+from itertools import chain, combinations
+import math
+import glob
+import uuid
+import seaborn as sns
 
-# -----------------------------
-# App configuration
-# -----------------------------
-st.set_page_config(
-    page_title="Lithium Battery DB Analysis",
-    layout="wide",
-    initial_sidebar_state="expanded",
+# Matplotlib configuration
+plt.rcParams.update({
+    'font.family': 'DejaVu Sans',
+    'font.size': 10,
+    'axes.linewidth': 1.5,
+    'axes.titlesize': 12,
+    'axes.labelsize': 10,
+    'xtick.labelsize': 8,
+    'ytick.labelsize': 8,
+    'legend.fontsize': 8,
+    'figure.dpi': 200,
+    'savefig.transparent': True
+})
+
+# Directory setup
+DB_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Logging setup
+logging.basicConfig(
+    filename=os.path.join(DB_DIR, 'common_term_ner_scibert.log'),
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-st.title("Lithium Battery Research DB Analysis")
-st.write(
-    "Analyze SQLite databases (`lithiumbattery_minimetadata.db` or `lithiumbattery_miniuniverse.db`) "
-    "for lithium-ion battery research papers on plasticity, fracture, fatigue, and damage."
-)
+# Streamlit configuration
+st.set_page_config(page_title="Common Term and NER Analysis Tool (SciBERT)", layout="wide")
+st.title("Common Term and Rule-Based NER Analysis for Lithium-Ion Battery Mechanics (SciBERT)")
+st.markdown("""
+This tool inspects SQLite databases, extracts common terms and phrases, and performs rule-based NER analysis using SciBERT for lithium-ion battery mechanics.
+Select or upload a database, then use the tabs to inspect the database, analyze terms, or extract entities associated with numerical values.
+""")
 
-# -----------------------------
 # Load spaCy model with fallback
-# -----------------------------
-@st.cache_resource
-def load_spacy_model():
-    try:
-        return spacy.load("en_core_web_md")
-    except OSError:
-        st.warning("⚠️ Falling back to 'en_core_web_sm'. Install 'en_core_web_md' for better similarity results.")
-        return spacy.load("en_core_web_sm")
-
 try:
-    nlp = load_spacy_model()
+    nlp = spacy.load("en_core_web_lg")
 except Exception as e:
-    st.error("Failed to load spaCy model. Ensure 'en_core_web_sm' is installed (pip install spacy; python -m spacy download en_core_web_sm).")
-    raise
-
-# -----------------------------
-# GitHub repository DB files
-# -----------------------------
-DB_URLS = {
-    "lithiumbattery_minimetadata.db": "https://raw.githubusercontent.com/<your-repo>/<branch>/lithiumbattery_minimetadata.db",
-    "lithiumbattery_miniuniverse.db": "https://raw.githubusercontent.com/<your-repo>/<branch>/lithiumbattery_miniuniverse.db",
-}
-
-# -----------------------------
-# Sidebar: DB selection
-# -----------------------------
-st.sidebar.header("Database Selection")
-db_option = st.sidebar.selectbox(
-    "Select or upload a database",
-    options=["Select from GitHub"] + list(DB_URLS.keys()) + ["Upload custom .db file"],
-    index=0,
-)
-
-db_path = None
-if db_option == "Upload custom .db file":
-    uploaded_db = st.sidebar.file_uploader("Upload SQLite DB file", type=["db", "sqlite", "sqlite3"])
-    if uploaded_db:
-        with open("temp.db", "wb") as f:
-            f.write(uploaded_db.read())
-        db_path = "temp.db"
-elif db_option in DB_URLS:
+    st.warning(f"Failed to load 'en_core_web_lg': {e}. Using 'en_core_web_sm'.")
     try:
-        response = requests.get(DB_URLS[db_option], stream=True)
-        if response.status_code == 200:
-            db_path = db_option
-            with open(db_path, "wb") as f:
-                f.write(response.content)
-        else:
-            st.error(f"Failed to fetch {db_option} from GitHub.")
-    except Exception as e:
-        st.error(f"Error downloading {db_option}: {e}")
-
-# -----------------------------
-# Database connection and schema check
-# -----------------------------
-def get_db_connection(db_path: str) -> sqlite3.Connection:
-    con = sqlite3.connect(db_path)
-    return con
-
-def check_schema(con: sqlite3.Connection, expected_tables: List[str]) -> bool:
-    cur = con.cursor()
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = [row[0] for row in cur.fetchall()]
-    return all(t in tables for t in expected_tables)
-
-# -----------------------------
-# Tab setup
-# -----------------------------
-if db_path:
-    con = get_db_connection(db_path)
-    is_metadata_db = check_schema(con, ["papers", "topic_counts"])
-    is_universe_db = check_schema(con, ["pages"])
-    if not (is_metadata_db or is_universe_db):
-        st.error("Selected DB does not match expected schema (needs 'papers'/'topic_counts' or 'pages').")
+        nlp = spacy.load("en_core_web_sm")
+    except Exception as e2:
+        st.error(f"Failed to load spaCy: {e2}. Install: `python -m spacy download en_core_web_sm`")
         st.stop()
 
-    tab1, tab2, tab3 = st.tabs(["Data Inspection", "Term Analysis", "NER Visualizations"])
+# Custom spaCy tokenizer for hyphenated phrases
+@Language.component("custom_tokenizer")
+def custom_tokenizer(doc):
+    hyphenated_phrases = ["lithium-ion", "Li-ion", "young’s modulus"]
+    for phrase in hyphenated_phrases:
+        if phrase.lower() in doc.text.lower():
+            with doc.retokenize() as retokenizer:
+                for match in re.finditer(rf'\b{re.escape(phrase)}\b', doc.text, re.IGNORECASE):
+                    start_char, end_char = match.span()
+                    start_token = None
+                    for token in doc:
+                        if token.idx >= start_char:
+                            start_token = token.i
+                            break
+                    if start_token is not None:
+                        retokenizer.merge(doc[start_token:start_token+len(phrase.split('-'))])
+    return doc
 
-    # -----------------------------
-    # Tab 1: Data Inspection
-    # -----------------------------
-    with tab1:
-        st.header("Data Inspection")
-        if is_metadata_db:
-            st.subheader("Papers Table")
-            df_papers = pd.read_sql_query("SELECT * FROM papers", con)
-            st.dataframe(df_papers, use_container_width=True)
+nlp.add_pipe("custom_tokenizer", before="parser")
+nlp.max_length = 500_000
 
-            st.subheader("Topic Counts")
-            df_topics = pd.read_sql_query("SELECT * FROM topic_counts", con)
-            st.dataframe(df_topics, use_container_width=True)
+# Load SciBERT model
+try:
+    scibert_tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased")
+    scibert_model = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
+    scibert_model.eval()
+except Exception as e:
+    st.error(f"Failed to load SciBERT: {e}. Install: `pip install transformers torch`")
+    st.stop()
 
-            # Simple stats
-            st.write(f"Total papers: {len(df_papers)}")
-            st.write(f"Total topic counts: {len(df_topics)}")
-            topic_pivot = df_topics.pivot(index="paper_id", columns="topic", values="count").fillna(0)
-            st.write("Topic counts per paper:")
-            st.dataframe(topic_pivot, use_container_width=True)
+# Initialize session state
+if "log_buffer" not in st.session_state:
+    st.session_state.log_buffer = []
+if "ner_results" not in st.session_state:
+    st.session_state.ner_results = None
+if "raw_common_terms" not in st.session_state:
+    st.session_state.raw_common_terms = None
+if "common_terms" not in st.session_state:
+    st.session_state.common_terms = None
+if "db_file" not in st.session_state:
+    st.session_state.db_file = None
+if "term_counts" not in st.session_state:
+    st.session_state.term_counts = None
+if "csv_data" not in st.session_state:
+    st.session_state.csv_data = None
+if "csv_filename" not in st.session_state:
+    st.session_state.csv_filename = None
 
-        if is_universe_db:
-            st.subheader("Pages Table")
-            df_pages = pd.read_sql_query("SELECT * FROM pages LIMIT 100", con)
-            st.dataframe(df_pages, use_container_width=True)
-            st.write(f"Total pages: {pd.read_sql_query('SELECT COUNT(*) FROM pages', con).iloc[0][0]}")
+def update_log(message):
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.log_buffer.append(f"[{timestamp}] {message}")
+    if len(st.session_state.log_buffer) > 30:
+        st.session_state.log_buffer.pop(0)
+    logging.info(message)
 
-            # Full-text search if available
-            try:
-                search_query = st.text_input("Search pages (if FTS5 enabled):", "")
+@st.cache_data
+def get_scibert_embedding(text):
+    try:
+        if not text.strip():
+            update_log(f"Skipping empty text for SciBERT embedding")
+            return None
+        inputs = scibert_tokenizer(text, return_tensors="pt", truncation=True, max_length=64, padding=True)
+        with torch.no_grad():
+            outputs = scibert_model(**inputs, output_hidden_states=True)
+        last_hidden_state = outputs.hidden_states[-1].mean(dim=1).squeeze().numpy()
+        norm = np.linalg.norm(last_hidden_state)
+        if norm == 0:
+            update_log(f"Zero norm for embedding of '{text}'")
+            return None
+        return last_hidden_state / norm
+    except Exception as e:
+        update_log(f"SciBERT embedding failed for '{text}': {str(e)}")
+        return None
+
+def inspect_database(db_path):
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        st.subheader("Tables in Database")
+        if tables:
+            st.write([table[0] for table in tables])
+        else:
+            st.warning("No tables found in the database.")
+            conn.close()
+            return None
+
+        # Check for 'pages' table (lithiumbattery_miniuniverse.db)
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pages';")
+        if cursor.fetchone():
+            st.subheader("Schema of 'pages' Table")
+            cursor.execute("PRAGMA table_info(pages);")
+            schema = cursor.fetchall()
+            schema_df = pd.DataFrame(schema, columns=["cid", "name", "type", "notnull", "dflt_value", "pk"])
+            st.dataframe(schema_df[["name", "type", "notnull", "dflt_value", "pk"]], use_container_width=True)
+
+            query = "SELECT filename, page_num, substr(text, 1, 200) as sample_content FROM pages WHERE text IS NOT NULL LIMIT 5"
+            df = pd.read_sql_query(query, conn)
+            st.subheader("Sample Rows from 'pages' Table (First 5 Pages)")
+            if df.empty:
+                st.warning("No valid pages found in the 'pages' table.")
+            else:
+                st.dataframe(df, use_container_width=True)
+
+            cursor.execute("SELECT COUNT(*) as count FROM pages WHERE text IS NOT NULL")
+            total_pages = cursor.fetchone()[0]
+            st.subheader("Total Valid Pages")
+            st.write(f"{total_pages} pages")
+
+            # Full-text search if 'page_fts' exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='page_fts';")
+            if cursor.fetchone():
+                search_query = st.text_input("Search pages (FTS5 enabled):", "")
                 if search_query:
                     df_search = pd.read_sql_query(
                         "SELECT filename, page_num, text, rank FROM page_fts WHERE page_fts MATCH ? ORDER BY rank LIMIT 50",
-                        con, params=(search_query,)
+                        conn, params=(search_query,)
                     )
-                    st.write("Search results:")
+                    st.subheader("Search Results")
                     st.dataframe(df_search, use_container_width=True)
-            except sqlite3.OperationalError:
-                st.info("Full-text search not available (FTS5 not enabled in this DB).")
 
-    # -----------------------------
-    # Tab 2: Common Term Analysis (Semantic Similarity)
-    # -----------------------------
-    with tab2:
-        st.header("Common Term Analysis")
-        if not is_universe_db:
-            st.warning("This tab requires 'lithiumbattery_miniuniverse.db' with a 'pages' table.")
-        else:
-            st.write("Extracting common terms across papers and computing semantic similarity using spaCy.")
+            terms_to_search = ["lithium-ion battery", "stress", "strain", "young’s modulus", "volume expansion"]
+            st.subheader("Term Frequency in 'text' Column")
+            term_counts = {}
+            for term in terms_to_search:
+                cursor.execute(f"SELECT COUNT(*) FROM pages WHERE text LIKE '%{term}%' AND text IS NOT NULL")
+                count = cursor.fetchone()[0]
+                term_counts[term] = count
+                st.write(f"'{term}': {count} pages")
 
-            # Load all text
-            df_pages = pd.read_sql_query("SELECT filename, text FROM pages", con)
-            docs_by_file = df_pages.groupby("filename")["text"].apply(lambda x: " ".join(x)).to_dict()
-
-            # User options
-            top_n_terms = st.slider("Number of top terms to analyze", 10, 100, 50)
-            similarity_threshold = st.slider("Semantic similarity threshold", 0.0, 1.0, 0.7)
-
-            # Extract terms
-            all_terms: Counter = Counter()
-            for text in docs_by_file.values():
-                doc = nlp(text[:1000000])  # Limit to avoid memory issues
-                terms = [
-                    token.lemma_.lower() for token in doc
-                    if token.is_alpha and not token.is_stop and len(token.text) > 2
-                ]
-                all_terms.update(terms)
-            top_terms = [term for term, _ in all_terms.most_common(top_n_terms)]
-
-            # Compute similarity matrix
-            term_docs = [nlp(" ".join([term] * 3)) for term in top_terms]  # Boost term context
-            sim_matrix = np.zeros((len(top_terms), len(top_terms)))
-            for i, doc_i in enumerate(term_docs):
-                for j, doc_j in enumerate(term_docs[i+1:], i+1):
-                    sim = doc_i.similarity(doc_j)
-                    sim_matrix[i, j] = sim
-                    sim_matrix[j, i] = sim
-
-            # Display similarity heatmap
-            fig = px.imshow(
-                sim_matrix,
-                x=top_terms,
-                y=top_terms,
-                color_continuous_scale="Viridis",
-                title="Term Similarity Heatmap",
-                range_color=[0, 1],
+            query = "SELECT filename, page_num, substr(text, 1, 1000) as text FROM pages WHERE text IS NOT NULL LIMIT 10"
+            df_full = pd.read_sql_query(query, conn)
+            csv_filename = f"database_sample_{uuid.uuid4().hex}.csv"
+            csv_path = os.path.join(DB_DIR, csv_filename)
+            df_full.to_csv(csv_path, index=False)
+            with open(csv_path, "rb") as f:
+                st.session_state.csv_data = f.read()
+            st.session_state.csv_filename = csv_filename
+            st.subheader("Download Sample Content")
+            st.download_button(
+                label="Download Sample CSV",
+                data=st.session_state.csv_data,
+                file_name="database_sample.csv",
+                mime="text/csv",
+                key="download_csv"
             )
-            fig.update_layout(width=800, height=800)
-            st.plotly_chart(fig, use_container_width=True)
+            conn.close()
+            st.success(f"Database inspection completed for {os.path.basename(db_path)}")
+            return term_counts
 
-            # Terms co-occurring in papers
-            st.subheader("Term Co-occurrence Across Papers")
-            term_presence: Dict[str, Set[str]] = {term: set() for term in top_terms}
-            for filename, text in docs_by_file.items():
-                doc = nlp(text[:1000000])
-                doc_terms = set(token.lemma_.lower() for token in doc if token.lemma_.lower() in top_terms)
-                for term in doc_terms:
-                    term_presence[term].add(filename)
+        # Check for 'papers' table (lithiumbattery_minimetadata.db or other)
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='papers';")
+        if cursor.fetchone():
+            st.subheader("Schema of 'papers' Table")
+            cursor.execute("PRAGMA table_info(papers);")
+            schema = cursor.fetchall()
+            schema_df = pd.DataFrame(schema, columns=["cid", "name", "type", "notnull", "dflt_value", "pk"])
+            st.dataframe(schema_df[["name", "type", "notnull", "dflt_value", "pk"]], use_container_width=True)
 
-            # Build co-occurrence matrix
-            co_matrix = np.zeros((len(top_terms), len(top_terms)))
-            for i, term_i in enumerate(top_terms):
-                for j, term_j in enumerate(top_terms[i+1:], i+1):
-                    common_papers = len(term_presence[term_i] & term_presence[term_j])
-                    co_matrix[i, j] = common_papers
-                    co_matrix[j, i] = common_papers
-
-            fig_co = px.imshow(
-                co_matrix,
-                x=top_terms,
-                y=top_terms,
-                color_continuous_scale="Blues",
-                title="Term Co-occurrence Across Papers",
-                text_auto=".0f",
-            )
-            fig_co.update_layout(width=800, height=800)
-            st.plotly_chart(fig_co, use_container_width=True)
-
-    # -----------------------------
-    # Tab 3: NER Visualizations
-    # -----------------------------
-    with tab3:
-        st.header("NER Analysis and Visualizations")
-        if not is_universe_db:
-            st.warning("This tab requires 'lithiumbattery_miniuniverse.db' with a 'pages' table.")
-        else:
-            st.write("Performing Named Entity Recognition (NER) and generating visualizations.")
-
-            # NER extraction
-            entity_counts: Counter = Counter()
-            entity_types: Dict[str, List[str]] = {}
-            df_pages = pd.read_sql_query("SELECT filename, text FROM pages", con)
-            for _, row in df_pages.iterrows():
-                doc = nlp(row["text"][:1000000])
-                for ent in doc.ents:
-                    if ent.label_ in ["PERSON", "ORG", "GPE", "PRODUCT", "DATE"]:
-                        entity_counts[ent.text] += 1
-                        if ent.label_ not in entity_types:
-                            entity_types[ent.label_] = []
-                        entity_types[ent.label_].append(ent.text)
-
-            # Word Cloud
-            st.subheader("Word Cloud of Entities")
-            if entity_counts:
-                wc = WordCloud(width=800, height=400, background_color="white").generate_from_frequencies(
-                    dict(entity_counts)
-                )
-                fig, ax = plt.subplots()
-                ax.imshow(wc, interpolation="bilinear")
-                ax.axis("off")
-                st.pyplot(fig)
+            # Check for 'content' column; if absent, warn user
+            cursor.execute("PRAGMA table_info(papers);")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'content' not in columns:
+                st.warning("No 'content' column in 'papers' table. Term and NER analysis may fail.")
+                query = "SELECT * FROM papers LIMIT 5"
             else:
-                st.info("No entities found for word cloud.")
-
-            # Network of Entities
-            st.subheader("Entity Co-occurrence Network")
-            G = nx.Graph()
-            entity_pairs: Counter = Counter()
-            for _, row in df_pages.iterrows():
-                doc = nlp(row["text"][:1000000])
-                entities = [ent.text for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE", "PRODUCT"]]
-                for pair in combinations(entities, 2):
-                    entity_pairs[tuple(sorted(pair))] += 1
-
-            for (e1, e2), count in entity_pairs.most_common(50):
-                G.add_edge(e1, e2, weight=count)
-
-            pos = nx.spring_layout(G)
-            edge_x = []
-            edge_y = []
-            for edge in G.edges():
-                x0, y0 = pos[edge[0]]
-                x1, y1 = pos[edge[1]]
-                edge_x.extend([x0, x1, None])
-                edge_y.extend([y0, y1, None])
-
-            node_x = [pos[node][0] for node in G.nodes()]
-            node_y = [pos[node][1] for node in G.nodes()]
-            node_sizes = [G.degree(node) * 10 for node in G.nodes()]
-
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=edge_x, y=edge_y, mode="lines",
-                line=dict(width=0.5, color="#888"),
-                hoverinfo="none"
-            ))
-            fig.add_trace(go.Scatter(
-                x=node_x, y=node_y, mode="markers+text",
-                text=list(G.nodes()), textposition="top center",
-                marker=dict(size=node_sizes, color="skyblue"),
-                hoverinfo="text"
-            ))
-            fig.update_layout(showlegend=False, width=800, height=600, title="Entity Co-occurrence Network")
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Histogram of Entity Types
-            st.subheader("Histogram of Entity Types")
-            ent_type_counts = Counter([ent.label_ for ents in entity_types.values() for ent in ents])
-            fig_hist = px.bar(
-                x=list(ent_type_counts.keys()),
-                y=list(ent_type_counts.values()),
-                labels={"x": "Entity Type", "y": "Count"},
-                title="Entity Type Distribution",
-            )
-            st.plotly_chart(fig_hist, use_container_width=True)
-
-            # Radar Chart of Entity Types per Paper
-            st.subheader("Radar Chart of Entity Types per Paper")
-            if is_metadata_db:
-                df_papers = pd.read_sql_query("SELECT filename FROM papers", con)
-                radar_data = []
-                for filename in df_papers["filename"][:5]:  # Limit for performance
-                    df_file = df_pages[df_pages["filename"] == filename]
-                    text = " ".join(df_file["text"])
-                    doc = nlp(text[:1000000])
-                    counts = Counter(ent.label_ for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE", "PRODUCT", "DATE"])
-                    radar_data.append({"filename": filename, **counts})
-
-                if radar_data:
-                    fig_radar = go.Figure()
-                    for data in radar_data:
-                        fig_radar.add_trace(go.Scatterpolar(
-                            r=[data.get(cat, 0) for cat in ["PERSON", "ORG", "GPE", "PRODUCT", "DATE"]],
-                            theta=["PERSON", "ORG", "GPE", "PRODUCT", "DATE"],
-                            name=data["filename"],
-                            fill="toself"
-                        ))
-                    fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True)
-                    st.plotly_chart(fig_radar, use_container_width=True)
-                else:
-                    st.info("No entity data for radar chart.")
-
-            # Hierarchical Sunburst Chart
-            st.subheader("Hierarchical Sunburst Chart of Entities")
-            sunburst_data = []
-            for ent_type, ents in entity_types.items():
-                for ent in set(ents):
-                    sunburst_data.append({"type": ent_type, "entity": ent, "count": entity_counts[ent]})
-
-            if sunburst_data:
-                fig_sunburst = px.sunburst(
-                    sunburst_data,
-                    path=["type", "entity"],
-                    values="count",
-                    title="Entity Hierarchy",
-                    maxdepth=2,
-                )
-                st.plotly_chart(fig_sunburst, use_container_width=True)
+                query = "SELECT id, title, year, substr(content, 1, 200) as sample_content FROM papers WHERE content IS NOT NULL AND content NOT LIKE 'Error%' LIMIT 5"
+            df = pd.read_sql_query(query, conn)
+            st.subheader("Sample Rows from 'papers' Table (First 5 Papers)")
+            if df.empty:
+                st.warning("No valid papers found in the 'papers' table.")
             else:
-                st.info("No entities for sunburst chart.")
+                st.dataframe(df, use_container_width=True)
 
-    con.close()
-    if db_path == "temp.db" and os.path.exists("temp.db"):
-        os.remove("temp.db")
+            cursor.execute("SELECT COUNT(*) as count FROM papers WHERE content IS NOT NULL AND content NOT LIKE 'Error%'")
+            total_papers = cursor.fetchone()[0]
+            st.subheader("Total Valid Papers")
+            st.write(f"{total_papers} papers")
 
+            if 'content' in columns:
+                terms_to_search = ["lithium-ion battery", "stress", "strain", "young’s modulus", "volume expansion"]
+                st.subheader("Term Frequency in 'content' Column")
+                term_counts = {}
+                for term in terms_to_search:
+                    cursor.execute(f"SELECT COUNT(*) FROM papers WHERE content LIKE '%{term}%' AND content IS NOT NULL AND content NOT LIKE 'Error%'")
+                    count = cursor.fetchone()[0]
+                    term_counts[term] = count
+                    st.write(f"'{term}': {count} papers")
+
+                query = "SELECT id, title, year, substr(content, 1, 1000) as content FROM papers WHERE content IS NOT NULL AND content NOT LIKE 'Error%' LIMIT 10"
+            else:
+                query = "SELECT * FROM papers LIMIT 10"
+                term_counts = {}
+            df_full = pd.read_sql_query(query, conn)
+            csv_filename = f"database_sample_{uuid.uuid4().hex}.csv"
+            csv_path = os.path.join(DB_DIR, csv_filename)
+            df_full.to_csv(csv_path, index=False)
+            with open(csv_path, "rb") as f:
+                st.session_state.csv_data = f.read()
+            st.session_state.csv_filename = csv_filename
+            st.subheader("Download Sample Content")
+            st.download_button(
+                label="Download Sample CSV",
+                data=st.session_state.csv_data,
+                file_name="database_sample.csv",
+                mime="text/csv",
+                key="download_csv"
+            )
+
+            # Display topic_counts if available
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='topic_counts';")
+            if cursor.fetchone():
+                st.subheader("Topic Counts")
+                df_topics = pd.read_sql_query("SELECT * FROM topic_counts", conn)
+                st.dataframe(df_topics, use_container_width=True)
+                st.write(f"Total topic counts: {len(df_topics)}")
+
+            conn.close()
+            st.success(f"Database inspection completed for {os.path.basename(db_path)}")
+            return term_counts
+
+        st.warning("No 'papers' or 'pages' table found in the database.")
+        conn.close()
+        return None
+    except Exception as e:
+        st.error(f"Error reading database: {str(e)}")
+        return None
+
+@st.cache_data(hash_funcs={str: lambda x: x})
+def extract_common_terms(db_file, min_freq=10, phrase_weight=1.5, pmi_threshold=2.0):
+    try:
+        update_log(f"Starting common term extraction from {os.path.basename(db_file)}")
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pages';")
+        if cursor.fetchone():
+            query = "SELECT text AS content FROM pages WHERE text IS NOT NULL"
+            df = pd.read_sql_query(query, conn)
+        else:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='papers';")
+            if cursor.fetchone():
+                cursor.execute("PRAGMA table_info(papers);")
+                columns = [col[1] for col in cursor.fetchall()]
+                if 'content' not in columns:
+                    st.warning("No 'content' column in 'papers' table. Term extraction may fail.")
+                    conn.close()
+                    return []
+                query = "SELECT content FROM papers WHERE content IS NOT NULL AND content NOT LIKE 'Error%'"
+                df = pd.read_sql_query(query, conn)
+            else:
+                st.warning("No 'papers' or 'pages' table found.")
+                conn.close()
+                return []
+        conn.close()
+        if df.empty:
+            update_log(f"No valid content found in {os.path.basename(db_file)}")
+            st.warning(f"No valid content found in {os.path.basename(db_file)}.")
+            return []
+        update_log(f"Loaded {len(df)} content entries")
+        total_words = 0
+        term_counts = Counter()
+        word_counts = Counter()
+        phrase_counts = Counter()
+        prioritized_phrases = [
+            "lithium-ion battery", "li-ion battery", "young’s modulus", "volume expansion",
+            "mechanical stress", "linear strain"
+        ]
+        prioritized_single_terms = ["strain", "stress", "modulus", "lithium", "anode"]
+        progress_bar = st.progress(0)
+        for i, content in enumerate(df["content"].dropna()):
+            if len(content) > nlp.max_length:
+                content = content[:nlp.max_length]
+                update_log(f"Truncated content for entry {i+1}")
+            chunk_size = 100_000
+            content_chunks = [content[j:j+chunk_size] for j in range(0, len(content), chunk_size)]
+            for chunk_idx, chunk in enumerate(content_chunks):
+                try:
+                    doc = nlp(chunk.lower())
+                    phrases = [span.text.strip() for span in doc.noun_chunks if 1 < len(span.text.split()) <= 3]
+                    single_words = [token.text for token in doc if token.text.isalpha() and not token.is_stop and len(token.text) > 3]
+                    words = [token.text for token in doc if token.text.isalpha() and not token.is_stop]
+                    n_grams = list(chain(ngrams(words, 2), ngrams(words, 3)))
+                    n_gram_phrases = [' '.join(gram) for gram in n_grams if 1 < len(gram) <= 3]
+                    all_phrases = phrases + n_gram_phrases
+                    merged_phrases = []
+                    for p in all_phrases:
+                        if p.replace(" ", "") in ["lithiumionbattery", "liionbattery"]:
+                            merged_phrases.append("lithium-ion battery")
+                        elif p == "lithium ion battery":
+                            merged_phrases.append("lithium-ion battery")
+                        else:
+                            merged_phrases.append(p)
+                    all_terms = merged_phrases + single_words
+                    term_counts.update(all_terms)
+                    word_counts.update(words)
+                    phrase_counts.update([t for t in all_terms if len(t.split()) > 1])
+                    total_words += len(words)
+                except Exception as e:
+                    update_log(f"Error processing chunk {chunk_idx+1} in entry {i+1}: {str(e)}")
+            progress_bar.progress((i + 1) / len(df))
+        weighted_terms = []
+        for term, count in term_counts.most_common():
+            if term in prioritized_phrases or term in prioritized_single_terms:
+                weighted_terms.append((term, count))
+            elif len(term.split()) > 1:
+                pmi = calculate_pmi(term, word_counts, phrase_counts, total_words)
+                if pmi >= pmi_threshold or count >= min_freq:
+                    weighted_count = count * phrase_weight
+                    weighted_terms.append((term, weighted_count))
+            elif count >= min_freq:
+                weighted_terms.append((term, count))
+        common_terms = sorted(weighted_terms, key=lambda x: x[1], reverse=True)[:50]
+        if not common_terms:
+            update_log(f"No terms/phrases extracted from {os.path.basename(db_file)}")
+            st.warning(f"No terms/phrases extracted. Adjust parameters.")
+            return []
+        update_log(f"Extracted {len(common_terms)} common terms")
+        return common_terms
+    except Exception as e:
+        update_log(f"Error extracting terms: {str(e)}")
+        st.error(f"Error extracting terms: {str(e)}")
+        return []
+
+def calculate_pmi(phrase, word_counts, phrase_counts, total_words):
+    words = phrase.split()
+    if len(words) < 2:
+        return 0.0
+    joint_prob = phrase_counts[phrase] / total_words if phrase in phrase_counts else 0
+    word_probs = [word_counts[word] / total_words for word in words]
+    if any(p == 0 for p in word_probs) or joint_prob == 0:
+        return 0.0
+    pmi = math.log2(joint_prob / np.prod(word_probs))
+    return pmi
+
+def perform_ner_on_terms(db_file, selected_terms):
+    try:
+        update_log(f"Starting rule-based NER for terms: {', '.join(selected_terms)}")
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pages';")
+        if cursor.fetchone():
+            query = "SELECT filename as title, page_num as id, text as content, NULL as year FROM pages WHERE text IS NOT NULL"
+        else:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='papers';")
+            if cursor.fetchone():
+                cursor.execute("PRAGMA table_info(papers);")
+                columns = [col[1] for col in cursor.fetchall()]
+                if 'content' not in columns:
+                    st.warning("No 'content' column in 'papers' table. NER analysis may fail.")
+                    conn.close()
+                    return pd.DataFrame()
+                query = "SELECT id, title, year, content FROM papers WHERE content IS NOT NULL AND content NOT LIKE 'Error%'"
+            else:
+                st.warning("No 'papers' or 'pages' table found.")
+                conn.close()
+                return pd.DataFrame()
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        if df.empty:
+            update_log(f"No valid content found in {os.path.basename(db_file)}")
+            st.error("No valid content found.")
+            return pd.DataFrame()
+        update_log(f"Loaded {len(df)} content entries for NER")
+        entities = []
+        entity_set = set()
+        progress_bar = st.progress(0)
+        reference_terms = {
+            "STRAIN": ["strain", "mechanical strain", "deformation", "diagonal strain"],
+            "STRESS": ["stress", "mechanical stress", "von Mises stress", "hydrostatic stress", "equivalent stress"],
+            "VOLUME_EXPANSION": ["volume expansion", "swelling", "volumetric expansion", "volume change",
+                                "volumetric change", "electrode swelling", "material swelling",
+                                "dimensional change", "volume deformation", "volume increase",
+                                "volumetric strain", "volume growth", "expansion strain", "dilatation",
+                                "volume distortion"],
+            "YOUNGS_MODULUS": ["young’s modulus", "elastic modulus", "young modulus", "modulus of elasticity"],
+            "BATTERY": ["lithium-ion battery", "li-ion battery", "battery", "specific capacity", "electrode capacity"]
+        }
+        valid_ranges = {
+            "STRAIN": (0, 100, "%"),
+            "STRESS": (0, 1000, "MPa"),
+            "VOLUME_EXPANSION": (0, 500, "%"),
+            "YOUNGS_MODULUS": (0, 1000, "GPa"),
+            "BATTERY": (0, 4000, "mAh/g")
+        }
+        similarity_threshold = 0.6
+        ref_embeddings = {label: [get_scibert_embedding(term) for term in terms if get_scibert_embedding(term) is not None] for label, terms in reference_terms.items()}
+        numerical_pattern = r"(\d+\.?\d*[eE]?-?\d*|\d+)\s*(mpa|gpa|kpa|pa|%|mAh/g|MPa|GPa)"
+        term_patterns = {term: re.compile(rf'\b{re.escape(term)}\b', re.IGNORECASE) for term in selected_terms}
+        batch_size = 2
+        for batch_start in range(0, len(df), batch_size):
+            batch_df = df.iloc[batch_start:batch_start+batch_size]
+            for _, row in batch_df.iterrows():
+                try:
+                    text = row["content"].lower()
+                    text = re.sub(r"young's modulus|youngs modulus", "young’s modulus", text)
+                    if len(text) > nlp.max_length:
+                        text = text[:nlp.max_length]
+                        update_log(f"Truncated content for entry {row['id']}")
+                    if not text.strip() or len(text) < 10:
+                        update_log(f"Skipping entry {row['id']} due to empty/short content")
+                        continue
+                    doc = nlp(text)
+                    spans = []
+                    for sent_idx, sent in enumerate(doc.sents):
+                        if any(term_patterns[term].search(sent.text) for term in selected_terms):
+                            update_log(f"Term found in sentence in entry {row['id']}: {sent.text[:100]}")
+                            start_sent_idx = max(0, sent_idx - 2)
+                            end_sent_idx = min(len(list(doc.sents)), sent_idx + 3)
+                            for nearby_sent in list(doc.sents)[start_sent_idx:end_sent_idx]:
+                                matches = re.finditer(numerical_pattern, nearby_sent.text, re.IGNORECASE)
+                                for match in matches:
+                                    start_char = nearby_sent.start_char + match.start()
+                                    end_char = nearby_sent.start_char + match.end()
+                                    span = doc.char_span(start_char, end_char, alignment_mode="expand")
+                                    if span:
+                                        spans.append((span, sent.text, nearby_sent.text))
+                    if not spans:
+                        update_log(f"No valid spans in entry {row['id']}")
+                        continue
+                    for span, orig_sent, nearby_sent in spans:
+                        span_text = span.text.lower().strip()
+                        if not span_text:
+                            update_log(f"Skipping empty span in entry {row['id']}")
+                            continue
+                        term_matched = False
+                        for term in selected_terms:
+                            if term_patterns[term].search(span_text) or term_patterns[term].search(orig_sent) or term_patterns[term].search(nearby_sent):
+                                term_matched = True
+                                update_log(f"Term '{term}' matched in entry {row['id']} for span '{span_text}'")
+                                break
+                        if not term_matched:
+                            span_embedding = get_scibert_embedding(span_text)
+                            if span_embedding is None:
+                                update_log(f"Skipping span '{span_text}' in entry {row['id']}: no embedding")
+                                continue
+                            term_embeddings = [get_scibert_embedding(term) for term in selected_terms if get_scibert_embedding(term) is not None]
+                            similarities = [
+                                np.dot(span_embedding, t_emb) / (np.linalg.norm(span_embedding) * np.linalg.norm(t_emb))
+                                for t_emb in term_embeddings
+                                if np.linalg.norm(span_embedding) != 0 and np.linalg.norm(t_emb) != 0
+                            ]
+                            if any(s > 0.5 for s in similarities):
+                                term_matched = True
+                                update_log(f"Similarity match for span '{span_text}' in entry {row['id']}: {max(similarities)}")
+                        if not term_matched:
+                            update_log(f"No term match for span '{span_text}' in entry {row['id']}")
+                            continue
+                        value_match = re.match(numerical_pattern, span_text, re.IGNORECASE)
+                        if not value_match:
+                            update_log(f"Skipping span '{span_text}' in entry {row['id']}: no numerical value")
+                            continue
+                        try:
+                            value = float(value_match.group(1))
+                        except ValueError:
+                            update_log(f"Invalid numerical value in span '{span_text}' in entry {row['id']}")
+                            continue
+                        unit = value_match.group(2).upper()
+                        if unit in ["GPA", "GPa"]:
+                            unit = "GPa"
+                        elif unit in ["MPA", "MPa"]:
+                            unit = "MPa"
+                        elif unit == "KPA":
+                            unit = "MPa"
+                            value /= 1000
+                        elif unit == "PA":
+                            unit = "MPa"
+                            value /= 1_000_000
+                        elif unit == "MAH/G":
+                            unit = "mAh/g"
+                        span_embedding = get_scibert_embedding(span_text)
+                        if span_embedding is None:
+                            update_log(f"Skipping span '{span_text}' in entry {row['id']}: no embedding for label")
+                            continue
+                        best_label = None
+                        best_similarity = 0
+                        for label, ref_embeds in ref_embeddings.items():
+                            for ref_embed in ref_embeds:
+                                if np.linalg.norm(span_embedding) == 0 or np.linalg.norm(ref_embed) == 0:
+                                    continue
+                                similarity = np.dot(span_embedding, ref_embed) / (np.linalg.norm(span_embedding) * np.linalg.norm(ref_embed))
+                                if similarity > similarity_threshold and similarity > best_similarity:
+                                    best_label = label
+                                    best_similarity = similarity
+                        if not best_label:
+                            update_log(f"No label match for span '{span_text}' in entry {row['id']}")
+                            continue
+                        if best_label == "YOUNGS_MODULUS" and unit == "MPa":
+                            value /= 1000
+                            unit = "GPa"
+                        if best_label in valid_ranges:
+                            min_val, max_val, expected_units = valid_ranges[best_label]
+                            if isinstance(expected_units, list):
+                                if not (min_val <= value <= max_val and unit in expected_units):
+                                    update_log(f"Skipping span '{span_text}' in entry {row['id']}: invalid value/unit ({value} {unit})")
+                                    continue
+                            else:
+                                if not (min_val <= value <= max_val and unit == expected_units):
+                                    update_log(f"Skipping span '{span_text}' in entry {row['id']}: invalid value/unit ({value} {unit})")
+                                    continue
+                        entity_key = (row["id"], span_text, best_label, value, unit)
+                        if entity_key in entity_set:
+                            continue
+                        entity_set.add(entity_key)
+                        context_start = max(0, span.start_char - 100)
+                        context_end = min(len(text), span.end_char + 100)
+                        context_text = text[context_start:context_end].replace("\n", " ")
+                        entities.append({
+                            "paper_id": row["id"],
+                            "title": row["title"],
+                            "year": row["year"],
+                            "entity_text": span.text,
+                            "entity_label": best_label,
+                            "value": value,
+                            "unit": unit,
+                            "context": context_text,
+                            "score": best_similarity
+                        })
+                        update_log(f"Extracted entity: term='{span.text}', label={best_label}, value={value}, unit={unit}, entry_id={row['id']}")
+                except MemoryError as e:
+                    update_log(f"Memory error in entry {row['id']}: {str(e)}")
+                    st.error("Memory exhausted. Try reducing text length or batch size.")
+                    return pd.DataFrame()
+                except Exception as e:
+                    update_log(f"Error processing entry {row['id']}: {str(e)}")
+                progress_bar.progress(min((batch_start + _ + 1) / len(df), 1.0))
+        update_log(f"Completed NER analysis: extracted {len(entities)} entities")
+        if not entities:
+            update_log("No entities extracted. Possible issues: no numerical values, strict rules, or invalid content.")
+        return pd.DataFrame(entities)
+    except Exception as e:
+        update_log(f"NER analysis failed: {str(e)}")
+        st.error(f"NER analysis failed: {str(e)}")
+        return pd.DataFrame()
+
+@st.cache_data
+def plot_word_cloud(terms, top_n, font_size, font_type, colormap):
+    term_dict = dict(terms[:top_n])
+    font_path = None
+    if font_type and font_type != "None":
+        font_map = {'DejaVu Sans': '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'}
+        font_path = font_map.get(font_type, font_type)
+        if not os.path.exists(font_path):
+            update_log(f"Font path '{font_path}' not found")
+            font_path = None
+    wordcloud = WordCloud(
+        width=800, height=400, background_color="white", min_font_size=8, max_font_size=font_size,
+        font_path=font_path, colormap=colormap, max_words=top_n, prefer_horizontal=0.9
+    ).generate_from_frequencies(term_dict)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.imshow(wordcloud, interpolation="bilinear")
+    ax.axis("off")
+    ax.set_title(f"Word Cloud of Top {top_n} Terms")
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_term_histogram(terms, top_n):
+    terms, counts = zip(*terms[:top_n])
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(terms, counts, color="skyblue", edgecolor="black")
+    ax.set_xlabel("Terms/Phrases")
+    ax.set_ylabel("Frequency")
+    ax.set_title(f"Top {top_n} Terms")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    term_df = pd.DataFrame({"Term": terms, "Frequency": counts})
+    csv_filename = f"term_histogram_{uuid.uuid4().hex}.csv"
+    csv_path = os.path.join(DB_DIR, csv_filename)
+    term_df.to_csv(csv_path, index=False)
+    with open(csv_path, "rb") as f:
+        csv_data = f.read()
+    return fig, csv_data, csv_filename
+
+@st.cache_data
+def plot_term_co_occurrence(terms, top_n, db_file, font_size, colormap):
+    try:
+        update_log(f"Building term co-occurrence network for top {top_n} terms")
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pages';")
+        if cursor.fetchone():
+            query = "SELECT text AS content FROM pages WHERE text IS NOT NULL"
+        else:
+            query = "SELECT content FROM papers WHERE content IS NOT NULL AND content NOT LIKE 'Error%'"
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        top_terms = [term for term, _ in terms[:top_n]]
+        term_freqs = dict(terms[:top_n])
+        G = nx.Graph()
+        for term in top_terms:
+            G.add_node(term, type="term", freq=term_freqs[term])
+        for content in df["content"].values:
+            content_lower = content.lower()
+            terms_present = [term for term in top_terms if re.search(rf'\b{re.escape(term)}\b', content_lower)]
+            for term1, term2 in combinations(terms_present, 2):
+                if term1 != term2:
+                    if G.has_edge(term1, term2):
+                        G[term1][term2]["weight"] += 1
+                    else:
+                        G.add_edge(term1, term2, weight=1)
+        if G.edges():
+            fig, ax = plt.subplots(figsize=(8, 8))
+            pos = nx.spring_layout(G, k=0.5, seed=42)
+            node_sizes = [500 + 3000 * (G.nodes[term]["freq"] / max(term_freqs.values())) for term in G.nodes]
+            node_colors = [cm.get_cmap(colormap)(i / len(top_terms)) for i in range(len(top_terms))]
+            edge_widths = [2 * G[u][v]["weight"] / max([d["weight"] for _, _, d in G.edges(data=True)]) for u, v in G.edges()]
+            nx.draw(G, pos, with_labels=True, node_size=node_sizes, node_color=node_colors, width=edge_widths, font_size=font_size, font_weight="bold", ax=ax)
+            ax.set_title(f"Term Co-occurrence Network (Top {top_n} Terms)")
+            plt.tight_layout()
+            nodes_df = pd.DataFrame([(n, d["type"]) for n, d in G.nodes(data=True)], columns=["node", "type"])
+            edges_df = pd.DataFrame([(u, v, d["weight"]) for u, v, d in G.edges(data=True)], columns=["source", "target", "weight"])
+            nodes_csv_filename = f"term_co_occurrence_nodes_{uuid.uuid4().hex}.csv"
+            edges_csv_filename = f"term_co_occurrence_edges_{uuid.uuid4().hex}.csv"
+            nodes_csv_path = os.path.join(DB_DIR, nodes_csv_filename)
+            edges_csv_path = os.path.join(DB_DIR, edges_csv_filename)
+            nodes_df.to_csv(nodes_csv_path, index=False)
+            edges_df.to_csv(edges_csv_path, index=False)
+            with open(nodes_csv_path, "rb") as f:
+                nodes_csv_data = f.read()
+            with open(edges_csv_path, "rb") as f:
+                edges_csv_data = f.read()
+            return fig, (nodes_csv_data, nodes_csv_filename, edges_csv_data, edges_csv_filename)
+        update_log("No co-occurrences found for term network")
+        return None, None
+    except Exception as e:
+        update_log(f"Error building term co-occurrence network: {str(e)}")
+        return None, None
+
+@st.cache_data
+def plot_ner_histogram(df, top_n, colormap):
+    try:
+        update_log(f"Building NER histogram for top {top_n} entities")
+        if df.empty:
+            update_log("Empty NER dataframe for histogram")
+            return None
+        label_counts = df["entity_label"].value_counts().head(top_n)
+        labels = label_counts.index.tolist()
+        counts = label_counts.values
+        fig, ax = plt.subplots(figsize=(8, 4))
+        colors = [cm.get_cmap(colormap)(i / len(labels)) for i in range(len(labels))]
+        ax.bar(labels, counts, color=colors, edgecolor="black")
+        ax.set_xlabel("Entity Labels")
+        ax.set_ylabel("Frequency")
+        ax.set_title(f"Histogram of Top {top_n} NER Entities")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        return fig
+    except Exception as e:
+        update_log(f"Error plotting NER histogram: {str(e)}")
+        return None
+
+@st.cache_data
+def plot_ner_co_occurrence(df, top_n, font_size, colormap):
+    try:
+        update_log(f"Building NER co-occurrence network for top {top_n} entities")
+        G = nx.Graph()
+        entity_labels = df["entity_label"].value_counts().head(top_n).index.tolist()
+        for label in entity_labels:
+            G.add_node(label, type="entity")
+        for paper_id in df["paper_id"].unique():
+            paper_df = df[df["paper_id"] == paper_id]
+            terms = paper_df["entity_label"].values
+            for term1, term2 in combinations(terms, 2):
+                if term1 != term2:
+                    if G.has_edge(term1, term2):
+                        G[term1][term2]["weight"] += 1
+                    else:
+                        G.add_edge(term1, term2, weight=1)
+        if G.edges():
+            fig, ax = plt.subplots(figsize=(6, 6))
+            pos = nx.spring_layout(G, k=0.5, seed=42)
+            node_colors = [cm.get_cmap(colormap)(i / len(entity_labels)) for i in range(len(entity_labels))]
+            edge_widths = [2 * G[u][v]["weight"] for u, v in G.edges()]
+            nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=800, width=edge_widths, font_size=font_size, font_weight="bold", ax=ax)
+            ax.set_title(f"NER Co-occurrence Network (Top {top_n} Entities)")
+            plt.tight_layout()
+            return fig
+        update_log("No co-occurrences found for NER network")
+        return None
+    except Exception as e:
+        update_log(f"Error plotting NER co-occurrence network: {str(e)}")
+        return None
+
+@st.cache_data
+def plot_ner_value_histogram(df, top_n, colormap):
+    try:
+        update_log(f"Building NER value histogram for top {top_n} entities")
+        if df.empty or df["value"].isna().all():
+            update_log("Empty or no numerical values in NER dataframe for value histogram")
+            return None
+        value_df = df[df["value"].notna() & df["unit"].notna()]
+        if value_df.empty:
+            update_log("No entities with numerical values and units for value histogram")
+            return None
+        label_counts = value_df["entity_label"].value_counts().head(top_n)
+        labels = label_counts.index.tolist()
+        fig, ax = plt.subplots(figsize=(10, 5))
+        colors = [cm.get_cmap(colormap)(i / len(labels)) for i in range(len(labels))]
+        for i, label in enumerate(labels):
+            values = value_df[value_df["entity_label"] == label]["value"]
+            unit = value_df[value_df["entity_label"] == label]["unit"].iloc[0] if not value_df[value_df["entity_label"] == label].empty else "Unknown"
+            ax.hist(values, bins=10, alpha=0.5, label=f"{label} ({unit})", color=colors[i], edgecolor="black")
+        ax.set_xlabel("Value")
+        ax.set_ylabel("Frequency")
+        ax.set_title(f"Combined Histogram of Numerical Values for Top {top_n} NER Entities")
+        ax.legend()
+        plt.tight_layout()
+        update_log(f"Generated combined NER value histogram for {len(labels)} labels")
+        return fig
+    except Exception as e:
+        update_log(f"Error plotting NER value histogram: {str(e)}")
+        return None
+
+@st.cache_data
+def plot_individual_ner_value_histograms(df, colormap):
+    try:
+        update_log(f"Building individual NER value histograms for entities")
+        if df.empty or df["value"].isna().all():
+            update_log("Empty or no numerical values in NER dataframe for individual histograms")
+            return None, None
+        value_df = df[df["value"].notna() & df["unit"].notna()]
+        if value_df.empty:
+            update_log("No entities with numerical values and units for individual histograms")
+            return None, None
+        labels = sorted(value_df["entity_label"].unique())
+        figs = []
+        csv_data = {}
+        for label in labels:
+            label_df = value_df[value_df["entity_label"] == label]
+            if label_df.empty:
+                update_log(f"No numerical values for label {label}")
+                continue
+            values = label_df["value"].values
+            unit = label_df["unit"].iloc[0]
+            fig, ax = plt.subplots(figsize=(6, 4))
+            color = cm.get_cmap(colormap)(labels.index(label) / len(labels))
+            ax.hist(values, bins=10, color=color, edgecolor="black", alpha=0.8)
+            ax.set_xlabel(f"Value ({unit})")
+            ax.set_ylabel("Frequency")
+            ax.set_title(f"Histogram of Numerical Values for {label}")
+            plt.tight_layout()
+            figs.append(fig)
+            hist_df = pd.DataFrame({"Value": values, "Unit": unit})
+            csv_filename = f"ner_value_histogram_{label.lower()}_{uuid.uuid4().hex}.csv"
+            csv_path = os.path.join(DB_DIR, csv_filename)
+            hist_df.to_csv(csv_path, index=False)
+            with open(csv_path, "rb") as f:
+                csv_data[label] = (f.read(), csv_filename)
+            update_log(f"Generated individual histogram for {label} with {len(values)} values")
+        return figs, csv_data
+    except Exception as e:
+        update_log(f"Error plotting individual NER value histograms: {str(e)}")
+        return None, None
+
+@st.cache_data
+def plot_ner_value_radial(df, top_n, colormap):
+    try:
+        update_log(f"Building NER value radial chart for top {top_n} entities")
+        if df.empty or df["value"].isna().all():
+            update_log("Empty or no numerical values in NER dataframe for value radial chart")
+            return None
+        value_df = df[df["value"].notna() & df["unit"].notna()]
+        if value_df.empty:
+            update_log("No entities with numerical values and units for value radial chart")
+            return None
+        label_means = value_df.groupby("entity_label").agg({"value": "mean", "unit": "first"}).reset_index()
+        label_means = label_means.sort_values("value", ascending=False).head(top_n)
+        labels = label_means["entity_label"].tolist()
+        values = label_means["value"].tolist()
+        units = label_means["unit"].tolist()
+        theta = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
+        widths = np.array([2 * np.pi / len(labels)] * len(labels))
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(111, projection='polar')
+        colors = [cm.get_cmap(colormap)(i / len(labels)) for i in range(len(labels))]
+        bars = ax.bar(theta, values, width=widths, color=colors, edgecolor="black")
+        ax.set_xticks(theta)
+        ax.set_xticklabels([f"{label} ({unit})" for label, unit in zip(labels, units)])
+        ax.set_title(f"Radial Chart of Average Values for Top {top_n} NER Entities", pad=20)
+        plt.tight_layout()
+        update_log(f"Generated NER value radial chart for {len(labels)} labels")
+        return fig
+    except Exception as e:
+        update_log(f"Error plotting NER value radial chart: {str(e)}")
+        return None
+
+@st.cache_data
+def plot_ner_value_boxplot(df, top_n, colormap):
+    try:
+        update_log(f"Building NER value boxplot for top {top_n} entities")
+        if df.empty or df["value"].isna().all():
+            update_log("Empty or no numerical values in NER dataframe for value boxplot")
+            return None
+        value_df = df[df["value"].notna() & df["unit"].notna()]
+        if value_df.empty:
+            update_log("No entities with numerical values and units for value boxplot")
+            return None
+        label_counts = value_df["entity_label"].value_counts().head(top_n)
+        labels = label_counts.index.tolist()
+        data = [value_df[value_df["entity_label"] == label]["value"].values for label in labels]
+        units = [value_df[value_df["entity_label"] == label]["unit"].iloc[0] if not value_df[value_df["entity_label"] == label].empty else "Unknown" for label in labels]
+        fig, ax = plt.subplots(figsize=(10, 5))
+        colors = [cm.get_cmap(colormap)(i / len(labels)) for i in range(len(labels))]
+        box = ax.boxplot(data, patch_artist=True, labels=[f"{label} ({unit})" for label, unit in zip(labels, units)])
+        for patch, color in zip(box['boxes'], colors):
+            patch.set_facecolor(color)
+        ax.set_xlabel("Entity Labels")
+        ax.set_ylabel("Value")
+        ax.set_title(f"Box Plot of Numerical Values for Top {top_n} NER Entities")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        update_log(f"Generated NER value boxplot for {len(labels)} labels")
+        return fig
+    except Exception as e:
+        update_log(f"Error plotting NER value boxplot: {str(e)}")
+        return None
+
+# Database selection
+st.header("Select or Upload Database")
+db_files = glob.glob(os.path.join(DB_DIR, "*.db"))
+db_options = [os.path.basename(f) for f in db_files] + ["Upload a new .db file"]
+db_selection = st.selectbox("Select Database", db_options, key="db_select")
+uploaded_file = None
+if db_selection == "Upload a new .db file":
+    uploaded_file = st.file_uploader("Upload SQLite Database (.db)", type=["db"], key="db_upload")
+    if uploaded_file:
+        temp_db_path = os.path.join(DB_DIR, f"uploaded_{uuid.uuid4().hex}.db")
+        with open(temp_db_path, "wb") as f:
+            f.write(uploaded_file.read())
+        st.session_state.db_file = temp_db_path
+        update_log(f"Uploaded database saved as {temp_db_path}")
 else:
-    st.warning("Please select or upload a valid SQLite database to proceed.")
+    if db_selection:
+        st.session_state.db_file = os.path.join(DB_DIR, db_selection)
+        update_log(f"Selected database: {db_selection}")
 
-st.markdown(
-    """
+# Main app logic
+if st.session_state.db_file:
+    tab1, tab2, tab3 = st.tabs(["Database Inspection", "Common Terms Analysis", "NER Analysis"])
+    with tab1:
+        st.header("Database Inspection")
+        if st.button("Inspect Database", key="inspect_button"):
+            with st.spinner(f"Inspecting {os.path.basename(st.session_state.db_file)}..."):
+                st.session_state.term_counts = inspect_database(st.session_state.db_file)
+        st.text_area("Logs", "\n".join(st.session_state.log_buffer), height=150, key="inspection_logs")
+    with tab2:
+        st.header("Common Terms and Phrases")
+        analyze_terms_button = st.button("Extract Common Terms", key="analyze_terms")
+        with st.sidebar:
+            st.subheader("Term Analysis Parameters")
+            exclude_words = [w.strip().lower() for w in st.text_input("Exclude Words/Phrases (comma-separated)", key="exclude_words").split(",") if w.strip()]
+            top_n = st.slider("Number of Top Terms", min_value=5, max_value=30, value=10, key="top_n")
+            min_freq = st.slider("Minimum Frequency", min_value=1, max_value=20, value=5, key="min_freq")
+            phrase_weight = st.slider("Phrase Weight", min_value=0.5, max_value=3.0, value=1.5, step=0.1, key="phrase_weight")
+            pmi_threshold = st.slider("PMI Threshold", min_value=0.0, max_value=5.0, value=1.0, step=0.1, key="pmi_threshold")
+            wordcloud_font_size = st.slider("Word Cloud Font Size", min_value=20, max_value=80, value=40, key="wordcloud_font_size")
+            font_type = st.selectbox("Font Type", ["None", "DejaVu Sans"], key="font_type")
+            colormap = st.selectbox("Color Map", ["viridis", "plasma", "inferno", "magma", "hot", "cool", "rainbow"], key="colormap")
+            network_font_size = st.slider("Network Font Size", min_value=6, max_value=12, value=8, key="network_font_size")
+        if analyze_terms_button:
+            with st.spinner(f"Extracting terms from {os.path.basename(st.session_state.db_file)}..."):
+                st.session_state.raw_common_terms = extract_common_terms(st.session_state.db_file, min_freq, phrase_weight, pmi_threshold)
+        if st.session_state.raw_common_terms:
+            st.session_state.common_terms = [(term, freq) for term, freq in st.session_state.raw_common_terms if not any(w in term.lower() for w in exclude_words)]
+            if not st.session_state.common_terms:
+                st.warning("No terms remain after applying exclude words.")
+            else:
+                st.success(f"Extracted **{len(st.session_state.common_terms)}** terms!")
+                st.subheader("Visualizations")
+                col1, col2 = st.columns(2)
+                with col1:
+                    fig_hist, csv_data, csv_filename = plot_term_histogram(st.session_state.common_terms, top_n)
+                    if fig_hist:
+                        st.pyplot(fig_hist)
+                        st.download_button(
+                            label="Download Term Histogram Data",
+                            data=csv_data,
+                            file_name="term_histogram.csv",
+                            mime="text/csv",
+                            key="download_term_histogram"
+                        )
+                with col2:
+                    fig_cloud = plot_word_cloud(st.session_state.common_terms, top_n, wordcloud_font_size, font_type, colormap)
+                    if fig_cloud:
+                        st.pyplot(fig_cloud)
+                fig_net, net_csv = plot_term_co_occurrence(st.session_state.common_terms, top_n, st.session_state.db_file, network_font_size, colormap)
+                if fig_net:
+                    st.pyplot(fig_net)
+                    if net_csv:
+                        nodes_csv_data, nodes_csv_filename, edges_csv_data, edges_csv_filename = net_csv
+                        st.download_button(
+                            label="Download Term Co-occurrence Nodes",
+                            data=nodes_csv_data,
+                            file_name="term_co_occurrence_nodes.csv",
+                            mime="text/csv",
+                            key="download_term_co_nodes"
+                        )
+                        st.download_button(
+                            label="Download Term Co-occurrence Edges",
+                            data=edges_csv_data,
+                            file_name="term_co_occurrence_edges.csv",
+                            mime="text/csv",
+                            key="download_term_co_edges"
+                        )
+                term_df = pd.DataFrame(st.session_state.common_terms, columns=["Term/Phrase", "Frequency"])
+                st.subheader("Common Terms")
+                st.dataframe(term_df, use_container_width=True)
+                term_csv = term_df.to_csv(index=False)
+                st.download_button("Download Term CSV", term_csv, "terms.csv", "text/csv", key="download_terms")
+        st.text_area("Logs", "\n".join(st.session_state.log_buffer), height=150, key="common_terms_logs")
+    with tab3:
+        st.header("NER Analysis")
+        if st.session_state.term_counts or st.session_state.common_terms:
+            available_terms = []
+            if st.session_state.term_counts:
+                available_terms += [term for term, count in st.session_state.term_counts.items() if count > 0]
+            if st.session_state.common_terms:
+                available_terms += [term for term, _ in st.session_state.common_terms]
+            available_terms = sorted(list(set(available_terms)))
+            default_terms = [term for term in ["lithium-ion battery", "stress", "strain", "young’s modulus", "volume expansion"] if term in available_terms]
+            selected_terms = st.multiselect("Select Terms for NER", available_terms, default_terms, key="select_terms")
+            if st.button("Run NER Analysis", key="ner_analyze"):
+                if not selected_terms:
+                    st.warning("Select at least one term for NER analysis.")
+                else:
+                    with st.spinner(f"Processing NER analysis for {len(selected_terms)} terms..."):
+                        ner_df = perform_ner_on_terms(st.session_state.db_file, selected_terms)
+                        st.session_state.ner_results = ner_df
+                    if ner_df.empty:
+                        st.warning("No entities were found. Please check logs for details.")
+                        update_log("No entities extracted.")
+                    else:
+                        st.success(f"Extracted {len(ner_df)} entities successfully!")
+                        st.dataframe(
+                            ner_df[["paper_id", "title", "year", "entity_text", "entity_label", "value", "unit", "context"]].head(100),
+                            use_container_width=True
+                        )
+                        ner_csv = ner_df.to_csv(index=False)
+                        st.download_button("Download NER Data CSV", ner_csv, "ner_data.csv", "text/csv", key="download_ner")
+                        st.subheader("NER Visualizations")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.subheader("NER Co-occurrence Network")
+                            fig_net = plot_ner_co_occurrence(ner_df, top_n, network_font_size, colormap)
+                            if fig_net:
+                                st.pyplot(fig_net)
+                            else:
+                                st.warning("No co-occurrences found.")
+                        with col2:
+                            st.subheader("NER Frequency Histogram")
+                            fig_hist = plot_ner_histogram(ner_df, top_n, colormap)
+                            if fig_hist:
+                                st.pyplot(fig_hist)
+                            else:
+                                st.warning("No entities for frequency histogram.")
+                        st.subheader("NER Value Visualizations")
+                        st.subheader("Individual Histograms of Numerical Values")
+                        figs_hist, csv_hist = plot_individual_ner_value_histograms(ner_df, colormap)
+                        if figs_hist:
+                            for i, fig in enumerate(figs_hist):
+                                st.pyplot(fig)
+                                label = sorted(csv_hist.keys())[i]
+                                csv_data, csv_filename = csv_hist[label]
+                                st.download_button(
+                                    label=f"Download {label} Histogram Data",
+                                    data=csv_data,
+                                    file_name=f"ner_values_{label.lower()}.csv",
+                                    mime="text/csv",
+                                    key=f"download_ner_hist_{label}"
+                                )
+                        else:
+                            st.warning("No numerical values for individual histograms.")
+                        col3, col4 = st.columns(2)
+                        with col3:
+                            st.subheader("Combined Histogram of Numerical Values")
+                            fig_value_hist = plot_ner_value_histogram(ner_df, top_n, colormap)
+                            if fig_value_hist:
+                                st.pyplot(fig_value_hist)
+                            else:
+                                st.warning("No numerical values for combined histogram.")
+                        with col4:
+                            st.subheader("Radial Chart of Average Values")
+                            fig_radial = plot_ner_value_radial(ner_df, top_n, colormap)
+                            if fig_radial:
+                                st.pyplot(fig_radial)
+                            else:
+                                st.warning("No numerical values for radial chart.")
+                        st.subheader("Box Plot of Numerical Values")
+                        fig_box = plot_ner_value_boxplot(ner_df, top_n, colormap)
+                        if fig_box:
+                            st.pyplot(fig_box)
+                        else:
+                            st.warning("No numerical values for box plot.")
+        st.text_area("Logs", "\n".join(st.session_state.log_buffer), height=150, key="ner_logs")
+else:
+    st.warning("Select or upload a database file.")
+
+# Notes
+st.markdown("""
 ---
 **Notes**
-- **Data Inspection**: View raw tables and basic stats. Full-text search requires FTS5 in `lithiumbattery_miniuniverse.db`.
-- **Term Analysis**: Uses spaCy's `en_core_web_md` (or `en_core_web_sm` fallback) for semantic similarity and term co-occurrence across papers.
-- **NER Visualizations**: Extracts entities (PERSON, ORG, GPE, PRODUCT, DATE) and visualizes them via word cloud, network, histogram, radar chart, and sunburst chart.
-- Replace `<your-repo>/<branch>` in DB URLs with the actual GitHub repository path.
-- Visualizations are limited to manageable data sizes for performance (e.g., top 50 terms, top 50 entity pairs).
-    """
-)
+- **Database Inspection**: View tables, schemas, and sample data. Full-text search requires FTS5 in `page_fts` table for `lithiumbattery_miniuniverse.db`.
+- **Common Terms Analysis**: Extracts terms/phrases using spaCy (`en_core_web_lg` or `en_core_web_sm`) with PMI weighting.
+- **NER Analysis**: Uses SciBERT for rule-based entity extraction (STRAIN, STRESS, etc.) with numerical values (MPa, GPa, etc.).
+- Place `lithiumbattery_miniuniverse.db` or `lithiumbattery_minimetadata.db` in the script's directory or upload via the interface.
+- Check `common_term_ner_scibert.log` for detailed logs if issues occur.
+""")
