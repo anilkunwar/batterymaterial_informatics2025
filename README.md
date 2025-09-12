@@ -9,3 +9,6 @@ NER
 
 intelligence categorization and NER 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/attnbatteryner-streamlit-red)](https://batterysolidminidb-attentiveexplorer.streamlit.app/)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/advancedattnbatteryner-streamlit-red)](https://batterysolidminidb-advancedattentive-explorer.streamlit.app/)
+
