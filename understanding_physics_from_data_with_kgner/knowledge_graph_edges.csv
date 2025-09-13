@@ -1,0 +1,898 @@
+source,target,weight,type,label,relationship,strength
+Deformation,lithium,1.0,category-term,belongs_to,,0.0
+Deformation,diffusion,1.0,category-term,belongs_to,,0.0
+Deformation,mechanisms,1.0,category-term,belongs_to,,0.0
+Deformation,current,1.0,category-term,belongs_to,,0.0
+Deformation,electrodes,1.0,category-term,belongs_to,,0.0
+Deformation,volume,1.0,category-term,belongs_to,,0.0
+Deformation,strain,1.0,category-term,belongs_to,,0.0
+Deformation,discharge,1.0,category-term,belongs_to,,0.0
+Deformation,active,1.0,category-term,belongs_to,,0.0
+Deformation,density,1.0,category-term,belongs_to,,0.0
+Fatigue,stress,1.0,category-term,belongs_to,,0.0
+Fatigue,cycling,1.0,category-term,belongs_to,,0.0
+Fatigue,power sources,1.0,category-term,belongs_to,,0.0
+Fatigue,fatigue,1.0,category-term,belongs_to,,0.0
+Fatigue,article,1.0,category-term,belongs_to,,0.0
+Fatigue,conditions,1.0,category-term,belongs_to,,0.0
+Fatigue,cells,1.0,category-term,belongs_to,,0.0
+Fatigue,lithium ion,1.0,category-term,belongs_to,,0.0
+Fatigue,lithium ions,1.0,category-term,belongs_to,,0.0
+Fatigue,stresses,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,crack,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,fracture,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,energy,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,mechanical,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,solid,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cracks,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,surface,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cathode,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cracking,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cycles,1.0,category-term,belongs_to,,0.0
+Degradation,particle,1.0,category-term,belongs_to,,0.0
+Degradation,electrode,1.0,category-term,belongs_to,,0.0
+Degradation,battery,1.0,category-term,belongs_to,,0.0
+Degradation,degradation,1.0,category-term,belongs_to,,0.0
+Degradation,particles,1.0,category-term,belongs_to,,0.0
+Degradation,capacity,1.0,category-term,belongs_to,,0.0
+Degradation,batteries,1.0,category-term,belongs_to,,0.0
+Degradation,electrolyte,1.0,category-term,belongs_to,,0.0
+Degradation,phase,1.0,category-term,belongs_to,,0.0
+Degradation,rate,1.0,category-term,belongs_to,,0.0
+Component,reference,1.0,category-term,belongs_to,,0.0
+Component,solid-state batteries,1.0,category-term,belongs_to,,0.0
+Component,electro chemo,1.0,category-term,belongs_to,,0.0
+Component,batteries power sources,1.0,category-term,belongs_to,,0.0
+Component,cells power sources,1.0,category-term,belongs_to,,0.0
+Component,a. jossen,1.0,category-term,belongs_to,,0.0
+Component,numer methods,1.0,category-term,belongs_to,,0.0
+Component,appendix,1.0,category-term,belongs_to,,0.0
+Component,cells electrochem,1.0,category-term,belongs_to,,0.0
+Component,consumer electronics,1.0,category-term,belongs_to,,0.0
+Other,materials,1.0,category-term,belongs_to,,0.0
+Other,material,1.0,category-term,belongs_to,,0.0
+Other,sources,1.0,category-term,belongs_to,,0.0
+Other,chem,1.0,category-term,belongs_to,,0.0
+Other,results,1.0,category-term,belongs_to,,0.0
+Other,methods,1.0,category-term,belongs_to,,0.0
+Other,mater,1.0,category-term,belongs_to,,0.0
+Other,study,1.0,category-term,belongs_to,,0.0
+Other,zhang,1.0,category-term,belongs_to,,0.0
+Other,online,1.0,category-term,belongs_to,,0.0
+lithium,power sources,62.0,term-term,related_to (62),inter_category,62.0
+lithium,sources,63.0,term-term,related_to (63),inter_category,63.0
+lithium,fatigue,40.0,term-term,related_to (40),inter_category,40.0
+lithium,cracking,51.0,term-term,related_to (51),inter_category,51.0
+lithium,electrode,131.0,term-term,related_to (131),inter_category,131.0
+lithium,battery,168.0,term-term,related_to (168),inter_category,168.0
+lithium,particles,89.0,term-term,related_to (89),inter_category,89.0
+lithium,phase,61.0,term-term,related_to (61),inter_category,61.0
+lithium,fracture,109.0,term-term,related_to (109),inter_category,109.0
+lithium,particle,95.0,term-term,related_to (95),inter_category,95.0
+lithium,batteries,230.0,term-term,related_to (230),inter_category,230.0
+lithium,energy,86.0,term-term,related_to (86),inter_category,86.0
+lithium,mechanisms,44.0,term-term,co-occurs_with (44),intra_category,44.0
+lithium,stresses,22.0,term-term,related_to (22),inter_category,22.0
+lithium,degradation,112.0,term-term,related_to (112),inter_category,112.0
+lithium,materials,80.0,term-term,related_to (80),inter_category,80.0
+lithium,crack,66.0,term-term,related_to (66),inter_category,66.0
+lithium,solid,94.0,term-term,related_to (94),inter_category,94.0
+lithium,electrolyte,76.0,term-term,related_to (76),inter_category,76.0
+lithium,mechanical,100.0,term-term,related_to (100),inter_category,100.0
+lithium,diffusion,108.0,term-term,co-occurs_with (108),intra_category,108.0
+lithium,current,30.0,term-term,co-occurs_with (30),intra_category,30.0
+lithium,volume,29.0,term-term,co-occurs_with (29),intra_category,29.0
+lithium,density,36.0,term-term,co-occurs_with (36),intra_category,36.0
+lithium,stress,97.0,term-term,related_to (97),inter_category,97.0
+lithium,material,84.0,term-term,related_to (84),inter_category,84.0
+lithium,surface,43.0,term-term,related_to (43),inter_category,43.0
+lithium,strain,28.0,term-term,co-occurs_with (28),intra_category,28.0
+lithium,reference,12.0,term-term,related_to (12),inter_category,12.0
+lithium,rate,28.0,term-term,related_to (28),inter_category,28.0
+lithium,cycles,19.0,term-term,related_to (19),inter_category,19.0
+lithium,study,28.0,term-term,related_to (28),inter_category,28.0
+lithium,discharge,31.0,term-term,co-occurs_with (31),intra_category,31.0
+lithium,cycling,28.0,term-term,related_to (28),inter_category,28.0
+lithium,conditions,11.0,term-term,related_to (11),inter_category,11.0
+lithium,results,18.0,term-term,related_to (18),inter_category,18.0
+lithium,cracks,26.0,term-term,related_to (26),inter_category,26.0
+lithium,cells,33.0,term-term,related_to (33),inter_category,33.0
+lithium,lithium ion,2.0,hierarchical,is_part_of,inter_category,2.0
+lithium,zhang,32.0,term-term,related_to (32),inter_category,32.0
+lithium,chem,24.0,term-term,related_to (24),inter_category,24.0
+lithium,a. jossen,10.0,term-term,related_to (10),inter_category,10.0
+lithium,cathode,61.0,term-term,related_to (61),inter_category,61.0
+lithium,electrodes,53.0,term-term,co-occurs_with (53),intra_category,53.0
+lithium,mater,20.0,term-term,related_to (20),inter_category,20.0
+lithium,solid-state batteries,13.0,term-term,related_to (13),inter_category,13.0
+lithium,active,74.0,term-term,co-occurs_with (74),intra_category,74.0
+lithium,article,7.0,term-term,related_to (7),inter_category,7.0
+lithium,capacity,60.0,term-term,related_to (60),inter_category,60.0
+lithium,lithium ions,2.0,hierarchical,is_part_of,inter_category,2.0
+diffusion,fatigue,13.0,term-term,related_to (13),inter_category,13.0
+diffusion,cracking,12.0,term-term,related_to (12),inter_category,12.0
+diffusion,electrode,46.0,term-term,related_to (46),inter_category,46.0
+diffusion,battery,31.0,term-term,related_to (31),inter_category,31.0
+diffusion,particles,27.0,term-term,related_to (27),inter_category,27.0
+diffusion,phase,20.0,term-term,related_to (20),inter_category,20.0
+diffusion,electrodes,8.0,term-term,co-occurs_with (8),intra_category,8.0
+diffusion,particle,35.0,term-term,related_to (35),inter_category,35.0
+diffusion,crack,29.0,term-term,related_to (29),inter_category,29.0
+diffusion,rate,11.0,term-term,related_to (11),inter_category,11.0
+diffusion,fracture,35.0,term-term,related_to (35),inter_category,35.0
+diffusion,batteries,9.0,term-term,related_to (9),inter_category,9.0
+diffusion,degradation,11.0,term-term,related_to (11),inter_category,11.0
+diffusion,study,6.0,term-term,related_to (6),inter_category,6.0
+diffusion,mechanical,13.0,term-term,related_to (13),inter_category,13.0
+diffusion,energy,10.0,term-term,related_to (10),inter_category,10.0
+diffusion,mechanisms,7.0,term-term,co-occurs_with (7),intra_category,7.0
+diffusion,stresses,14.0,term-term,related_to (14),inter_category,14.0
+diffusion,materials,10.0,term-term,related_to (10),inter_category,10.0
+diffusion,active,20.0,term-term,co-occurs_with (20),intra_category,20.0
+diffusion,cracks,7.0,term-term,related_to (7),inter_category,7.0
+diffusion,material,14.0,term-term,related_to (14),inter_category,14.0
+diffusion,solid,12.0,term-term,related_to (12),inter_category,12.0
+diffusion,electrolyte,15.0,term-term,related_to (15),inter_category,15.0
+diffusion,current,8.0,term-term,co-occurs_with (8),intra_category,8.0
+diffusion,volume,9.0,term-term,co-occurs_with (9),intra_category,9.0
+diffusion,density,8.0,term-term,co-occurs_with (8),intra_category,8.0
+diffusion,stress,55.0,term-term,related_to (55),inter_category,55.0
+diffusion,strain,10.0,term-term,co-occurs_with (10),intra_category,10.0
+diffusion,surface,8.0,term-term,related_to (8),inter_category,8.0
+diffusion,zhang,5.0,term-term,related_to (5),inter_category,5.0
+diffusion,lithium ion,7.0,term-term,related_to (7),inter_category,7.0
+diffusion,lithium ions,8.0,term-term,related_to (8),inter_category,8.0
+mechanisms,power sources,9.0,term-term,related_to (9),inter_category,9.0
+mechanisms,sources,9.0,term-term,related_to (9),inter_category,9.0
+mechanisms,fatigue,9.0,term-term,related_to (9),inter_category,9.0
+mechanisms,cracking,12.0,term-term,related_to (12),inter_category,12.0
+mechanisms,electrode,25.0,term-term,related_to (25),inter_category,25.0
+mechanisms,battery,31.0,term-term,related_to (31),inter_category,31.0
+mechanisms,particles,14.0,term-term,related_to (14),inter_category,14.0
+mechanisms,phase,9.0,term-term,related_to (9),inter_category,9.0
+mechanisms,electrodes,13.0,term-term,co-occurs_with (13),intra_category,13.0
+mechanisms,particle,11.0,term-term,related_to (11),inter_category,11.0
+mechanisms,crack,5.0,term-term,related_to (5),inter_category,5.0
+mechanisms,fracture,19.0,term-term,related_to (19),inter_category,19.0
+mechanisms,batteries,28.0,term-term,related_to (28),inter_category,28.0
+mechanisms,degradation,120.0,term-term,related_to (120),inter_category,120.0
+mechanisms,capacity,21.0,term-term,related_to (21),inter_category,21.0
+mechanisms,study,9.0,term-term,related_to (9),inter_category,9.0
+mechanisms,mechanical,17.0,term-term,related_to (17),inter_category,17.0
+mechanisms,energy,10.0,term-term,related_to (10),inter_category,10.0
+mechanisms,materials,15.0,term-term,related_to (15),inter_category,15.0
+mechanisms,solid,13.0,term-term,related_to (13),inter_category,13.0
+mechanisms,electrolyte,17.0,term-term,related_to (17),inter_category,17.0
+mechanisms,mater,5.0,term-term,related_to (5),inter_category,5.0
+mechanisms,discharge,6.0,term-term,co-occurs_with (6),intra_category,6.0
+mechanisms,active,11.0,term-term,co-occurs_with (11),intra_category,11.0
+mechanisms,stress,6.0,term-term,related_to (6),inter_category,6.0
+mechanisms,material,15.0,term-term,related_to (15),inter_category,15.0
+mechanisms,conditions,9.0,term-term,related_to (9),inter_category,9.0
+mechanisms,lithium ion,6.0,term-term,related_to (6),inter_category,6.0
+mechanisms,current,5.0,term-term,co-occurs_with (5),intra_category,5.0
+mechanisms,cathode,8.0,term-term,related_to (8),inter_category,8.0
+mechanisms,cells,6.0,term-term,related_to (6),inter_category,6.0
+mechanisms,cycling,7.0,term-term,related_to (7),inter_category,7.0
+mechanisms,cracks,7.0,term-term,related_to (7),inter_category,7.0
+current,cracking,7.0,term-term,related_to (7),inter_category,7.0
+current,electrode,31.0,term-term,related_to (31),inter_category,31.0
+current,battery,15.0,term-term,related_to (15),inter_category,15.0
+current,particles,20.0,term-term,related_to (20),inter_category,20.0
+current,phase,9.0,term-term,related_to (9),inter_category,9.0
+current,electrodes,7.0,term-term,co-occurs_with (7),intra_category,7.0
+current,cycles,10.0,term-term,related_to (10),inter_category,10.0
+current,particle,36.0,term-term,related_to (36),inter_category,36.0
+current,crack,21.0,term-term,related_to (21),inter_category,21.0
+current,rate,36.0,term-term,related_to (36),inter_category,36.0
+current,fracture,25.0,term-term,related_to (25),inter_category,25.0
+current,batteries,8.0,term-term,related_to (8),inter_category,8.0
+current,degradation,14.0,term-term,related_to (14),inter_category,14.0
+current,capacity,23.0,term-term,related_to (23),inter_category,23.0
+current,study,5.0,term-term,related_to (5),inter_category,5.0
+current,mechanical,8.0,term-term,related_to (8),inter_category,8.0
+current,energy,14.0,term-term,related_to (14),inter_category,14.0
+current,stresses,5.0,term-term,related_to (5),inter_category,5.0
+current,materials,7.0,term-term,related_to (7),inter_category,7.0
+current,active,16.0,term-term,co-occurs_with (16),intra_category,16.0
+current,material,12.0,term-term,related_to (12),inter_category,12.0
+current,solid,6.0,term-term,related_to (6),inter_category,6.0
+current,electrolyte,22.0,term-term,related_to (22),inter_category,22.0
+current,volume,9.0,term-term,co-occurs_with (9),intra_category,9.0
+current,density,64.0,term-term,co-occurs_with (64),intra_category,64.0
+current,stress,18.0,term-term,related_to (18),inter_category,18.0
+current,discharge,13.0,term-term,co-occurs_with (13),intra_category,13.0
+current,cycling,14.0,term-term,related_to (14),inter_category,14.0
+current,conditions,11.0,term-term,related_to (11),inter_category,11.0
+current,cells,5.0,term-term,related_to (5),inter_category,5.0
+current,results,8.0,term-term,related_to (8),inter_category,8.0
+current,cathode,6.0,term-term,related_to (6),inter_category,6.0
+current,surface,10.0,term-term,related_to (10),inter_category,10.0
+electrodes,power sources,5.0,term-term,related_to (5),inter_category,5.0
+electrodes,sources,5.0,term-term,related_to (5),inter_category,5.0
+electrodes,cracking,10.0,term-term,related_to (10),inter_category,10.0
+electrodes,electrode,2.0,hierarchical,is_part_of,inter_category,2.0
+electrodes,battery,35.0,term-term,related_to (35),inter_category,35.0
+electrodes,particles,27.0,term-term,related_to (27),inter_category,27.0
+electrodes,phase,12.0,term-term,related_to (12),inter_category,12.0
+electrodes,particle,15.0,term-term,related_to (15),inter_category,15.0
+electrodes,stress,14.0,term-term,related_to (14),inter_category,14.0
+electrodes,cells,7.0,term-term,related_to (7),inter_category,7.0
+electrodes,fracture,34.0,term-term,related_to (34),inter_category,34.0
+electrodes,rate,12.0,term-term,related_to (12),inter_category,12.0
+electrodes,batteries,25.0,term-term,related_to (25),inter_category,25.0
+electrodes,zhang,9.0,term-term,related_to (9),inter_category,9.0
+electrodes,energy,6.0,term-term,related_to (6),inter_category,6.0
+electrodes,mechanical,19.0,term-term,related_to (19),inter_category,19.0
+electrodes,solid,13.0,term-term,related_to (13),inter_category,13.0
+electrodes,electrolyte,17.0,term-term,related_to (17),inter_category,17.0
+electrodes,discharge,6.0,term-term,co-occurs_with (6),intra_category,6.0
+electrodes,active,20.0,term-term,co-occurs_with (20),intra_category,20.0
+electrodes,material,16.0,term-term,related_to (16),inter_category,16.0
+electrodes,degradation,22.0,term-term,related_to (22),inter_category,22.0
+electrodes,volume,9.0,term-term,co-occurs_with (9),intra_category,9.0
+electrodes,cycles,7.0,term-term,related_to (7),inter_category,7.0
+electrodes,capacity,9.0,term-term,related_to (9),inter_category,9.0
+electrodes,cathode,9.0,term-term,related_to (9),inter_category,9.0
+electrodes,materials,9.0,term-term,related_to (9),inter_category,9.0
+electrodes,surface,5.0,term-term,related_to (5),inter_category,5.0
+electrodes,cycling,9.0,term-term,related_to (9),inter_category,9.0
+electrodes,crack,11.0,term-term,related_to (11),inter_category,11.0
+volume,cracking,10.0,term-term,related_to (10),inter_category,10.0
+volume,electrode,42.0,term-term,related_to (42),inter_category,42.0
+volume,battery,6.0,term-term,related_to (6),inter_category,6.0
+volume,particles,23.0,term-term,related_to (23),inter_category,23.0
+volume,phase,12.0,term-term,related_to (12),inter_category,12.0
+volume,particle,34.0,term-term,related_to (34),inter_category,34.0
+volume,crack,26.0,term-term,related_to (26),inter_category,26.0
+volume,rate,6.0,term-term,related_to (6),inter_category,6.0
+volume,fracture,20.0,term-term,related_to (20),inter_category,20.0
+volume,degradation,8.0,term-term,related_to (8),inter_category,8.0
+volume,capacity,14.0,term-term,related_to (14),inter_category,14.0
+volume,mechanical,9.0,term-term,related_to (9),inter_category,9.0
+volume,energy,9.0,term-term,related_to (9),inter_category,9.0
+volume,materials,27.0,term-term,related_to (27),inter_category,27.0
+volume,active,31.0,term-term,co-occurs_with (31),intra_category,31.0
+volume,cracks,6.0,term-term,related_to (6),inter_category,6.0
+volume,material,23.0,term-term,related_to (23),inter_category,23.0
+volume,solid,12.0,term-term,related_to (12),inter_category,12.0
+volume,electrolyte,16.0,term-term,related_to (16),inter_category,16.0
+volume,density,11.0,term-term,co-occurs_with (11),intra_category,11.0
+volume,stress,33.0,term-term,related_to (33),inter_category,33.0
+volume,discharge,7.0,term-term,co-occurs_with (7),intra_category,7.0
+volume,strain,10.0,term-term,co-occurs_with (10),intra_category,10.0
+volume,surface,21.0,term-term,related_to (21),inter_category,21.0
+volume,cathode,6.0,term-term,related_to (6),inter_category,6.0
+volume,cycling,8.0,term-term,related_to (8),inter_category,8.0
+volume,article,9.0,term-term,related_to (9),inter_category,9.0
+volume,lithium ions,6.0,term-term,related_to (6),inter_category,6.0
+strain,cracking,5.0,term-term,related_to (5),inter_category,5.0
+strain,electrode,9.0,term-term,related_to (9),inter_category,9.0
+strain,battery,10.0,term-term,related_to (10),inter_category,10.0
+strain,particles,14.0,term-term,related_to (14),inter_category,14.0
+strain,phase,13.0,term-term,related_to (13),inter_category,13.0
+strain,particle,17.0,term-term,related_to (17),inter_category,17.0
+strain,crack,32.0,term-term,related_to (32),inter_category,32.0
+strain,rate,20.0,term-term,related_to (20),inter_category,20.0
+strain,fracture,26.0,term-term,related_to (26),inter_category,26.0
+strain,degradation,7.0,term-term,related_to (7),inter_category,7.0
+strain,mechanical,10.0,term-term,related_to (10),inter_category,10.0
+strain,energy,49.0,term-term,related_to (49),inter_category,49.0
+strain,stresses,5.0,term-term,related_to (5),inter_category,5.0
+strain,materials,8.0,term-term,related_to (8),inter_category,8.0
+strain,active,9.0,term-term,co-occurs_with (9),intra_category,9.0
+strain,cracks,9.0,term-term,related_to (9),inter_category,9.0
+strain,material,17.0,term-term,related_to (17),inter_category,17.0
+strain,density,21.0,term-term,co-occurs_with (21),intra_category,21.0
+strain,stress,37.0,term-term,related_to (37),inter_category,37.0
+strain,surface,8.0,term-term,related_to (8),inter_category,8.0
+strain,results,6.0,term-term,related_to (6),inter_category,6.0
+strain,reference,5.0,term-term,related_to (5),inter_category,5.0
+strain,cathode,6.0,term-term,related_to (6),inter_category,6.0
+strain,lithium ions,5.0,term-term,related_to (5),inter_category,5.0
+strain,mater,5.0,term-term,related_to (5),inter_category,5.0
+discharge,fatigue,14.0,term-term,related_to (14),inter_category,14.0
+discharge,cracking,15.0,term-term,related_to (15),inter_category,15.0
+discharge,electrode,25.0,term-term,related_to (25),inter_category,25.0
+discharge,battery,16.0,term-term,related_to (16),inter_category,16.0
+discharge,particles,21.0,term-term,related_to (21),inter_category,21.0
+discharge,phase,5.0,term-term,related_to (5),inter_category,5.0
+discharge,cycles,53.0,term-term,related_to (53),inter_category,53.0
+discharge,particle,30.0,term-term,related_to (30),inter_category,30.0
+discharge,crack,22.0,term-term,related_to (22),inter_category,22.0
+discharge,rate,18.0,term-term,related_to (18),inter_category,18.0
+discharge,fracture,17.0,term-term,related_to (17),inter_category,17.0
+discharge,batteries,7.0,term-term,related_to (7),inter_category,7.0
+discharge,degradation,13.0,term-term,related_to (13),inter_category,13.0
+discharge,capacity,34.0,term-term,related_to (34),inter_category,34.0
+discharge,study,8.0,term-term,related_to (8),inter_category,8.0
+discharge,mechanical,11.0,term-term,related_to (11),inter_category,11.0
+discharge,energy,6.0,term-term,related_to (6),inter_category,6.0
+discharge,materials,10.0,term-term,related_to (10),inter_category,10.0
+discharge,active,21.0,term-term,co-occurs_with (21),intra_category,21.0
+discharge,cracks,8.0,term-term,related_to (8),inter_category,8.0
+discharge,material,12.0,term-term,related_to (12),inter_category,12.0
+discharge,solid,7.0,term-term,related_to (7),inter_category,7.0
+discharge,electrolyte,8.0,term-term,related_to (8),inter_category,8.0
+discharge,stress,14.0,term-term,related_to (14),inter_category,14.0
+discharge,cycling,15.0,term-term,related_to (15),inter_category,15.0
+discharge,surface,6.0,term-term,related_to (6),inter_category,6.0
+discharge,conditions,6.0,term-term,related_to (6),inter_category,6.0
+discharge,results,9.0,term-term,related_to (9),inter_category,9.0
+discharge,cathode,10.0,term-term,related_to (10),inter_category,10.0
+discharge,cells,5.0,term-term,related_to (5),inter_category,5.0
+active,power sources,5.0,term-term,related_to (5),inter_category,5.0
+active,sources,5.0,term-term,related_to (5),inter_category,5.0
+active,fatigue,9.0,term-term,related_to (9),inter_category,9.0
+active,cracking,31.0,term-term,related_to (31),inter_category,31.0
+active,electrode,62.0,term-term,related_to (62),inter_category,62.0
+active,battery,26.0,term-term,related_to (26),inter_category,26.0
+active,particles,81.0,term-term,related_to (81),inter_category,81.0
+active,phase,20.0,term-term,related_to (20),inter_category,20.0
+active,cycles,11.0,term-term,related_to (11),inter_category,11.0
+active,particle,102.0,term-term,related_to (102),inter_category,102.0
+active,crack,35.0,term-term,related_to (35),inter_category,35.0
+active,rate,16.0,term-term,related_to (16),inter_category,16.0
+active,fracture,63.0,term-term,related_to (63),inter_category,63.0
+active,batteries,15.0,term-term,related_to (15),inter_category,15.0
+active,degradation,22.0,term-term,related_to (22),inter_category,22.0
+active,capacity,26.0,term-term,related_to (26),inter_category,26.0
+active,study,10.0,term-term,related_to (10),inter_category,10.0
+active,mechanical,31.0,term-term,related_to (31),inter_category,31.0
+active,energy,10.0,term-term,related_to (10),inter_category,10.0
+active,stresses,5.0,term-term,related_to (5),inter_category,5.0
+active,materials,60.0,term-term,related_to (60),inter_category,60.0
+active,cracks,27.0,term-term,related_to (27),inter_category,27.0
+active,material,191.0,term-term,related_to (191),inter_category,191.0
+active,density,11.0,term-term,co-occurs_with (11),intra_category,11.0
+active,stress,47.0,term-term,related_to (47),inter_category,47.0
+active,solid,30.0,term-term,related_to (30),inter_category,30.0
+active,cathode,21.0,term-term,related_to (21),inter_category,21.0
+active,electrolyte,51.0,term-term,related_to (51),inter_category,51.0
+active,lithium ion,9.0,term-term,related_to (9),inter_category,9.0
+active,surface,41.0,term-term,related_to (41),inter_category,41.0
+active,conditions,5.0,term-term,related_to (5),inter_category,5.0
+active,cycling,16.0,term-term,related_to (16),inter_category,16.0
+active,results,11.0,term-term,related_to (11),inter_category,11.0
+active,lithium ions,10.0,term-term,related_to (10),inter_category,10.0
+density,cracking,6.0,term-term,related_to (6),inter_category,6.0
+density,electrode,17.0,term-term,related_to (17),inter_category,17.0
+density,particles,9.0,term-term,related_to (9),inter_category,9.0
+density,phase,9.0,term-term,related_to (9),inter_category,9.0
+density,particle,22.0,term-term,related_to (22),inter_category,22.0
+density,crack,29.0,term-term,related_to (29),inter_category,29.0
+density,rate,19.0,term-term,related_to (19),inter_category,19.0
+density,fracture,18.0,term-term,related_to (18),inter_category,18.0
+density,batteries,16.0,term-term,related_to (16),inter_category,16.0
+density,degradation,8.0,term-term,related_to (8),inter_category,8.0
+density,capacity,13.0,term-term,related_to (13),inter_category,13.0
+density,mechanical,7.0,term-term,related_to (7),inter_category,7.0
+density,energy,62.0,term-term,related_to (62),inter_category,62.0
+density,materials,10.0,term-term,related_to (10),inter_category,10.0
+density,cracks,6.0,term-term,related_to (6),inter_category,6.0
+density,material,15.0,term-term,related_to (15),inter_category,15.0
+density,solid,11.0,term-term,related_to (11),inter_category,11.0
+density,electrolyte,13.0,term-term,related_to (13),inter_category,13.0
+density,stress,10.0,term-term,related_to (10),inter_category,10.0
+density,cathode,7.0,term-term,related_to (7),inter_category,7.0
+density,surface,14.0,term-term,related_to (14),inter_category,14.0
+density,cycling,8.0,term-term,related_to (8),inter_category,8.0
+stress,power sources,5.0,term-term,co-occurs_with (5),intra_category,5.0
+stress,sources,5.0,term-term,related_to (5),inter_category,5.0
+stress,fatigue,18.0,term-term,co-occurs_with (18),intra_category,18.0
+stress,cracking,25.0,term-term,related_to (25),inter_category,25.0
+stress,electrode,64.0,term-term,related_to (64),inter_category,64.0
+stress,battery,33.0,term-term,related_to (33),inter_category,33.0
+stress,particles,54.0,term-term,related_to (54),inter_category,54.0
+stress,phase,30.0,term-term,related_to (30),inter_category,30.0
+stress,cycles,5.0,term-term,related_to (5),inter_category,5.0
+stress,particle,67.0,term-term,related_to (67),inter_category,67.0
+stress,crack,102.0,term-term,related_to (102),inter_category,102.0
+stress,rate,20.0,term-term,related_to (20),inter_category,20.0
+stress,fracture,57.0,term-term,related_to (57),inter_category,57.0
+stress,batteries,22.0,term-term,related_to (22),inter_category,22.0
+stress,degradation,25.0,term-term,related_to (25),inter_category,25.0
+stress,capacity,13.0,term-term,related_to (13),inter_category,13.0
+stress,study,8.0,term-term,related_to (8),inter_category,8.0
+stress,mechanical,57.0,term-term,related_to (57),inter_category,57.0
+stress,energy,16.0,term-term,related_to (16),inter_category,16.0
+stress,stresses,2.0,hierarchical,is_part_of,intra_category,2.0
+stress,materials,24.0,term-term,related_to (24),inter_category,24.0
+stress,cracks,31.0,term-term,related_to (31),inter_category,31.0
+stress,material,56.0,term-term,related_to (56),inter_category,56.0
+stress,solid,21.0,term-term,related_to (21),inter_category,21.0
+stress,electrolyte,19.0,term-term,related_to (19),inter_category,19.0
+stress,cells,6.0,term-term,co-occurs_with (6),intra_category,6.0
+stress,reference,7.0,term-term,related_to (7),inter_category,7.0
+stress,cycling,11.0,term-term,co-occurs_with (11),intra_category,11.0
+stress,surface,22.0,term-term,related_to (22),inter_category,22.0
+stress,conditions,6.0,term-term,co-occurs_with (6),intra_category,6.0
+stress,results,15.0,term-term,related_to (15),inter_category,15.0
+stress,zhang,8.0,term-term,related_to (8),inter_category,8.0
+stress,cathode,11.0,term-term,related_to (11),inter_category,11.0
+stress,lithium ion,10.0,term-term,co-occurs_with (10),intra_category,10.0
+stress,lithium ions,11.0,term-term,co-occurs_with (11),intra_category,11.0
+cycling,power sources,11.0,term-term,co-occurs_with (11),intra_category,11.0
+cycling,sources,11.0,term-term,related_to (11),inter_category,11.0
+cycling,cracking,17.0,term-term,related_to (17),inter_category,17.0
+cycling,electrode,18.0,term-term,related_to (18),inter_category,18.0
+cycling,battery,28.0,term-term,related_to (28),inter_category,28.0
+cycling,particles,32.0,term-term,related_to (32),inter_category,32.0
+cycling,phase,13.0,term-term,related_to (13),inter_category,13.0
+cycling,cycles,23.0,term-term,related_to (23),inter_category,23.0
+cycling,particle,42.0,term-term,related_to (42),inter_category,42.0
+cycling,crack,17.0,term-term,related_to (17),inter_category,17.0
+cycling,rate,37.0,term-term,related_to (37),inter_category,37.0
+cycling,fracture,23.0,term-term,related_to (23),inter_category,23.0
+cycling,batteries,16.0,term-term,related_to (16),inter_category,16.0
+cycling,degradation,27.0,term-term,related_to (27),inter_category,27.0
+cycling,capacity,27.0,term-term,related_to (27),inter_category,27.0
+cycling,study,7.0,term-term,related_to (7),inter_category,7.0
+cycling,mechanical,28.0,term-term,related_to (28),inter_category,28.0
+cycling,energy,5.0,term-term,related_to (5),inter_category,5.0
+cycling,stresses,6.0,term-term,co-occurs_with (6),intra_category,6.0
+cycling,materials,12.0,term-term,related_to (12),inter_category,12.0
+cycling,cracks,19.0,term-term,related_to (19),inter_category,19.0
+cycling,material,20.0,term-term,related_to (20),inter_category,20.0
+cycling,solid,16.0,term-term,related_to (16),inter_category,16.0
+cycling,electrolyte,15.0,term-term,related_to (15),inter_category,15.0
+cycling,results,8.0,term-term,related_to (8),inter_category,8.0
+cycling,cells,16.0,term-term,co-occurs_with (16),intra_category,16.0
+cycling,lithium ion,11.0,term-term,co-occurs_with (11),intra_category,11.0
+cycling,zhang,5.0,term-term,related_to (5),inter_category,5.0
+cycling,surface,9.0,term-term,related_to (9),inter_category,9.0
+cycling,cathode,25.0,term-term,related_to (25),inter_category,25.0
+cycling,conditions,8.0,term-term,co-occurs_with (8),intra_category,8.0
+power sources,sources,2.0,hierarchical,is_part_of,inter_category,2.0
+power sources,cracking,6.0,term-term,related_to (6),inter_category,6.0
+power sources,electrode,14.0,term-term,related_to (14),inter_category,14.0
+power sources,battery,18.0,term-term,related_to (18),inter_category,18.0
+power sources,particles,9.0,term-term,related_to (9),inter_category,9.0
+power sources,phase,5.0,term-term,related_to (5),inter_category,5.0
+power sources,crack,5.0,term-term,related_to (5),inter_category,5.0
+power sources,batteries,43.0,term-term,related_to (43),inter_category,43.0
+power sources,cells,17.0,term-term,co-occurs_with (17),intra_category,17.0
+power sources,lithium ion,23.0,term-term,co-occurs_with (23),intra_category,23.0
+power sources,zhang,11.0,term-term,related_to (11),inter_category,11.0
+power sources,degradation,23.0,term-term,related_to (23),inter_category,23.0
+power sources,mechanical,16.0,term-term,related_to (16),inter_category,16.0
+power sources,fracture,17.0,term-term,related_to (17),inter_category,17.0
+power sources,solid,11.0,term-term,related_to (11),inter_category,11.0
+power sources,electrolyte,11.0,term-term,related_to (11),inter_category,11.0
+power sources,materials,11.0,term-term,related_to (11),inter_category,11.0
+power sources,study,8.0,term-term,related_to (8),inter_category,8.0
+power sources,material,5.0,term-term,related_to (5),inter_category,5.0
+fatigue,cracking,34.0,term-term,related_to (34),inter_category,34.0
+fatigue,electrode,46.0,term-term,related_to (46),inter_category,46.0
+fatigue,battery,47.0,term-term,related_to (47),inter_category,47.0
+fatigue,particles,41.0,term-term,related_to (41),inter_category,41.0
+fatigue,phase,25.0,term-term,related_to (25),inter_category,25.0
+fatigue,cycles,19.0,term-term,related_to (19),inter_category,19.0
+fatigue,particle,32.0,term-term,related_to (32),inter_category,32.0
+fatigue,fracture,42.0,term-term,related_to (42),inter_category,42.0
+fatigue,batteries,8.0,term-term,related_to (8),inter_category,8.0
+fatigue,crack,66.0,term-term,related_to (66),inter_category,66.0
+fatigue,study,10.0,term-term,related_to (10),inter_category,10.0
+fatigue,mechanical,19.0,term-term,related_to (19),inter_category,19.0
+fatigue,degradation,40.0,term-term,related_to (40),inter_category,40.0
+fatigue,capacity,7.0,term-term,related_to (7),inter_category,7.0
+fatigue,cracks,12.0,term-term,related_to (12),inter_category,12.0
+fatigue,rate,17.0,term-term,related_to (17),inter_category,17.0
+fatigue,results,9.0,term-term,related_to (9),inter_category,9.0
+fatigue,energy,13.0,term-term,related_to (13),inter_category,13.0
+fatigue,material,18.0,term-term,related_to (18),inter_category,18.0
+fatigue,stresses,5.0,term-term,co-occurs_with (5),intra_category,5.0
+fatigue,surface,6.0,term-term,related_to (6),inter_category,6.0
+fatigue,materials,10.0,term-term,related_to (10),inter_category,10.0
+article,online,41.0,term-term,related_to (41),inter_category,41.0
+article,battery,7.0,term-term,related_to (7),inter_category,7.0
+article,batteries,6.0,term-term,related_to (6),inter_category,6.0
+article,degradation,6.0,term-term,related_to (6),inter_category,6.0
+article,mechanical,9.0,term-term,related_to (9),inter_category,9.0
+article,materials,15.0,term-term,related_to (15),inter_category,15.0
+article,material,9.0,term-term,related_to (9),inter_category,9.0
+article,solid,6.0,term-term,related_to (6),inter_category,6.0
+article,particle,2.0,hierarchical,is_part_of,,2.0
+article,particles,2.0,hierarchical,is_part_of,,2.0
+conditions,online,23.0,term-term,related_to (23),inter_category,23.0
+conditions,cracking,5.0,term-term,related_to (5),inter_category,5.0
+conditions,electrode,9.0,term-term,related_to (9),inter_category,9.0
+conditions,battery,13.0,term-term,related_to (13),inter_category,13.0
+conditions,particles,8.0,term-term,related_to (8),inter_category,8.0
+conditions,phase,9.0,term-term,related_to (9),inter_category,9.0
+conditions,particle,15.0,term-term,related_to (15),inter_category,15.0
+conditions,crack,17.0,term-term,related_to (17),inter_category,17.0
+conditions,rate,10.0,term-term,related_to (10),inter_category,10.0
+conditions,fracture,21.0,term-term,related_to (21),inter_category,21.0
+conditions,degradation,22.0,term-term,related_to (22),inter_category,22.0
+conditions,capacity,9.0,term-term,related_to (9),inter_category,9.0
+conditions,mechanical,6.0,term-term,related_to (6),inter_category,6.0
+conditions,materials,12.0,term-term,related_to (12),inter_category,12.0
+conditions,cracks,5.0,term-term,related_to (5),inter_category,5.0
+conditions,material,10.0,term-term,related_to (10),inter_category,10.0
+conditions,surface,5.0,term-term,related_to (5),inter_category,5.0
+conditions,results,5.0,term-term,related_to (5),inter_category,5.0
+cells,sources,17.0,term-term,related_to (17),inter_category,17.0
+cells,electrode,14.0,term-term,related_to (14),inter_category,14.0
+cells,battery,9.0,term-term,related_to (9),inter_category,9.0
+cells,cycles,8.0,term-term,related_to (8),inter_category,8.0
+cells,rate,6.0,term-term,related_to (6),inter_category,6.0
+cells,batteries,7.0,term-term,related_to (7),inter_category,7.0
+cells,degradation,16.0,term-term,related_to (16),inter_category,16.0
+cells,capacity,19.0,term-term,related_to (19),inter_category,19.0
+cells,study,5.0,term-term,related_to (5),inter_category,5.0
+cells,materials,9.0,term-term,related_to (9),inter_category,9.0
+cells,lithium ion,10.0,term-term,co-occurs_with (10),intra_category,10.0
+cells,a. jossen,7.0,term-term,related_to (7),inter_category,7.0
+cells,cathode,8.0,term-term,related_to (8),inter_category,8.0
+lithium ion,sources,23.0,term-term,related_to (23),inter_category,23.0
+lithium ion,electrode,11.0,term-term,related_to (11),inter_category,11.0
+lithium ion,battery,30.0,term-term,related_to (30),inter_category,30.0
+lithium ion,particles,9.0,term-term,related_to (9),inter_category,9.0
+lithium ion,phase,6.0,term-term,related_to (6),inter_category,6.0
+lithium ion,particle,9.0,term-term,related_to (9),inter_category,9.0
+lithium ion,crack,5.0,term-term,related_to (5),inter_category,5.0
+lithium ion,fracture,22.0,term-term,related_to (22),inter_category,22.0
+lithium ion,batteries,44.0,term-term,related_to (44),inter_category,44.0
+lithium ion,degradation,33.0,term-term,related_to (33),inter_category,33.0
+lithium ion,study,7.0,term-term,related_to (7),inter_category,7.0
+lithium ion,mechanical,20.0,term-term,related_to (20),inter_category,20.0
+lithium ion,energy,14.0,term-term,related_to (14),inter_category,14.0
+lithium ion,materials,11.0,term-term,related_to (11),inter_category,11.0
+lithium ion,material,12.0,term-term,related_to (12),inter_category,12.0
+lithium ion,solid,14.0,term-term,related_to (14),inter_category,14.0
+lithium ion,electrolyte,12.0,term-term,related_to (12),inter_category,12.0
+lithium ion,chem,9.0,term-term,related_to (9),inter_category,9.0
+lithium ion,zhang,8.0,term-term,related_to (8),inter_category,8.0
+lithium ion,mater,5.0,term-term,related_to (5),inter_category,5.0
+lithium ion,cathode,5.0,term-term,related_to (5),inter_category,5.0
+lithium ion,lithium ions,2.0,hierarchical,is_part_of,,2.0
+lithium ions,electrode,12.0,term-term,related_to (12),inter_category,12.0
+lithium ions,battery,5.0,term-term,related_to (5),inter_category,5.0
+lithium ions,particles,6.0,term-term,related_to (6),inter_category,6.0
+lithium ions,particle,5.0,term-term,related_to (5),inter_category,5.0
+lithium ions,material,11.0,term-term,related_to (11),inter_category,11.0
+lithium ions,electrolyte,7.0,term-term,related_to (7),inter_category,7.0
+stresses,cracking,6.0,term-term,related_to (6),inter_category,6.0
+stresses,electrode,17.0,term-term,related_to (17),inter_category,17.0
+stresses,battery,7.0,term-term,related_to (7),inter_category,7.0
+stresses,particles,10.0,term-term,related_to (10),inter_category,10.0
+stresses,phase,6.0,term-term,related_to (6),inter_category,6.0
+stresses,particle,27.0,term-term,related_to (27),inter_category,27.0
+stresses,crack,24.0,term-term,related_to (24),inter_category,24.0
+stresses,rate,7.0,term-term,related_to (7),inter_category,7.0
+stresses,fracture,14.0,term-term,related_to (14),inter_category,14.0
+stresses,mechanical,15.0,term-term,related_to (15),inter_category,15.0
+stresses,cracks,8.0,term-term,related_to (8),inter_category,8.0
+stresses,surface,7.0,term-term,related_to (7),inter_category,7.0
+stresses,material,7.0,term-term,related_to (7),inter_category,7.0
+crack,sources,5.0,term-term,related_to (5),inter_category,5.0
+crack,cracking,2.0,hierarchical,is_part_of,intra_category,2.0
+crack,electrode,56.0,term-term,related_to (56),inter_category,56.0
+crack,battery,29.0,term-term,related_to (29),inter_category,29.0
+crack,particles,76.0,term-term,related_to (76),inter_category,76.0
+crack,phase,93.0,term-term,related_to (93),inter_category,93.0
+crack,cycles,36.0,term-term,co-occurs_with (36),intra_category,36.0
+crack,particle,139.0,term-term,related_to (139),inter_category,139.0
+crack,rate,76.0,term-term,related_to (76),inter_category,76.0
+crack,study,14.0,term-term,related_to (14),inter_category,14.0
+crack,fracture,115.0,term-term,co-occurs_with (115),intra_category,115.0
+crack,degradation,26.0,term-term,related_to (26),inter_category,26.0
+crack,capacity,10.0,term-term,related_to (10),inter_category,10.0
+crack,solid,9.0,term-term,co-occurs_with (9),intra_category,9.0
+crack,electrolyte,11.0,term-term,related_to (11),inter_category,11.0
+crack,batteries,7.0,term-term,related_to (7),inter_category,7.0
+crack,cracks,2.0,hierarchical,is_part_of,intra_category,2.0
+crack,methods,6.0,term-term,related_to (6),inter_category,6.0
+crack,energy,57.0,term-term,co-occurs_with (57),intra_category,57.0
+crack,results,21.0,term-term,related_to (21),inter_category,21.0
+crack,mechanical,19.0,term-term,co-occurs_with (19),intra_category,19.0
+crack,surface,55.0,term-term,co-occurs_with (55),intra_category,55.0
+crack,material,57.0,term-term,related_to (57),inter_category,57.0
+crack,materials,20.0,term-term,related_to (20),inter_category,20.0
+crack,cathode,13.0,term-term,co-occurs_with (13),intra_category,13.0
+crack,zhang,5.0,term-term,related_to (5),inter_category,5.0
+fracture,sources,17.0,term-term,related_to (17),inter_category,17.0
+fracture,online,5.0,term-term,related_to (5),inter_category,5.0
+fracture,cracking,25.0,term-term,co-occurs_with (25),intra_category,25.0
+fracture,electrode,70.0,term-term,related_to (70),inter_category,70.0
+fracture,battery,82.0,term-term,related_to (82),inter_category,82.0
+fracture,particles,80.0,term-term,related_to (80),inter_category,80.0
+fracture,phase,143.0,term-term,related_to (143),inter_category,143.0
+fracture,cycles,16.0,term-term,co-occurs_with (16),intra_category,16.0
+fracture,particle,110.0,term-term,related_to (110),inter_category,110.0
+fracture,rate,37.0,term-term,related_to (37),inter_category,37.0
+fracture,batteries,46.0,term-term,related_to (46),inter_category,46.0
+fracture,degradation,38.0,term-term,related_to (38),inter_category,38.0
+fracture,materials,78.0,term-term,related_to (78),inter_category,78.0
+fracture,capacity,24.0,term-term,related_to (24),inter_category,24.0
+fracture,methods,11.0,term-term,related_to (11),inter_category,11.0
+fracture,mechanical,74.0,term-term,co-occurs_with (74),intra_category,74.0
+fracture,energy,53.0,term-term,co-occurs_with (53),intra_category,53.0
+fracture,material,77.0,term-term,related_to (77),inter_category,77.0
+fracture,surface,34.0,term-term,co-occurs_with (34),intra_category,34.0
+fracture,cracks,20.0,term-term,co-occurs_with (20),intra_category,20.0
+fracture,results,25.0,term-term,related_to (25),inter_category,25.0
+fracture,solid,27.0,term-term,co-occurs_with (27),intra_category,27.0
+fracture,electrolyte,27.0,term-term,related_to (27),inter_category,27.0
+fracture,mater,6.0,term-term,related_to (6),inter_category,6.0
+fracture,cathode,26.0,term-term,co-occurs_with (26),intra_category,26.0
+fracture,study,21.0,term-term,related_to (21),inter_category,21.0
+fracture,zhang,5.0,term-term,related_to (5),inter_category,5.0
+energy,sources,5.0,term-term,related_to (5),inter_category,5.0
+energy,online,26.0,term-term,related_to (26),inter_category,26.0
+energy,cracking,10.0,term-term,co-occurs_with (10),intra_category,10.0
+energy,electrode,23.0,term-term,related_to (23),inter_category,23.0
+energy,battery,33.0,term-term,related_to (33),inter_category,33.0
+energy,particles,16.0,term-term,related_to (16),inter_category,16.0
+energy,phase,16.0,term-term,related_to (16),inter_category,16.0
+energy,cycles,7.0,term-term,co-occurs_with (7),intra_category,7.0
+energy,particle,18.0,term-term,related_to (18),inter_category,18.0
+energy,rate,56.0,term-term,related_to (56),inter_category,56.0
+energy,batteries,61.0,term-term,related_to (61),inter_category,61.0
+energy,degradation,25.0,term-term,related_to (25),inter_category,25.0
+energy,capacity,15.0,term-term,related_to (15),inter_category,15.0
+energy,study,6.0,term-term,related_to (6),inter_category,6.0
+energy,mechanical,16.0,term-term,co-occurs_with (16),intra_category,16.0
+energy,material,24.0,term-term,related_to (24),inter_category,24.0
+energy,materials,31.0,term-term,related_to (31),inter_category,31.0
+energy,solid,26.0,term-term,co-occurs_with (26),intra_category,26.0
+energy,mater,69.0,term-term,related_to (69),inter_category,69.0
+energy,solid-state batteries,10.0,term-term,related_to (10),inter_category,10.0
+energy,cathode,20.0,term-term,co-occurs_with (20),intra_category,20.0
+energy,electrolyte,8.0,term-term,related_to (8),inter_category,8.0
+energy,zhang,11.0,term-term,related_to (11),inter_category,11.0
+energy,chem,6.0,term-term,related_to (6),inter_category,6.0
+energy,surface,23.0,term-term,co-occurs_with (23),intra_category,23.0
+energy,cracks,6.0,term-term,co-occurs_with (6),intra_category,6.0
+mechanical,sources,16.0,term-term,related_to (16),inter_category,16.0
+mechanical,cracking,25.0,term-term,co-occurs_with (25),intra_category,25.0
+mechanical,electrode,42.0,term-term,related_to (42),inter_category,42.0
+mechanical,battery,59.0,term-term,related_to (59),inter_category,59.0
+mechanical,particles,47.0,term-term,related_to (47),inter_category,47.0
+mechanical,phase,29.0,term-term,related_to (29),inter_category,29.0
+mechanical,cycles,6.0,term-term,co-occurs_with (6),intra_category,6.0
+mechanical,particle,41.0,term-term,related_to (41),inter_category,41.0
+mechanical,rate,14.0,term-term,related_to (14),inter_category,14.0
+mechanical,batteries,61.0,term-term,related_to (61),inter_category,61.0
+mechanical,degradation,88.0,term-term,related_to (88),inter_category,88.0
+mechanical,capacity,14.0,term-term,related_to (14),inter_category,14.0
+mechanical,study,8.0,term-term,related_to (8),inter_category,8.0
+mechanical,solid,48.0,term-term,co-occurs_with (48),intra_category,48.0
+mechanical,electrolyte,38.0,term-term,related_to (38),inter_category,38.0
+mechanical,materials,39.0,term-term,related_to (39),inter_category,39.0
+mechanical,cathode,20.0,term-term,co-occurs_with (20),intra_category,20.0
+mechanical,material,35.0,term-term,related_to (35),inter_category,35.0
+mechanical,cracks,7.0,term-term,co-occurs_with (7),intra_category,7.0
+mechanical,results,5.0,term-term,related_to (5),inter_category,5.0
+mechanical,solid-state batteries,14.0,term-term,related_to (14),inter_category,14.0
+mechanical,mater,6.0,term-term,related_to (6),inter_category,6.0
+solid,sources,11.0,term-term,related_to (11),inter_category,11.0
+solid,cracking,10.0,term-term,co-occurs_with (10),intra_category,10.0
+solid,electrode,34.0,term-term,related_to (34),inter_category,34.0
+solid,battery,26.0,term-term,related_to (26),inter_category,26.0
+solid,particles,20.0,term-term,related_to (20),inter_category,20.0
+solid,phase,20.0,term-term,related_to (20),inter_category,20.0
+solid,particle,24.0,term-term,related_to (24),inter_category,24.0
+solid,rate,5.0,term-term,related_to (5),inter_category,5.0
+solid,batteries,97.0,term-term,related_to (97),inter_category,97.0
+solid,degradation,29.0,term-term,related_to (29),inter_category,29.0
+solid,capacity,15.0,term-term,related_to (15),inter_category,15.0
+solid,study,7.0,term-term,related_to (7),inter_category,7.0
+solid,materials,25.0,term-term,related_to (25),inter_category,25.0
+solid,cracks,8.0,term-term,co-occurs_with (8),intra_category,8.0
+solid,material,31.0,term-term,related_to (31),inter_category,31.0
+solid,electrolyte,126.0,term-term,related_to (126),inter_category,126.0
+solid,solid-state batteries,57.0,term-term,related_to (57),inter_category,57.0
+solid,cathode,21.0,term-term,co-occurs_with (21),intra_category,21.0
+solid,mater,11.0,term-term,related_to (11),inter_category,11.0
+solid,zhang,9.0,term-term,related_to (9),inter_category,9.0
+solid,surface,17.0,term-term,co-occurs_with (17),intra_category,17.0
+solid,chem,6.0,term-term,related_to (6),inter_category,6.0
+cracks,cracking,16.0,term-term,co-occurs_with (16),intra_category,16.0
+cracks,electrode,36.0,term-term,related_to (36),inter_category,36.0
+cracks,battery,22.0,term-term,related_to (22),inter_category,22.0
+cracks,particles,62.0,term-term,related_to (62),inter_category,62.0
+cracks,phase,14.0,term-term,related_to (14),inter_category,14.0
+cracks,cycles,16.0,term-term,co-occurs_with (16),intra_category,16.0
+cracks,particle,56.0,term-term,related_to (56),inter_category,56.0
+cracks,rate,13.0,term-term,related_to (13),inter_category,13.0
+cracks,degradation,16.0,term-term,related_to (16),inter_category,16.0
+cracks,capacity,14.0,term-term,related_to (14),inter_category,14.0
+cracks,materials,14.0,term-term,related_to (14),inter_category,14.0
+cracks,material,24.0,term-term,related_to (24),inter_category,24.0
+cracks,surface,35.0,term-term,co-occurs_with (35),intra_category,35.0
+cracks,results,8.0,term-term,related_to (8),inter_category,8.0
+cracks,electrolyte,18.0,term-term,related_to (18),inter_category,18.0
+cracks,cathode,10.0,term-term,co-occurs_with (10),intra_category,10.0
+surface,cracking,21.0,term-term,co-occurs_with (21),intra_category,21.0
+surface,electrode,34.0,term-term,related_to (34),inter_category,34.0
+surface,battery,9.0,term-term,related_to (9),inter_category,9.0
+surface,particles,35.0,term-term,related_to (35),inter_category,35.0
+surface,phase,14.0,term-term,related_to (14),inter_category,14.0
+surface,cycles,11.0,term-term,co-occurs_with (11),intra_category,11.0
+surface,particle,74.0,term-term,related_to (74),inter_category,74.0
+surface,rate,19.0,term-term,related_to (19),inter_category,19.0
+surface,batteries,9.0,term-term,related_to (9),inter_category,9.0
+surface,degradation,15.0,term-term,related_to (15),inter_category,15.0
+surface,capacity,13.0,term-term,related_to (13),inter_category,13.0
+surface,materials,16.0,term-term,related_to (16),inter_category,16.0
+surface,material,28.0,term-term,related_to (28),inter_category,28.0
+surface,electrolyte,44.0,term-term,related_to (44),inter_category,44.0
+surface,cathode,17.0,term-term,co-occurs_with (17),intra_category,17.0
+surface,results,8.0,term-term,related_to (8),inter_category,8.0
+cathode,cracking,12.0,term-term,co-occurs_with (12),intra_category,12.0
+cathode,electrode,12.0,term-term,related_to (12),inter_category,12.0
+cathode,battery,28.0,term-term,related_to (28),inter_category,28.0
+cathode,particles,32.0,term-term,related_to (32),inter_category,32.0
+cathode,phase,16.0,term-term,related_to (16),inter_category,16.0
+cathode,particle,17.0,term-term,related_to (17),inter_category,17.0
+cathode,rate,11.0,term-term,related_to (11),inter_category,11.0
+cathode,batteries,45.0,term-term,related_to (45),inter_category,45.0
+cathode,degradation,27.0,term-term,related_to (27),inter_category,27.0
+cathode,capacity,20.0,term-term,related_to (20),inter_category,20.0
+cathode,study,9.0,term-term,related_to (9),inter_category,9.0
+cathode,materials,72.0,term-term,related_to (72),inter_category,72.0
+cathode,material,25.0,term-term,related_to (25),inter_category,25.0
+cathode,electrolyte,26.0,term-term,related_to (26),inter_category,26.0
+cathode,chem,7.0,term-term,related_to (7),inter_category,7.0
+cathode,zhang,8.0,term-term,related_to (8),inter_category,8.0
+cathode,mater,17.0,term-term,related_to (17),inter_category,17.0
+cracking,sources,6.0,term-term,related_to (6),inter_category,6.0
+cracking,electrode,49.0,term-term,related_to (49),inter_category,49.0
+cracking,battery,35.0,term-term,related_to (35),inter_category,35.0
+cracking,particles,48.0,term-term,related_to (48),inter_category,48.0
+cracking,phase,23.0,term-term,related_to (23),inter_category,23.0
+cracking,particle,130.0,term-term,related_to (130),inter_category,130.0
+cracking,batteries,15.0,term-term,related_to (15),inter_category,15.0
+cracking,degradation,28.0,term-term,related_to (28),inter_category,28.0
+cracking,capacity,18.0,term-term,related_to (18),inter_category,18.0
+cracking,results,5.0,term-term,related_to (5),inter_category,5.0
+cracking,cycles,18.0,term-term,co-occurs_with (18),intra_category,18.0
+cracking,rate,31.0,term-term,related_to (31),inter_category,31.0
+cracking,material,29.0,term-term,related_to (29),inter_category,29.0
+cracking,electrolyte,21.0,term-term,related_to (21),inter_category,21.0
+cracking,materials,7.0,term-term,related_to (7),inter_category,7.0
+cracking,study,7.0,term-term,related_to (7),inter_category,7.0
+cycles,electrode,15.0,term-term,related_to (15),inter_category,15.0
+cycles,battery,14.0,term-term,related_to (14),inter_category,14.0
+cycles,particles,27.0,term-term,related_to (27),inter_category,27.0
+cycles,particle,27.0,term-term,related_to (27),inter_category,27.0
+cycles,study,5.0,term-term,related_to (5),inter_category,5.0
+cycles,batteries,5.0,term-term,related_to (5),inter_category,5.0
+cycles,rate,25.0,term-term,related_to (25),inter_category,25.0
+cycles,results,7.0,term-term,related_to (7),inter_category,7.0
+cycles,degradation,15.0,term-term,related_to (15),inter_category,15.0
+cycles,capacity,44.0,term-term,related_to (44),inter_category,44.0
+cycles,electrolyte,5.0,term-term,related_to (5),inter_category,5.0
+cycles,material,11.0,term-term,related_to (11),inter_category,11.0
+particle,electrode,115.0,term-term,co-occurs_with (115),intra_category,115.0
+particle,battery,48.0,term-term,co-occurs_with (48),intra_category,48.0
+particle,particles,2.0,hierarchical,is_part_of,intra_category,2.0
+particle,phase,30.0,term-term,co-occurs_with (30),intra_category,30.0
+particle,rate,59.0,term-term,co-occurs_with (59),intra_category,59.0
+particle,batteries,20.0,term-term,co-occurs_with (20),intra_category,20.0
+particle,degradation,39.0,term-term,co-occurs_with (39),intra_category,39.0
+particle,capacity,28.0,term-term,co-occurs_with (28),intra_category,28.0
+particle,material,63.0,term-term,related_to (63),inter_category,63.0
+particle,materials,15.0,term-term,related_to (15),inter_category,15.0
+particle,results,31.0,term-term,related_to (31),inter_category,31.0
+particle,electrolyte,38.0,term-term,co-occurs_with (38),intra_category,38.0
+particle,reference,5.0,term-term,related_to (5),inter_category,5.0
+particle,study,13.0,term-term,related_to (13),inter_category,13.0
+electrode,sources,15.0,term-term,related_to (15),inter_category,15.0
+electrode,battery,90.0,term-term,co-occurs_with (90),intra_category,90.0
+electrode,particles,132.0,term-term,co-occurs_with (132),intra_category,132.0
+electrode,phase,45.0,term-term,co-occurs_with (45),intra_category,45.0
+electrode,batteries,31.0,term-term,co-occurs_with (31),intra_category,31.0
+electrode,degradation,53.0,term-term,co-occurs_with (53),intra_category,53.0
+electrode,capacity,38.0,term-term,co-occurs_with (38),intra_category,38.0
+electrode,study,23.0,term-term,related_to (23),inter_category,23.0
+electrode,materials,77.0,term-term,related_to (77),inter_category,77.0
+electrode,material,71.0,term-term,related_to (71),inter_category,71.0
+electrode,rate,16.0,term-term,co-occurs_with (16),intra_category,16.0
+electrode,results,7.0,term-term,related_to (7),inter_category,7.0
+electrode,zhang,13.0,term-term,related_to (13),inter_category,13.0
+electrode,electrolyte,59.0,term-term,co-occurs_with (59),intra_category,59.0
+electrode,reference,6.0,term-term,related_to (6),inter_category,6.0
+electrode,chem,5.0,term-term,related_to (5),inter_category,5.0
+electrode,solid-state batteries,6.0,term-term,related_to (6),inter_category,6.0
+battery,sources,18.0,term-term,related_to (18),inter_category,18.0
+battery,particles,67.0,term-term,co-occurs_with (67),intra_category,67.0
+battery,phase,33.0,term-term,co-occurs_with (33),intra_category,33.0
+battery,degradation,100.0,term-term,co-occurs_with (100),intra_category,100.0
+battery,capacity,39.0,term-term,co-occurs_with (39),intra_category,39.0
+battery,study,19.0,term-term,related_to (19),inter_category,19.0
+battery,material,37.0,term-term,related_to (37),inter_category,37.0
+battery,rate,13.0,term-term,co-occurs_with (13),intra_category,13.0
+battery,results,8.0,term-term,related_to (8),inter_category,8.0
+battery,materials,56.0,term-term,related_to (56),inter_category,56.0
+battery,chem,6.0,term-term,related_to (6),inter_category,6.0
+battery,zhang,18.0,term-term,related_to (18),inter_category,18.0
+battery,mater,8.0,term-term,related_to (8),inter_category,8.0
+battery,batteries,23.0,term-term,co-occurs_with (23),intra_category,23.0
+battery,electrolyte,31.0,term-term,co-occurs_with (31),intra_category,31.0
+battery,methods,5.0,term-term,related_to (5),inter_category,5.0
+degradation,sources,23.0,term-term,related_to (23),inter_category,23.0
+degradation,particles,36.0,term-term,co-occurs_with (36),intra_category,36.0
+degradation,phase,19.0,term-term,co-occurs_with (19),intra_category,19.0
+degradation,rate,17.0,term-term,co-occurs_with (17),intra_category,17.0
+degradation,batteries,70.0,term-term,co-occurs_with (70),intra_category,70.0
+degradation,capacity,52.0,term-term,co-occurs_with (52),intra_category,52.0
+degradation,materials,32.0,term-term,related_to (32),inter_category,32.0
+degradation,material,29.0,term-term,related_to (29),inter_category,29.0
+degradation,chem,6.0,term-term,related_to (6),inter_category,6.0
+degradation,zhang,8.0,term-term,related_to (8),inter_category,8.0
+degradation,electrolyte,32.0,term-term,co-occurs_with (32),intra_category,32.0
+degradation,study,16.0,term-term,related_to (16),inter_category,16.0
+degradation,methods,5.0,term-term,related_to (5),inter_category,5.0
+degradation,results,12.0,term-term,related_to (12),inter_category,12.0
+degradation,mater,5.0,term-term,related_to (5),inter_category,5.0
+degradation,solid-state batteries,8.0,term-term,related_to (8),inter_category,8.0
+particles,sources,9.0,term-term,related_to (9),inter_category,9.0
+particles,phase,54.0,term-term,co-occurs_with (54),intra_category,54.0
+particles,study,26.0,term-term,related_to (26),inter_category,26.0
+particles,materials,12.0,term-term,related_to (12),inter_category,12.0
+particles,material,67.0,term-term,related_to (67),inter_category,67.0
+particles,rate,31.0,term-term,co-occurs_with (31),intra_category,31.0
+particles,capacity,20.0,term-term,co-occurs_with (20),intra_category,20.0
+particles,methods,5.0,term-term,related_to (5),inter_category,5.0
+particles,results,16.0,term-term,related_to (16),inter_category,16.0
+particles,batteries,11.0,term-term,co-occurs_with (11),intra_category,11.0
+particles,zhang,8.0,term-term,related_to (8),inter_category,8.0
+particles,electrolyte,24.0,term-term,co-occurs_with (24),intra_category,24.0
+capacity,phase,6.0,term-term,co-occurs_with (6),intra_category,6.0
+capacity,rate,42.0,term-term,co-occurs_with (42),intra_category,42.0
+capacity,batteries,35.0,term-term,co-occurs_with (35),intra_category,35.0
+capacity,materials,23.0,term-term,related_to (23),inter_category,23.0
+capacity,zhang,5.0,term-term,related_to (5),inter_category,5.0
+capacity,electrolyte,18.0,term-term,co-occurs_with (18),intra_category,18.0
+capacity,results,10.0,term-term,related_to (10),inter_category,10.0
+capacity,material,24.0,term-term,related_to (24),inter_category,24.0
+capacity,solid-state batteries,5.0,term-term,related_to (5),inter_category,5.0
+batteries,sources,46.0,term-term,related_to (46),inter_category,46.0
+batteries,phase,15.0,term-term,co-occurs_with (15),intra_category,15.0
+batteries,study,17.0,term-term,related_to (17),inter_category,17.0
+batteries,materials,56.0,term-term,related_to (56),inter_category,56.0
+batteries,electrolyte,40.0,term-term,co-occurs_with (40),intra_category,40.0
+batteries,solid-state batteries,57.0,term-term,related_to (57),inter_category,57.0
+batteries,material,22.0,term-term,related_to (22),inter_category,22.0
+batteries,mater,25.0,term-term,related_to (25),inter_category,25.0
+batteries,chem,22.0,term-term,related_to (22),inter_category,22.0
+batteries,zhang,18.0,term-term,related_to (18),inter_category,18.0
+electrolyte,sources,11.0,term-term,related_to (11),inter_category,11.0
+electrolyte,phase,17.0,term-term,co-occurs_with (17),intra_category,17.0
+electrolyte,rate,11.0,term-term,co-occurs_with (11),intra_category,11.0
+electrolyte,materials,17.0,term-term,related_to (17),inter_category,17.0
+electrolyte,material,38.0,term-term,related_to (38),inter_category,38.0
+electrolyte,results,6.0,term-term,related_to (6),inter_category,6.0
+electrolyte,solid-state batteries,10.0,term-term,related_to (10),inter_category,10.0
+phase,sources,5.0,term-term,related_to (5),inter_category,5.0
+phase,study,13.0,term-term,related_to (13),inter_category,13.0
+phase,methods,9.0,term-term,related_to (9),inter_category,9.0
+phase,materials,33.0,term-term,related_to (33),inter_category,33.0
+phase,rate,13.0,term-term,co-occurs_with (13),intra_category,13.0
+phase,material,25.0,term-term,related_to (25),inter_category,25.0
+rate,material,22.0,term-term,related_to (22),inter_category,22.0
+rate,materials,7.0,term-term,related_to (7),inter_category,7.0
+rate,results,8.0,term-term,related_to (8),inter_category,8.0
+solid-state batteries,materials,7.0,term-term,related_to (7),inter_category,7.0
+solid-state batteries,mater,5.0,term-term,related_to (5),inter_category,5.0
+materials,sources,11.0,term-term,co-occurs_with (11),intra_category,11.0
+materials,results,7.0,term-term,co-occurs_with (7),intra_category,7.0
+materials,zhang,6.0,term-term,co-occurs_with (6),intra_category,6.0
+materials,material,2.0,hierarchical,is_part_of,intra_category,2.0
+materials,mater,2.0,hierarchical,is_part_of,intra_category,2.0
+materials,chem,11.0,term-term,co-occurs_with (11),intra_category,11.0
+materials,methods,5.0,term-term,co-occurs_with (5),intra_category,5.0
+material,sources,6.0,term-term,co-occurs_with (6),intra_category,6.0
+material,study,16.0,term-term,co-occurs_with (16),intra_category,16.0
+material,methods,7.0,term-term,co-occurs_with (7),intra_category,7.0
+material,results,8.0,term-term,co-occurs_with (8),intra_category,8.0
+material,mater,2.0,hierarchical,is_part_of,,2.0
+sources,zhang,11.0,term-term,co-occurs_with (11),intra_category,11.0
+sources,study,8.0,term-term,co-occurs_with (8),intra_category,8.0
+chem,mater,25.0,term-term,co-occurs_with (25),intra_category,25.0
+chem,zhang,6.0,term-term,co-occurs_with (6),intra_category,6.0
+mater,online,23.0,term-term,co-occurs_with (23),intra_category,23.0
+mater,zhang,8.0,term-term,co-occurs_with (8),intra_category,8.0
