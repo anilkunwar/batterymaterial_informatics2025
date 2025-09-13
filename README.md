@@ -12,3 +12,7 @@ intelligence categorization and NER
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/advancedattnbatteryner-streamlit-red)](https://batterysolidminidb-advancedattentive-explorer.streamlit.app/)
 
+
+knowledge graph and NER
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/attnbatterykgner-streamlit-red)](https://batterysolid-categorical-minidbexplorer.streamlit.app/)
+
