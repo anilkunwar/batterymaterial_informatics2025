@@ -1,4 +1,5 @@
 streamlit==1.39.0
+rich==13.3.4   # compatible with streamlit 1.39.0
 PyPDF2==3.0.1
 wordcloud==1.9.3
 networkx==3.3
@@ -18,7 +19,6 @@ typer==0.12.5
 arxiv
 PyMuPDF
 plotly
-rich<14,>=10.14.0
 # Hugging Face + Torch (pin stable versions)
 transformers==4.44.2
 torch==2.4.0
