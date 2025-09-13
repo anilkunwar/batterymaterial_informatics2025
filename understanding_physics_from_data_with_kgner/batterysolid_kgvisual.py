@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import networkx as nx
@@ -5,8 +6,8 @@ import plotly.graph_objects as go
 from pyvis.network import Network
 import streamlit.components.v1 as components
 
-# Load your data (replace with your file path)
-DB_DIR = os.path.dirname(os.path.abspath(__file__))
+# Define the directory for data files
+DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
 
 @st.cache_data
 def load_data():
@@ -20,6 +21,10 @@ def load_data():
     edges_df = pd.read_csv(edges_path)
     nodes_df = pd.read_csv(nodes_path)
     return edges_df, nodes_df
+
+# Load data
+edges_df, nodes_df = load_data()
+
 # Create a directed graph for hierarchy and an undirected graph for the main viz
 G_directed = nx.DiGraph()
 G_undirected = nx.Graph()
@@ -93,10 +98,10 @@ for edge in G_undirected.edges():
         line_color = 'lightgrey'
         line_width = 1
         opacity = 0.6
-    else: # term-term
+    else:  # term-term
         line_color = 'cornflowerblue'
         line_width = edge_weight / 50  # Scale line width
-        opacity = 0.3 + (edge_weight / edges_df['weight'].max()) * 0.7 # Scale opacity
+        opacity = 0.3 + (edge_weight / edges_df['weight'].max()) * 0.7  # Scale opacity
 
     edge_trace = go.Scatter(
         x=[x0, x1, None], y=[y0, y1, None],
@@ -111,14 +116,18 @@ for trace in edge_traces:
     fig.add_trace(trace)
 
 # Add nodes to the figure
-node_x = []; node_y = []; node_text = []; node_color = []; node_size = []
+node_x = []
+node_y = []
+node_text = []
+node_color = []
+node_size = []
 for node in G_undirected.nodes():
     x, y = pos[node]
     node_x.append(x)
     node_y.append(y)
     node_text.append(f"{node}<br>Frequency: {G_undirected.nodes[node].get('size', 0)*10}")
     node_color.append(term_color_map.get(node, 'grey'))
-    node_size.append(G_undirected.nodes[node].get('size', 10)) # Use scaled size
+    node_size.append(G_undirected.nodes[node].get('size', 10))  # Use scaled size
 
 node_trace = go.Scatter(
     x=node_x, y=node_y,
