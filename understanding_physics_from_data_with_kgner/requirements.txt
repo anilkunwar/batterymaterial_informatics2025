@@ -21,5 +21,5 @@ PyMuPDF
 plotly
 # Hugging Face + Torch (pin stable versions)
 transformers==4.44.2
-torch==2.4.0
+torch==2.5.0
 python-louvain
