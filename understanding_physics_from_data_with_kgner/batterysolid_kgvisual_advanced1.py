@@ -1,16 +1,27 @@
+import os
 import streamlit as st
 import pandas as pd
 import networkx as nx
 import plotly.graph_objects as go
 from networkx.algorithms import community
 
+# Define the directory for data files
+DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+
 # -----------------------
 # 1. Data Loading
 # -----------------------
 @st.cache_data
 def load_data():
-    edges_df = pd.read_csv("knowledge_graph_edges.csv")
-    nodes_df = pd.read_csv("knowledge_graph_nodes.csv")
+    edges_path = os.path.join(DB_DIR, "knowledge_graph_edges.csv")
+    nodes_path = os.path.join(DB_DIR, "knowledge_graph_nodes.csv")
+    
+    if not os.path.exists(edges_path) or not os.path.exists(nodes_path):
+        st.error("❌ One or both CSV files are missing. Please ensure 'knowledge_graph_edges.csv' and 'knowledge_graph_nodes.csv' are in the project directory.")
+        st.stop()
+    
+    edges_df = pd.read_csv(edges_path)
+    nodes_df = pd.read_csv(nodes_path)
     return edges_df, nodes_df
 
 edges_df, nodes_df = load_data()
@@ -169,4 +180,3 @@ if selected_node:
             st.sidebar.write(f"- {n} (weight {w})")
     else:
         st.sidebar.write("No connected terms above current filter threshold.")
-
