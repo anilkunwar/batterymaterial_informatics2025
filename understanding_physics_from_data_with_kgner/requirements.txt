@@ -18,6 +18,7 @@ typer==0.12.5
 arxiv
 PyMuPDF
 plotly
-transformers
-torch
+# Hugging Face + Torch (pin stable versions)
+transformers==4.44.2
+torch==2.4.0
 python-louvain
