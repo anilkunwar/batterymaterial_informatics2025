@@ -20,4 +20,4 @@ PyMuPDF
 plotly
 transformers
 torch
-PyPDF2
+pypdf
