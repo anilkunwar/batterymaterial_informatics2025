@@ -23,8 +23,8 @@ Visulaization KG
 
 Medium Database and Informatics
 
-[![machinelearningbatterytensormechanics](https://img.shields.io/badge/attnbatterykgnerinformatics-streamlit-red)](https://batteryreliability-mediumdbneranalysis.streamlit.app/
-)
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/attnbatterykgnerinformatics-streamlit-red)](https://batteryreliability-mediumdbneranalysis.streamlit.app/)
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/knowledgegraphbatterydegradation-streamlit-red)](https://batterysolid-kgvisualmediumdatabase.streamlit.app/)
 
 
 
