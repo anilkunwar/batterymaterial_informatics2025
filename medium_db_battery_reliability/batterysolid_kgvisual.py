@@ -5,13 +5,23 @@ import plotly.graph_objects as go
 from pyvis.network import Network
 import streamlit.components.v1 as components
 
-# Load your data (replace with your file path)
+# Define the directory for data files
+DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+
 @st.cache_data
 def load_data():
-    edges_df = pd.read_csv('knowledge_graph_edges.csv')  # Your edges CSV
-    nodes_df = pd.read_csv('knowledge_graph_nodes.csv')  # Your nodes CSV
+    edges_path = os.path.join(DB_DIR, 'knowledge_graph_edges.csv')
+    nodes_path = os.path.join(DB_DIR, 'knowledge_graph_nodes.csv')
+    
+    if not os.path.exists(edges_path) or not os.path.exists(nodes_path):
+        st.error("❌ One or both CSV files are missing. Please upload 'knowledge_graph_edges.csv' and 'knowledge_graph_nodes.csv'.")
+        st.stop()
+    
+    edges_df = pd.read_csv(edges_path)
+    nodes_df = pd.read_csv(nodes_path)
     return edges_df, nodes_df
 
+# Load data
 edges_df, nodes_df = load_data()
 
 # Create a directed graph for hierarchy and an undirected graph for the main viz
