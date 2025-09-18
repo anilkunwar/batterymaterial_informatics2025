@@ -17,7 +17,7 @@ intelligence categorization and NER
 knowledge graph and NER
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/attnbatterykgner-streamlit-red)](https://batterysolid-categorical-minidbexplorer.streamlit.app/)
 
-Visulaization KG
+Visualization KG
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/kgvizbasic-streamlit-red)](https://batterysolidminidb-knowledgegraph-visualization.streamlit.app/)
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/kgvizadvanced1-streamlit-red)](https://batterysolidminidb-knowledgegraph-visualadvanced1.streamlit.app/)
 
