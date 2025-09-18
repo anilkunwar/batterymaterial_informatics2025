@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import networkx as nx
@@ -7,12 +8,23 @@ from networkx.algorithms import community
 # -----------------------
 # 1. Data Loading
 # -----------------------
+# Define the directory for data files
+DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+
 @st.cache_data
 def load_data():
-    edges_df = pd.read_csv("knowledge_graph_edges.csv")
-    nodes_df = pd.read_csv("knowledge_graph_nodes.csv")
+    edges_path = os.path.join(DB_DIR, 'knowledge_graph_edges.csv')
+    nodes_path = os.path.join(DB_DIR, 'knowledge_graph_nodes.csv')
+    
+    if not os.path.exists(edges_path) or not os.path.exists(nodes_path):
+        st.error("❌ One or both CSV files are missing. Please upload 'knowledge_graph_edges.csv' and 'knowledge_graph_nodes.csv'.")
+        st.stop()
+    
+    edges_df = pd.read_csv(edges_path)
+    nodes_df = pd.read_csv(nodes_path)
     return edges_df, nodes_df
 
+# Load data
 edges_df, nodes_df = load_data()
 
 # -----------------------
