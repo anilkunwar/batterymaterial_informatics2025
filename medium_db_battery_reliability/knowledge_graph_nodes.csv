@@ -1,0 +1,67 @@
+node,type,category,frequency,unit,similarity_score
+Deformation,category,,0,None,0.0
+Fatigue,category,,0,None,0.0
+Crack and Fracture,category,,0,None,0.0
+Degradation,category,,0,None,0.0
+Component,category,,0,None,0.0
+Other,category,,0,None,0.0
+lithium,term,Deformation,3247,% or MPa,0.8578969836235046
+current,term,Deformation,1456,% or MPa,0.8313201665878296
+potential,term,Deformation,1156,% or MPa,0.8538607358932495
+electrodes,term,Deformation,1116,% or MPa,0.8428887724876404
+concentration,term,Deformation,1113,% or MPa,0.854515016078949
+growth,term,Deformation,1052,% or MPa,0.8571388721466064
+discharge,term,Deformation,958,% or MPa,0.8716787099838257
+chemical,term,Deformation,859,% or MPa,0.7860152125358582
+shown,term,Deformation,837,% or MPa,0.8183975219726562
+journal,term,Deformation,832,% or MPa,0.7236862778663635
+stress,term,Fatigue,1353,cycles or MPa,0.9462696313858032
+cycling,term,Fatigue,1279,cycles or MPa,0.8936423063278198
+cells,term,Fatigue,943,cycles or MPa,0.7281137704849243
+power sources,term,Fatigue,647,cycles or MPa,0.7338002324104309
+conditions,term,Fatigue,441,cycles or MPa,0.7292534708976746
+interphase,term,Fatigue,371,cycles or MPa,0.7942065596580505
+resistance,term,Fatigue,342,cycles or MPa,0.8386744856834412
+lipon,term,Fatigue,302,cycles or MPa,0.8178324699401855
+this work,term,Fatigue,289,cycles or MPa,0.7289192080497742
+step,term,Fatigue,278,cycles or MPa,0.7117877006530762
+electrode,term,Crack and Fracture,2601,μm or MPa·m^0.5,0.8229613304138184
+figure,term,Crack and Fracture,2509,μm or MPa·m^0.5,0.7371530532836914
+surface,term,Crack and Fracture,1928,μm or MPa·m^0.5,0.8876203298568726
+solid,term,Crack and Fracture,1774,μm or MPa·m^0.5,0.8548648953437805
+cell,term,Crack and Fracture,1708,μm or MPa·m^0.5,0.7953073978424072
+cathode,term,Crack and Fracture,1331,μm or MPa·m^0.5,0.8647630214691162
+cycle,term,Crack and Fracture,1275,μm or MPa·m^0.5,0.8860249519348145
+state,term,Crack and Fracture,1254,μm or MPa·m^0.5,0.8352433443069458
+particle,term,Crack and Fracture,1121,μm or MPa·m^0.5,0.8731894493103027
+cycles,term,Crack and Fracture,1110,μm or MPa·m^0.5,0.8620217442512512
+electrolyte,term,Degradation,2621,% or nm,0.8897020220756531
+energy,term,Degradation,2079,% or nm,0.8321040272712708
+capacity,term,Degradation,1938,% or nm,0.8902071118354797
+batteries,term,Degradation,1699,% or nm,0.8300425410270691
+battery,term,Degradation,1671,% or nm,0.8955371379852295
+electrochemical,term,Degradation,1557,% or nm,0.8330991864204407
+phase,term,Degradation,1354,% or nm,0.8524311184883118
+voltage,term,Degradation,1253,% or nm,0.8421809673309326
+charge,term,Degradation,1216,% or nm,0.832196831703186
+rate,term,Degradation,1177,% or nm,0.8527687788009644
+reference,component,Component,318,various,0.0
+appendix,component,Component,80,various,0.0
+j. am,component,Component,55,various,0.0
+solid state lett,component,Component,49,various,0.0
+electro chemo,component,Component,41,various,0.0
+solid-state batteries,component,Component,35,various,0.0
+sheldon,component,Component,35,various,0.0
+chemsuschem,component,Component,34,various,0.0
+storage mater,component,Component,31,various,0.0
+solid-state lett,component,Component,30,various,0.0
+materials,term,Other,1323,various,0.0
+material,term,Other,934,various,0.0
+results,term,Other,747,various,0.0
+chem,term,Other,679,various,0.0
+mater,term,Other,667,various,0.0
+wang,term,Other,652,various,0.0
+data,term,Other,627,various,0.0
+zhang,term,Other,587,various,0.0
+study,term,Other,507,various,0.0
+sources,term,Other,494,various,0.0

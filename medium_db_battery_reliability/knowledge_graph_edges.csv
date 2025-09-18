@@ -1,0 +1,1211 @@
+source,target,weight,type,label,relationship,strength
+Deformation,lithium,1.0,category-term,belongs_to,,0.0
+Deformation,current,1.0,category-term,belongs_to,,0.0
+Deformation,potential,1.0,category-term,belongs_to,,0.0
+Deformation,electrodes,1.0,category-term,belongs_to,,0.0
+Deformation,concentration,1.0,category-term,belongs_to,,0.0
+Deformation,growth,1.0,category-term,belongs_to,,0.0
+Deformation,discharge,1.0,category-term,belongs_to,,0.0
+Deformation,chemical,1.0,category-term,belongs_to,,0.0
+Deformation,shown,1.0,category-term,belongs_to,,0.0
+Deformation,journal,1.0,category-term,belongs_to,,0.0
+Fatigue,stress,1.0,category-term,belongs_to,,0.0
+Fatigue,cycling,1.0,category-term,belongs_to,,0.0
+Fatigue,cells,1.0,category-term,belongs_to,,0.0
+Fatigue,power sources,1.0,category-term,belongs_to,,0.0
+Fatigue,conditions,1.0,category-term,belongs_to,,0.0
+Fatigue,interphase,1.0,category-term,belongs_to,,0.0
+Fatigue,resistance,1.0,category-term,belongs_to,,0.0
+Fatigue,lipon,1.0,category-term,belongs_to,,0.0
+Fatigue,this work,1.0,category-term,belongs_to,,0.0
+Fatigue,step,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,electrode,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,figure,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,surface,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,solid,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cell,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cathode,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cycle,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,state,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,particle,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,cycles,1.0,category-term,belongs_to,,0.0
+Degradation,electrolyte,1.0,category-term,belongs_to,,0.0
+Degradation,energy,1.0,category-term,belongs_to,,0.0
+Degradation,capacity,1.0,category-term,belongs_to,,0.0
+Degradation,batteries,1.0,category-term,belongs_to,,0.0
+Degradation,battery,1.0,category-term,belongs_to,,0.0
+Degradation,electrochemical,1.0,category-term,belongs_to,,0.0
+Degradation,phase,1.0,category-term,belongs_to,,0.0
+Degradation,voltage,1.0,category-term,belongs_to,,0.0
+Degradation,charge,1.0,category-term,belongs_to,,0.0
+Degradation,rate,1.0,category-term,belongs_to,,0.0
+Component,reference,1.0,category-term,belongs_to,,0.0
+Component,appendix,1.0,category-term,belongs_to,,0.0
+Component,j. am,1.0,category-term,belongs_to,,0.0
+Component,solid state lett,1.0,category-term,belongs_to,,0.0
+Component,electro chemo,1.0,category-term,belongs_to,,0.0
+Component,solid-state batteries,1.0,category-term,belongs_to,,0.0
+Component,sheldon,1.0,category-term,belongs_to,,0.0
+Component,chemsuschem,1.0,category-term,belongs_to,,0.0
+Component,storage mater,1.0,category-term,belongs_to,,0.0
+Component,solid-state lett,1.0,category-term,belongs_to,,0.0
+Other,materials,1.0,category-term,belongs_to,,0.0
+Other,material,1.0,category-term,belongs_to,,0.0
+Other,results,1.0,category-term,belongs_to,,0.0
+Other,chem,1.0,category-term,belongs_to,,0.0
+Other,mater,1.0,category-term,belongs_to,,0.0
+Other,wang,1.0,category-term,belongs_to,,0.0
+Other,data,1.0,category-term,belongs_to,,0.0
+Other,zhang,1.0,category-term,belongs_to,,0.0
+Other,study,1.0,category-term,belongs_to,,0.0
+Other,sources,1.0,category-term,belongs_to,,0.0
+lithium,electrode,394.0,term-term,related_to (394),inter_category,394.0
+lithium,particle,123.0,term-term,related_to (123),inter_category,123.0
+lithium,capacity,245.0,term-term,related_to (245),inter_category,245.0
+lithium,battery,420.0,term-term,related_to (420),inter_category,420.0
+lithium,phase,175.0,term-term,related_to (175),inter_category,175.0
+lithium,batteries,783.0,term-term,related_to (783),inter_category,783.0
+lithium,chem,36.0,term-term,related_to (36),inter_category,36.0
+lithium,energy,291.0,term-term,related_to (291),inter_category,291.0
+lithium,materials,221.0,term-term,related_to (221),inter_category,221.0
+lithium,growth,243.0,term-term,co-occurs_with (243),intra_category,243.0
+lithium,interphase,144.0,term-term,related_to (144),inter_category,144.0
+lithium,solid,393.0,term-term,related_to (393),inter_category,393.0
+lithium,cell,241.0,term-term,related_to (241),inter_category,241.0
+lithium,material,180.0,term-term,related_to (180),inter_category,180.0
+lithium,current,170.0,term-term,co-occurs_with (170),intra_category,170.0
+lithium,stress,155.0,term-term,related_to (155),inter_category,155.0
+lithium,potential,106.0,term-term,co-occurs_with (106),intra_category,106.0
+lithium,chemical,149.0,term-term,co-occurs_with (149),intra_category,149.0
+lithium,surface,224.0,term-term,related_to (224),inter_category,224.0
+lithium,concentration,294.0,term-term,co-occurs_with (294),intra_category,294.0
+lithium,this work,30.0,term-term,related_to (30),inter_category,30.0
+lithium,state,205.0,term-term,related_to (205),inter_category,205.0
+lithium,reference,48.0,term-term,related_to (48),inter_category,48.0
+lithium,cycles,65.0,term-term,related_to (65),inter_category,65.0
+lithium,rate,132.0,term-term,related_to (132),inter_category,132.0
+lithium,study,99.0,term-term,related_to (99),inter_category,99.0
+lithium,discharge,118.0,term-term,co-occurs_with (118),intra_category,118.0
+lithium,cycling,175.0,term-term,related_to (175),inter_category,175.0
+lithium,figure,152.0,term-term,related_to (152),inter_category,152.0
+lithium,cycle,104.0,term-term,related_to (104),inter_category,104.0
+lithium,results,88.0,term-term,related_to (88),inter_category,88.0
+lithium,conditions,45.0,term-term,related_to (45),inter_category,45.0
+lithium,shown,63.0,term-term,co-occurs_with (63),intra_category,63.0
+lithium,electrochemical,258.0,term-term,related_to (258),inter_category,258.0
+lithium,appendix,5.0,term-term,related_to (5),inter_category,5.0
+lithium,journal,159.0,term-term,co-occurs_with (159),intra_category,159.0
+lithium,power sources,81.0,term-term,related_to (81),inter_category,81.0
+lithium,wang,121.0,term-term,related_to (121),inter_category,121.0
+lithium,sources,95.0,term-term,related_to (95),inter_category,95.0
+lithium,cells,156.0,term-term,related_to (156),inter_category,156.0
+lithium,zhang,101.0,term-term,related_to (101),inter_category,101.0
+lithium,electrolyte,486.0,term-term,related_to (486),inter_category,486.0
+lithium,cathode,202.0,term-term,related_to (202),inter_category,202.0
+lithium,electrodes,186.0,term-term,co-occurs_with (186),intra_category,186.0
+lithium,charge,129.0,term-term,related_to (129),inter_category,129.0
+lithium,voltage,127.0,term-term,related_to (127),inter_category,127.0
+lithium,mater,44.0,term-term,related_to (44),inter_category,44.0
+lithium,data,43.0,term-term,related_to (43),inter_category,43.0
+lithium,resistance,39.0,term-term,related_to (39),inter_category,39.0
+lithium,solid-state batteries,17.0,term-term,related_to (17),inter_category,17.0
+lithium,step,22.0,term-term,related_to (22),inter_category,22.0
+lithium,lipon,20.0,term-term,related_to (20),inter_category,20.0
+current,electrode,171.0,term-term,related_to (171),inter_category,171.0
+current,particle,63.0,term-term,related_to (63),inter_category,63.0
+current,capacity,156.0,term-term,related_to (156),inter_category,156.0
+current,battery,106.0,term-term,related_to (106),inter_category,106.0
+current,phase,32.0,term-term,related_to (32),inter_category,32.0
+current,cycles,103.0,term-term,related_to (103),inter_category,103.0
+current,study,23.0,term-term,related_to (23),inter_category,23.0
+current,cycle,120.0,term-term,related_to (120),inter_category,120.0
+current,rate,175.0,term-term,related_to (175),inter_category,175.0
+current,this work,19.0,term-term,related_to (19),inter_category,19.0
+current,batteries,54.0,term-term,related_to (54),inter_category,54.0
+current,chem,6.0,term-term,related_to (6),inter_category,6.0
+current,energy,53.0,term-term,related_to (53),inter_category,53.0
+current,materials,33.0,term-term,related_to (33),inter_category,33.0
+current,growth,74.0,term-term,co-occurs_with (74),intra_category,74.0
+current,interphase,16.0,term-term,related_to (16),inter_category,16.0
+current,solid,50.0,term-term,related_to (50),inter_category,50.0
+current,cell,136.0,term-term,related_to (136),inter_category,136.0
+current,material,53.0,term-term,related_to (53),inter_category,53.0
+current,stress,49.0,term-term,related_to (49),inter_category,49.0
+current,concentration,59.0,term-term,co-occurs_with (59),intra_category,59.0
+current,discharge,105.0,term-term,co-occurs_with (105),intra_category,105.0
+current,cycling,100.0,term-term,related_to (100),inter_category,100.0
+current,figure,137.0,term-term,related_to (137),inter_category,137.0
+current,conditions,30.0,term-term,related_to (30),inter_category,30.0
+current,cells,79.0,term-term,related_to (79),inter_category,79.0
+current,shown,55.0,term-term,co-occurs_with (55),intra_category,55.0
+current,results,36.0,term-term,related_to (36),inter_category,36.0
+current,electrochemical,52.0,term-term,related_to (52),inter_category,52.0
+current,electrolyte,116.0,term-term,related_to (116),inter_category,116.0
+current,surface,74.0,term-term,related_to (74),inter_category,74.0
+current,state,47.0,term-term,related_to (47),inter_category,47.0
+current,charge,110.0,term-term,related_to (110),inter_category,110.0
+current,potential,112.0,term-term,co-occurs_with (112),intra_category,112.0
+current,electrodes,70.0,term-term,co-occurs_with (70),intra_category,70.0
+current,voltage,164.0,term-term,related_to (164),inter_category,164.0
+current,chemical,28.0,term-term,co-occurs_with (28),intra_category,28.0
+current,cathode,38.0,term-term,related_to (38),inter_category,38.0
+current,reference,12.0,term-term,related_to (12),inter_category,12.0
+current,data,27.0,term-term,related_to (27),inter_category,27.0
+current,journal,9.0,term-term,co-occurs_with (9),intra_category,9.0
+current,step,29.0,term-term,related_to (29),inter_category,29.0
+current,resistance,29.0,term-term,related_to (29),inter_category,29.0
+current,wang,10.0,term-term,related_to (10),inter_category,10.0
+current,appendix,9.0,term-term,related_to (9),inter_category,9.0
+current,lipon,5.0,term-term,related_to (5),inter_category,5.0
+potential,electrode,167.0,term-term,related_to (167),inter_category,167.0
+potential,particle,16.0,term-term,related_to (16),inter_category,16.0
+potential,capacity,103.0,term-term,related_to (103),inter_category,103.0
+potential,battery,42.0,term-term,related_to (42),inter_category,42.0
+potential,phase,49.0,term-term,related_to (49),inter_category,49.0
+potential,cycles,57.0,term-term,related_to (57),inter_category,57.0
+potential,study,14.0,term-term,related_to (14),inter_category,14.0
+potential,cycle,64.0,term-term,related_to (64),inter_category,64.0
+potential,rate,84.0,term-term,related_to (84),inter_category,84.0
+potential,this work,8.0,term-term,related_to (8),inter_category,8.0
+potential,batteries,30.0,term-term,related_to (30),inter_category,30.0
+potential,chem,6.0,term-term,related_to (6),inter_category,6.0
+potential,energy,80.0,term-term,related_to (80),inter_category,80.0
+potential,materials,25.0,term-term,related_to (25),inter_category,25.0
+potential,growth,40.0,term-term,co-occurs_with (40),intra_category,40.0
+potential,interphase,10.0,term-term,related_to (10),inter_category,10.0
+potential,solid,52.0,term-term,related_to (52),inter_category,52.0
+potential,cell,110.0,term-term,related_to (110),inter_category,110.0
+potential,material,43.0,term-term,related_to (43),inter_category,43.0
+potential,stress,133.0,term-term,related_to (133),inter_category,133.0
+potential,chemical,135.0,term-term,co-occurs_with (135),intra_category,135.0
+potential,surface,95.0,term-term,related_to (95),inter_category,95.0
+potential,state,30.0,term-term,related_to (30),inter_category,30.0
+potential,electrochemical,76.0,term-term,related_to (76),inter_category,76.0
+potential,discharge,50.0,term-term,co-occurs_with (50),intra_category,50.0
+potential,conditions,15.0,term-term,related_to (15),inter_category,15.0
+potential,charge,76.0,term-term,related_to (76),inter_category,76.0
+potential,shown,51.0,term-term,co-occurs_with (51),intra_category,51.0
+potential,results,37.0,term-term,related_to (37),inter_category,37.0
+potential,concentration,84.0,term-term,co-occurs_with (84),intra_category,84.0
+potential,figure,112.0,term-term,related_to (112),inter_category,112.0
+potential,electrolyte,105.0,term-term,related_to (105),inter_category,105.0
+potential,cathode,47.0,term-term,related_to (47),inter_category,47.0
+potential,voltage,71.0,term-term,related_to (71),inter_category,71.0
+potential,cells,34.0,term-term,related_to (34),inter_category,34.0
+potential,data,24.0,term-term,related_to (24),inter_category,24.0
+potential,electrodes,37.0,term-term,co-occurs_with (37),intra_category,37.0
+potential,reference,33.0,term-term,related_to (33),inter_category,33.0
+potential,cycling,43.0,term-term,related_to (43),inter_category,43.0
+potential,resistance,13.0,term-term,related_to (13),inter_category,13.0
+potential,journal,19.0,term-term,co-occurs_with (19),intra_category,19.0
+potential,step,23.0,term-term,related_to (23),inter_category,23.0
+potential,appendix,5.0,term-term,related_to (5),inter_category,5.0
+potential,lipon,6.0,term-term,related_to (6),inter_category,6.0
+electrodes,electrode,2.0,hierarchical,is_part_of,inter_category,2.0
+electrodes,particle,32.0,term-term,related_to (32),inter_category,32.0
+electrodes,capacity,97.0,term-term,related_to (97),inter_category,97.0
+electrodes,battery,121.0,term-term,related_to (121),inter_category,121.0
+electrodes,phase,47.0,term-term,related_to (47),inter_category,47.0
+electrodes,cycles,46.0,term-term,related_to (46),inter_category,46.0
+electrodes,study,45.0,term-term,related_to (45),inter_category,45.0
+electrodes,cycle,50.0,term-term,related_to (50),inter_category,50.0
+electrodes,rate,43.0,term-term,related_to (43),inter_category,43.0
+electrodes,this work,12.0,term-term,related_to (12),inter_category,12.0
+electrodes,batteries,109.0,term-term,related_to (109),inter_category,109.0
+electrodes,energy,61.0,term-term,related_to (61),inter_category,61.0
+electrodes,materials,58.0,term-term,related_to (58),inter_category,58.0
+electrodes,growth,23.0,term-term,co-occurs_with (23),intra_category,23.0
+electrodes,interphase,34.0,term-term,related_to (34),inter_category,34.0
+electrodes,solid,84.0,term-term,related_to (84),inter_category,84.0
+electrodes,cell,78.0,term-term,related_to (78),inter_category,78.0
+electrodes,material,46.0,term-term,related_to (46),inter_category,46.0
+electrodes,stress,64.0,term-term,related_to (64),inter_category,64.0
+electrodes,chemical,40.0,term-term,co-occurs_with (40),intra_category,40.0
+electrodes,cycling,99.0,term-term,related_to (99),inter_category,99.0
+electrodes,surface,68.0,term-term,related_to (68),inter_category,68.0
+electrodes,shown,22.0,term-term,co-occurs_with (22),intra_category,22.0
+electrodes,discharge,45.0,term-term,co-occurs_with (45),intra_category,45.0
+electrodes,step,6.0,term-term,related_to (6),inter_category,6.0
+electrodes,charge,64.0,term-term,related_to (64),inter_category,64.0
+electrodes,conditions,20.0,term-term,related_to (20),inter_category,20.0
+electrodes,results,32.0,term-term,related_to (32),inter_category,32.0
+electrodes,cells,73.0,term-term,related_to (73),inter_category,73.0
+electrodes,concentration,19.0,term-term,co-occurs_with (19),intra_category,19.0
+electrodes,state,45.0,term-term,related_to (45),inter_category,45.0
+electrodes,reference,29.0,term-term,related_to (29),inter_category,29.0
+electrodes,resistance,10.0,term-term,related_to (10),inter_category,10.0
+electrodes,figure,79.0,term-term,related_to (79),inter_category,79.0
+electrodes,data,33.0,term-term,related_to (33),inter_category,33.0
+electrodes,electrochemical,112.0,term-term,related_to (112),inter_category,112.0
+electrodes,journal,30.0,term-term,co-occurs_with (30),intra_category,30.0
+electrodes,power sources,11.0,term-term,related_to (11),inter_category,11.0
+electrodes,zhang,10.0,term-term,related_to (10),inter_category,10.0
+electrodes,sources,15.0,term-term,related_to (15),inter_category,15.0
+electrodes,electrolyte,116.0,term-term,related_to (116),inter_category,116.0
+electrodes,mater,8.0,term-term,related_to (8),inter_category,8.0
+electrodes,wang,13.0,term-term,related_to (13),inter_category,13.0
+electrodes,sheldon,6.0,term-term,related_to (6),inter_category,6.0
+electrodes,cathode,26.0,term-term,related_to (26),inter_category,26.0
+electrodes,voltage,45.0,term-term,related_to (45),inter_category,45.0
+concentration,electrode,102.0,term-term,related_to (102),inter_category,102.0
+concentration,particle,70.0,term-term,related_to (70),inter_category,70.0
+concentration,capacity,34.0,term-term,related_to (34),inter_category,34.0
+concentration,battery,16.0,term-term,related_to (16),inter_category,16.0
+concentration,phase,67.0,term-term,related_to (67),inter_category,67.0
+concentration,cycles,19.0,term-term,related_to (19),inter_category,19.0
+concentration,study,13.0,term-term,related_to (13),inter_category,13.0
+concentration,cycle,23.0,term-term,related_to (23),inter_category,23.0
+concentration,rate,81.0,term-term,related_to (81),inter_category,81.0
+concentration,this work,7.0,term-term,related_to (7),inter_category,7.0
+concentration,batteries,22.0,term-term,related_to (22),inter_category,22.0
+concentration,energy,32.0,term-term,related_to (32),inter_category,32.0
+concentration,materials,20.0,term-term,related_to (20),inter_category,20.0
+concentration,growth,25.0,term-term,co-occurs_with (25),intra_category,25.0
+concentration,interphase,7.0,term-term,related_to (7),inter_category,7.0
+concentration,solid,42.0,term-term,related_to (42),inter_category,42.0
+concentration,cell,37.0,term-term,related_to (37),inter_category,37.0
+concentration,material,72.0,term-term,related_to (72),inter_category,72.0
+concentration,stress,140.0,term-term,related_to (140),inter_category,140.0
+concentration,chemical,42.0,term-term,co-occurs_with (42),intra_category,42.0
+concentration,cycling,34.0,term-term,related_to (34),inter_category,34.0
+concentration,surface,76.0,term-term,related_to (76),inter_category,76.0
+concentration,shown,26.0,term-term,co-occurs_with (26),intra_category,26.0
+concentration,discharge,35.0,term-term,co-occurs_with (35),intra_category,35.0
+concentration,step,15.0,term-term,related_to (15),inter_category,15.0
+concentration,charge,43.0,term-term,related_to (43),inter_category,43.0
+concentration,conditions,22.0,term-term,related_to (22),inter_category,22.0
+concentration,results,44.0,term-term,related_to (44),inter_category,44.0
+concentration,cells,6.0,term-term,related_to (6),inter_category,6.0
+concentration,state,27.0,term-term,related_to (27),inter_category,27.0
+concentration,reference,35.0,term-term,related_to (35),inter_category,35.0
+concentration,figure,80.0,term-term,related_to (80),inter_category,80.0
+concentration,electrolyte,138.0,term-term,related_to (138),inter_category,138.0
+concentration,voltage,30.0,term-term,related_to (30),inter_category,30.0
+concentration,data,12.0,term-term,related_to (12),inter_category,12.0
+concentration,cathode,31.0,term-term,related_to (31),inter_category,31.0
+concentration,electrochemical,21.0,term-term,related_to (21),inter_category,21.0
+concentration,appendix,12.0,term-term,related_to (12),inter_category,12.0
+concentration,journal,9.0,term-term,co-occurs_with (9),intra_category,9.0
+concentration,resistance,5.0,term-term,related_to (5),inter_category,5.0
+concentration,lipon,11.0,term-term,related_to (11),inter_category,11.0
+growth,electrode,75.0,term-term,related_to (75),inter_category,75.0
+growth,particle,44.0,term-term,related_to (44),inter_category,44.0
+growth,capacity,69.0,term-term,related_to (69),inter_category,69.0
+growth,battery,76.0,term-term,related_to (76),inter_category,76.0
+growth,phase,54.0,term-term,related_to (54),inter_category,54.0
+growth,cycles,27.0,term-term,related_to (27),inter_category,27.0
+growth,study,22.0,term-term,related_to (22),inter_category,22.0
+growth,cycle,56.0,term-term,related_to (56),inter_category,56.0
+growth,rate,79.0,term-term,related_to (79),inter_category,79.0
+growth,this work,13.0,term-term,related_to (13),inter_category,13.0
+growth,batteries,58.0,term-term,related_to (58),inter_category,58.0
+growth,chem,5.0,term-term,related_to (5),inter_category,5.0
+growth,energy,37.0,term-term,related_to (37),inter_category,37.0
+growth,materials,25.0,term-term,related_to (25),inter_category,25.0
+growth,interphase,50.0,term-term,related_to (50),inter_category,50.0
+growth,solid,96.0,term-term,related_to (96),inter_category,96.0
+growth,cell,36.0,term-term,related_to (36),inter_category,36.0
+growth,material,17.0,term-term,related_to (17),inter_category,17.0
+growth,stress,43.0,term-term,related_to (43),inter_category,43.0
+growth,results,30.0,term-term,related_to (30),inter_category,30.0
+growth,figure,41.0,term-term,related_to (41),inter_category,41.0
+growth,surface,57.0,term-term,related_to (57),inter_category,57.0
+growth,conditions,26.0,term-term,related_to (26),inter_category,26.0
+growth,shown,23.0,term-term,co-occurs_with (23),intra_category,23.0
+growth,charge,40.0,term-term,related_to (40),inter_category,40.0
+growth,discharge,19.0,term-term,co-occurs_with (19),intra_category,19.0
+growth,cycling,66.0,term-term,related_to (66),inter_category,66.0
+growth,journal,18.0,term-term,co-occurs_with (18),intra_category,18.0
+growth,electrochemical,62.0,term-term,related_to (62),inter_category,62.0
+growth,cells,15.0,term-term,related_to (15),inter_category,15.0
+growth,data,9.0,term-term,related_to (9),inter_category,9.0
+growth,electrolyte,122.0,term-term,related_to (122),inter_category,122.0
+growth,chemical,23.0,term-term,co-occurs_with (23),intra_category,23.0
+growth,voltage,32.0,term-term,related_to (32),inter_category,32.0
+growth,step,5.0,term-term,related_to (5),inter_category,5.0
+growth,state,23.0,term-term,related_to (23),inter_category,23.0
+growth,resistance,13.0,term-term,related_to (13),inter_category,13.0
+growth,chemsuschem,5.0,term-term,related_to (5),inter_category,5.0
+growth,wang,7.0,term-term,related_to (7),inter_category,7.0
+growth,cathode,12.0,term-term,related_to (12),inter_category,12.0
+discharge,electrode,118.0,term-term,related_to (118),inter_category,118.0
+discharge,particle,41.0,term-term,related_to (41),inter_category,41.0
+discharge,capacity,185.0,term-term,related_to (185),inter_category,185.0
+discharge,battery,79.0,term-term,related_to (79),inter_category,79.0
+discharge,phase,58.0,term-term,related_to (58),inter_category,58.0
+discharge,cycles,149.0,term-term,related_to (149),inter_category,149.0
+discharge,study,12.0,term-term,related_to (12),inter_category,12.0
+discharge,cycle,131.0,term-term,related_to (131),inter_category,131.0
+discharge,rate,100.0,term-term,related_to (100),inter_category,100.0
+discharge,batteries,48.0,term-term,related_to (48),inter_category,48.0
+discharge,energy,29.0,term-term,related_to (29),inter_category,29.0
+discharge,materials,20.0,term-term,related_to (20),inter_category,20.0
+discharge,interphase,10.0,term-term,related_to (10),inter_category,10.0
+discharge,solid,43.0,term-term,related_to (43),inter_category,43.0
+discharge,cell,133.0,term-term,related_to (133),inter_category,133.0
+discharge,material,35.0,term-term,related_to (35),inter_category,35.0
+discharge,stress,20.0,term-term,related_to (20),inter_category,20.0
+discharge,chemical,12.0,term-term,co-occurs_with (12),intra_category,12.0
+discharge,cycling,90.0,term-term,related_to (90),inter_category,90.0
+discharge,surface,54.0,term-term,related_to (54),inter_category,54.0
+discharge,shown,36.0,term-term,co-occurs_with (36),intra_category,36.0
+discharge,step,18.0,term-term,related_to (18),inter_category,18.0
+discharge,charge,2.0,hierarchical,is_part_of,inter_category,2.0
+discharge,figure,110.0,term-term,related_to (110),inter_category,110.0
+discharge,results,26.0,term-term,related_to (26),inter_category,26.0
+discharge,conditions,14.0,term-term,related_to (14),inter_category,14.0
+discharge,resistance,14.0,term-term,related_to (14),inter_category,14.0
+discharge,journal,14.0,term-term,co-occurs_with (14),intra_category,14.0
+discharge,electrochemical,52.0,term-term,related_to (52),inter_category,52.0
+discharge,voltage,133.0,term-term,related_to (133),inter_category,133.0
+discharge,state,44.0,term-term,related_to (44),inter_category,44.0
+discharge,cells,66.0,term-term,related_to (66),inter_category,66.0
+discharge,electrolyte,90.0,term-term,related_to (90),inter_category,90.0
+discharge,data,18.0,term-term,related_to (18),inter_category,18.0
+discharge,cathode,51.0,term-term,related_to (51),inter_category,51.0
+discharge,reference,5.0,term-term,related_to (5),inter_category,5.0
+chemical,electrode,77.0,term-term,related_to (77),inter_category,77.0
+chemical,particle,22.0,term-term,related_to (22),inter_category,22.0
+chemical,capacity,32.0,term-term,related_to (32),inter_category,32.0
+chemical,battery,55.0,term-term,related_to (55),inter_category,55.0
+chemical,phase,42.0,term-term,related_to (42),inter_category,42.0
+chemical,cycles,16.0,term-term,related_to (16),inter_category,16.0
+chemical,study,22.0,term-term,related_to (22),inter_category,22.0
+chemical,cycle,28.0,term-term,related_to (28),inter_category,28.0
+chemical,rate,17.0,term-term,related_to (17),inter_category,17.0
+chemical,this work,8.0,term-term,related_to (8),inter_category,8.0
+chemical,batteries,50.0,term-term,related_to (50),inter_category,50.0
+chemical,energy,75.0,term-term,related_to (75),inter_category,75.0
+chemical,materials,51.0,term-term,related_to (51),inter_category,51.0
+chemical,interphase,20.0,term-term,related_to (20),inter_category,20.0
+chemical,solid,73.0,term-term,related_to (73),inter_category,73.0
+chemical,cell,23.0,term-term,related_to (23),inter_category,23.0
+chemical,material,54.0,term-term,related_to (54),inter_category,54.0
+chemical,stress,40.0,term-term,related_to (40),inter_category,40.0
+chemical,state,49.0,term-term,related_to (49),inter_category,49.0
+chemical,reference,25.0,term-term,related_to (25),inter_category,25.0
+chemical,results,22.0,term-term,related_to (22),inter_category,22.0
+chemical,journal,60.0,term-term,co-occurs_with (60),intra_category,60.0
+chemical,wang,15.0,term-term,related_to (15),inter_category,15.0
+chemical,electrochemical,2.0,hierarchical,is_part_of,inter_category,2.0
+chemical,surface,73.0,term-term,related_to (73),inter_category,73.0
+chemical,resistance,7.0,term-term,related_to (7),inter_category,7.0
+chemical,electrolyte,106.0,term-term,related_to (106),inter_category,106.0
+chemical,cycling,41.0,term-term,related_to (41),inter_category,41.0
+chemical,shown,25.0,term-term,co-occurs_with (25),intra_category,25.0
+chemical,cathode,50.0,term-term,related_to (50),inter_category,50.0
+chemical,figure,44.0,term-term,related_to (44),inter_category,44.0
+chemical,cells,10.0,term-term,related_to (10),inter_category,10.0
+chemical,data,13.0,term-term,related_to (13),inter_category,13.0
+chemical,voltage,32.0,term-term,related_to (32),inter_category,32.0
+chemical,charge,27.0,term-term,related_to (27),inter_category,27.0
+chemical,conditions,13.0,term-term,related_to (13),inter_category,13.0
+chemical,zhang,15.0,term-term,related_to (15),inter_category,15.0
+chemical,lipon,14.0,term-term,related_to (14),inter_category,14.0
+chemical,appendix,7.0,term-term,related_to (7),inter_category,7.0
+chemical,step,6.0,term-term,related_to (6),inter_category,6.0
+chemical,chem,2.0,hierarchical,is_part_of,,2.0
+shown,electrode,88.0,term-term,related_to (88),inter_category,88.0
+shown,particle,41.0,term-term,related_to (41),inter_category,41.0
+shown,capacity,55.0,term-term,related_to (55),inter_category,55.0
+shown,battery,20.0,term-term,related_to (20),inter_category,20.0
+shown,phase,33.0,term-term,related_to (33),inter_category,33.0
+shown,cycles,60.0,term-term,related_to (60),inter_category,60.0
+shown,study,12.0,term-term,related_to (12),inter_category,12.0
+shown,cycle,47.0,term-term,related_to (47),inter_category,47.0
+shown,rate,42.0,term-term,related_to (42),inter_category,42.0
+shown,batteries,15.0,term-term,related_to (15),inter_category,15.0
+shown,energy,25.0,term-term,related_to (25),inter_category,25.0
+shown,materials,17.0,term-term,related_to (17),inter_category,17.0
+shown,interphase,5.0,term-term,related_to (5),inter_category,5.0
+shown,solid,18.0,term-term,related_to (18),inter_category,18.0
+shown,cell,64.0,term-term,related_to (64),inter_category,64.0
+shown,material,20.0,term-term,related_to (20),inter_category,20.0
+shown,stress,31.0,term-term,related_to (31),inter_category,31.0
+shown,cycling,53.0,term-term,related_to (53),inter_category,53.0
+shown,surface,56.0,term-term,related_to (56),inter_category,56.0
+shown,charge,43.0,term-term,related_to (43),inter_category,43.0
+shown,results,55.0,term-term,related_to (55),inter_category,55.0
+shown,electrochemical,27.0,term-term,related_to (27),inter_category,27.0
+shown,electrolyte,55.0,term-term,related_to (55),inter_category,55.0
+shown,figure,313.0,term-term,related_to (313),inter_category,313.0
+shown,data,31.0,term-term,related_to (31),inter_category,31.0
+shown,cathode,40.0,term-term,related_to (40),inter_category,40.0
+shown,state,19.0,term-term,related_to (19),inter_category,19.0
+shown,step,6.0,term-term,related_to (6),inter_category,6.0
+shown,voltage,53.0,term-term,related_to (53),inter_category,53.0
+shown,cells,43.0,term-term,related_to (43),inter_category,43.0
+shown,reference,6.0,term-term,related_to (6),inter_category,6.0
+shown,conditions,8.0,term-term,related_to (8),inter_category,8.0
+shown,resistance,16.0,term-term,related_to (16),inter_category,16.0
+shown,appendix,12.0,term-term,related_to (12),inter_category,12.0
+shown,lipon,6.0,term-term,related_to (6),inter_category,6.0
+journal,electrode,47.0,term-term,related_to (47),inter_category,47.0
+journal,particle,8.0,term-term,related_to (8),inter_category,8.0
+journal,capacity,23.0,term-term,related_to (23),inter_category,23.0
+journal,battery,54.0,term-term,related_to (54),inter_category,54.0
+journal,phase,25.0,term-term,related_to (25),inter_category,25.0
+journal,study,22.0,term-term,related_to (22),inter_category,22.0
+journal,cycle,6.0,term-term,related_to (6),inter_category,6.0
+journal,rate,17.0,term-term,related_to (17),inter_category,17.0
+journal,batteries,106.0,term-term,related_to (106),inter_category,106.0
+journal,energy,41.0,term-term,related_to (41),inter_category,41.0
+journal,materials,52.0,term-term,related_to (52),inter_category,52.0
+journal,interphase,27.0,term-term,related_to (27),inter_category,27.0
+journal,solid,65.0,term-term,related_to (65),inter_category,65.0
+journal,cell,34.0,term-term,related_to (34),inter_category,34.0
+journal,material,10.0,term-term,related_to (10),inter_category,10.0
+journal,stress,36.0,term-term,related_to (36),inter_category,36.0
+journal,cycling,18.0,term-term,related_to (18),inter_category,18.0
+journal,surface,14.0,term-term,related_to (14),inter_category,14.0
+journal,charge,16.0,term-term,related_to (16),inter_category,16.0
+journal,cells,26.0,term-term,related_to (26),inter_category,26.0
+journal,state,27.0,term-term,related_to (27),inter_category,27.0
+journal,reference,10.0,term-term,related_to (10),inter_category,10.0
+journal,figure,6.0,term-term,related_to (6),inter_category,6.0
+journal,electrochemical,259.0,term-term,related_to (259),inter_category,259.0
+journal,power sources,188.0,term-term,related_to (188),inter_category,188.0
+journal,wang,37.0,term-term,related_to (37),inter_category,37.0
+journal,sources,213.0,term-term,related_to (213),inter_category,213.0
+journal,zhang,30.0,term-term,related_to (30),inter_category,30.0
+journal,electrolyte,64.0,term-term,related_to (64),inter_category,64.0
+journal,cathode,28.0,term-term,related_to (28),inter_category,28.0
+stress,electrode,167.0,term-term,related_to (167),inter_category,167.0
+stress,particle,66.0,term-term,related_to (66),inter_category,66.0
+stress,capacity,66.0,term-term,related_to (66),inter_category,66.0
+stress,battery,45.0,term-term,related_to (45),inter_category,45.0
+stress,phase,44.0,term-term,related_to (44),inter_category,44.0
+stress,cycles,62.0,term-term,related_to (62),inter_category,62.0
+stress,study,26.0,term-term,related_to (26),inter_category,26.0
+stress,cycle,31.0,term-term,related_to (31),inter_category,31.0
+stress,rate,59.0,term-term,related_to (59),inter_category,59.0
+stress,this work,5.0,term-term,co-occurs_with (5),intra_category,5.0
+stress,batteries,21.0,term-term,related_to (21),inter_category,21.0
+stress,energy,43.0,term-term,related_to (43),inter_category,43.0
+stress,materials,38.0,term-term,related_to (38),inter_category,38.0
+stress,interphase,6.0,term-term,co-occurs_with (6),intra_category,6.0
+stress,solid,43.0,term-term,related_to (43),inter_category,43.0
+stress,cell,40.0,term-term,related_to (40),inter_category,40.0
+stress,material,60.0,term-term,related_to (60),inter_category,60.0
+stress,state,55.0,term-term,related_to (55),inter_category,55.0
+stress,reference,22.0,term-term,related_to (22),inter_category,22.0
+stress,surface,55.0,term-term,related_to (55),inter_category,55.0
+stress,cycling,44.0,term-term,co-occurs_with (44),intra_category,44.0
+stress,figure,101.0,term-term,related_to (101),inter_category,101.0
+stress,results,34.0,term-term,related_to (34),inter_category,34.0
+stress,conditions,27.0,term-term,co-occurs_with (27),intra_category,27.0
+stress,electrochemical,81.0,term-term,related_to (81),inter_category,81.0
+stress,zhang,9.0,term-term,related_to (9),inter_category,9.0
+stress,electrolyte,70.0,term-term,related_to (70),inter_category,70.0
+stress,charge,47.0,term-term,related_to (47),inter_category,47.0
+stress,voltage,41.0,term-term,related_to (41),inter_category,41.0
+stress,cathode,36.0,term-term,related_to (36),inter_category,36.0
+stress,power sources,6.0,term-term,co-occurs_with (6),intra_category,6.0
+stress,sources,8.0,term-term,related_to (8),inter_category,8.0
+stress,data,26.0,term-term,related_to (26),inter_category,26.0
+stress,step,17.0,term-term,co-occurs_with (17),intra_category,17.0
+stress,wang,7.0,term-term,related_to (7),inter_category,7.0
+cycling,electrode,189.0,term-term,related_to (189),inter_category,189.0
+cycling,particle,52.0,term-term,related_to (52),inter_category,52.0
+cycling,capacity,168.0,term-term,related_to (168),inter_category,168.0
+cycling,battery,163.0,term-term,related_to (163),inter_category,163.0
+cycling,phase,61.0,term-term,related_to (61),inter_category,61.0
+cycling,cycles,112.0,term-term,related_to (112),inter_category,112.0
+cycling,study,48.0,term-term,related_to (48),inter_category,48.0
+cycling,cycle,60.0,term-term,related_to (60),inter_category,60.0
+cycling,rate,112.0,term-term,related_to (112),inter_category,112.0
+cycling,this work,18.0,term-term,co-occurs_with (18),intra_category,18.0
+cycling,batteries,85.0,term-term,related_to (85),inter_category,85.0
+cycling,chem,6.0,term-term,related_to (6),inter_category,6.0
+cycling,energy,51.0,term-term,related_to (51),inter_category,51.0
+cycling,materials,59.0,term-term,related_to (59),inter_category,59.0
+cycling,interphase,40.0,term-term,co-occurs_with (40),intra_category,40.0
+cycling,solid,89.0,term-term,related_to (89),inter_category,89.0
+cycling,cell,157.0,term-term,related_to (157),inter_category,157.0
+cycling,material,49.0,term-term,related_to (49),inter_category,49.0
+cycling,charge,93.0,term-term,related_to (93),inter_category,93.0
+cycling,figure,169.0,term-term,related_to (169),inter_category,169.0
+cycling,results,41.0,term-term,related_to (41),inter_category,41.0
+cycling,conditions,36.0,term-term,co-occurs_with (36),intra_category,36.0
+cycling,cells,117.0,term-term,co-occurs_with (117),intra_category,117.0
+cycling,power sources,10.0,term-term,co-occurs_with (10),intra_category,10.0
+cycling,zhang,13.0,term-term,related_to (13),inter_category,13.0
+cycling,sources,13.0,term-term,related_to (13),inter_category,13.0
+cycling,electrolyte,164.0,term-term,related_to (164),inter_category,164.0
+cycling,voltage,110.0,term-term,related_to (110),inter_category,110.0
+cycling,electrochemical,158.0,term-term,related_to (158),inter_category,158.0
+cycling,state,57.0,term-term,related_to (57),inter_category,57.0
+cycling,cathode,109.0,term-term,related_to (109),inter_category,109.0
+cycling,solid-state batteries,8.0,term-term,related_to (8),inter_category,8.0
+cycling,surface,86.0,term-term,related_to (86),inter_category,86.0
+cycling,resistance,22.0,term-term,co-occurs_with (22),intra_category,22.0
+cycling,data,36.0,term-term,related_to (36),inter_category,36.0
+cycling,step,8.0,term-term,co-occurs_with (8),intra_category,8.0
+cycling,reference,13.0,term-term,related_to (13),inter_category,13.0
+cycling,wang,6.0,term-term,related_to (6),inter_category,6.0
+cycling,lipon,19.0,term-term,co-occurs_with (19),intra_category,19.0
+cells,electrode,93.0,term-term,related_to (93),inter_category,93.0
+cells,particle,15.0,term-term,related_to (15),inter_category,15.0
+cells,capacity,165.0,term-term,related_to (165),inter_category,165.0
+cells,battery,53.0,term-term,related_to (53),inter_category,53.0
+cells,phase,12.0,term-term,related_to (12),inter_category,12.0
+cells,cycles,87.0,term-term,related_to (87),inter_category,87.0
+cells,study,19.0,term-term,related_to (19),inter_category,19.0
+cells,cycle,80.0,term-term,related_to (80),inter_category,80.0
+cells,rate,90.0,term-term,related_to (90),inter_category,90.0
+cells,this work,15.0,term-term,co-occurs_with (15),intra_category,15.0
+cells,batteries,20.0,term-term,related_to (20),inter_category,20.0
+cells,energy,39.0,term-term,related_to (39),inter_category,39.0
+cells,materials,31.0,term-term,related_to (31),inter_category,31.0
+cells,interphase,8.0,term-term,co-occurs_with (8),intra_category,8.0
+cells,solid,47.0,term-term,related_to (47),inter_category,47.0
+cells,cell,2.0,hierarchical,is_part_of,inter_category,2.0
+cells,material,30.0,term-term,related_to (30),inter_category,30.0
+cells,surface,30.0,term-term,related_to (30),inter_category,30.0
+cells,step,9.0,term-term,co-occurs_with (9),intra_category,9.0
+cells,charge,64.0,term-term,related_to (64),inter_category,64.0
+cells,conditions,31.0,term-term,co-occurs_with (31),intra_category,31.0
+cells,results,23.0,term-term,related_to (23),inter_category,23.0
+cells,power sources,19.0,term-term,co-occurs_with (19),intra_category,19.0
+cells,sources,21.0,term-term,related_to (21),inter_category,21.0
+cells,electrochemical,85.0,term-term,related_to (85),inter_category,85.0
+cells,wang,14.0,term-term,related_to (14),inter_category,14.0
+cells,cathode,54.0,term-term,related_to (54),inter_category,54.0
+cells,data,21.0,term-term,related_to (21),inter_category,21.0
+cells,electrolyte,94.0,term-term,related_to (94),inter_category,94.0
+cells,state,38.0,term-term,related_to (38),inter_category,38.0
+cells,reference,13.0,term-term,related_to (13),inter_category,13.0
+cells,figure,83.0,term-term,related_to (83),inter_category,83.0
+cells,voltage,92.0,term-term,related_to (92),inter_category,92.0
+cells,resistance,24.0,term-term,co-occurs_with (24),intra_category,24.0
+power sources,electrode,16.0,term-term,related_to (16),inter_category,16.0
+power sources,capacity,6.0,term-term,related_to (6),inter_category,6.0
+power sources,battery,25.0,term-term,related_to (25),inter_category,25.0
+power sources,phase,5.0,term-term,related_to (5),inter_category,5.0
+power sources,study,10.0,term-term,related_to (10),inter_category,10.0
+power sources,batteries,52.0,term-term,related_to (52),inter_category,52.0
+power sources,chem,5.0,term-term,related_to (5),inter_category,5.0
+power sources,energy,9.0,term-term,related_to (9),inter_category,9.0
+power sources,materials,9.0,term-term,related_to (9),inter_category,9.0
+power sources,solid,15.0,term-term,related_to (15),inter_category,15.0
+power sources,cell,8.0,term-term,related_to (8),inter_category,8.0
+power sources,charge,5.0,term-term,related_to (5),inter_category,5.0
+power sources,state,10.0,term-term,related_to (10),inter_category,10.0
+power sources,electrochemical,16.0,term-term,related_to (16),inter_category,16.0
+power sources,wang,28.0,term-term,related_to (28),inter_category,28.0
+power sources,sources,2.0,hierarchical,is_part_of,inter_category,2.0
+power sources,zhang,23.0,term-term,related_to (23),inter_category,23.0
+power sources,electrolyte,13.0,term-term,related_to (13),inter_category,13.0
+power sources,cathode,8.0,term-term,related_to (8),inter_category,8.0
+conditions,electrode,34.0,term-term,related_to (34),inter_category,34.0
+conditions,particle,23.0,term-term,related_to (23),inter_category,23.0
+conditions,capacity,31.0,term-term,related_to (31),inter_category,31.0
+conditions,battery,45.0,term-term,related_to (45),inter_category,45.0
+conditions,phase,19.0,term-term,related_to (19),inter_category,19.0
+conditions,cycles,18.0,term-term,related_to (18),inter_category,18.0
+conditions,study,11.0,term-term,related_to (11),inter_category,11.0
+conditions,cycle,22.0,term-term,related_to (22),inter_category,22.0
+conditions,rate,25.0,term-term,related_to (25),inter_category,25.0
+conditions,this work,7.0,term-term,co-occurs_with (7),intra_category,7.0
+conditions,batteries,12.0,term-term,related_to (12),inter_category,12.0
+conditions,energy,21.0,term-term,related_to (21),inter_category,21.0
+conditions,materials,23.0,term-term,related_to (23),inter_category,23.0
+conditions,interphase,7.0,term-term,co-occurs_with (7),intra_category,7.0
+conditions,solid,13.0,term-term,related_to (13),inter_category,13.0
+conditions,cell,42.0,term-term,related_to (42),inter_category,42.0
+conditions,material,11.0,term-term,related_to (11),inter_category,11.0
+conditions,surface,34.0,term-term,related_to (34),inter_category,34.0
+conditions,step,7.0,term-term,co-occurs_with (7),intra_category,7.0
+conditions,charge,20.0,term-term,related_to (20),inter_category,20.0
+conditions,figure,32.0,term-term,related_to (32),inter_category,32.0
+conditions,results,22.0,term-term,related_to (22),inter_category,22.0
+conditions,voltage,25.0,term-term,related_to (25),inter_category,25.0
+conditions,electrolyte,46.0,term-term,related_to (46),inter_category,46.0
+conditions,electrochemical,31.0,term-term,related_to (31),inter_category,31.0
+conditions,cathode,24.0,term-term,related_to (24),inter_category,24.0
+conditions,reference,5.0,term-term,related_to (5),inter_category,5.0
+conditions,state,8.0,term-term,related_to (8),inter_category,8.0
+conditions,resistance,7.0,term-term,co-occurs_with (7),intra_category,7.0
+conditions,data,11.0,term-term,related_to (11),inter_category,11.0
+interphase,electrode,69.0,term-term,related_to (69),inter_category,69.0
+interphase,particle,12.0,term-term,related_to (12),inter_category,12.0
+interphase,capacity,46.0,term-term,related_to (46),inter_category,46.0
+interphase,battery,58.0,term-term,related_to (58),inter_category,58.0
+interphase,phase,2.0,hierarchical,is_part_of,inter_category,2.0
+interphase,cycles,16.0,term-term,related_to (16),inter_category,16.0
+interphase,study,11.0,term-term,related_to (11),inter_category,11.0
+interphase,cycle,14.0,term-term,related_to (14),inter_category,14.0
+interphase,rate,8.0,term-term,related_to (8),inter_category,8.0
+interphase,this work,6.0,term-term,co-occurs_with (6),intra_category,6.0
+interphase,batteries,81.0,term-term,related_to (81),inter_category,81.0
+interphase,chem,8.0,term-term,related_to (8),inter_category,8.0
+interphase,energy,18.0,term-term,related_to (18),inter_category,18.0
+interphase,materials,21.0,term-term,related_to (21),inter_category,21.0
+interphase,solid,271.0,term-term,related_to (271),inter_category,271.0
+interphase,cell,28.0,term-term,related_to (28),inter_category,28.0
+interphase,material,16.0,term-term,related_to (16),inter_category,16.0
+interphase,electrolyte,310.0,term-term,related_to (310),inter_category,310.0
+interphase,sources,6.0,term-term,related_to (6),inter_category,6.0
+interphase,electrochemical,41.0,term-term,related_to (41),inter_category,41.0
+interphase,figure,11.0,term-term,related_to (11),inter_category,11.0
+interphase,surface,37.0,term-term,related_to (37),inter_category,37.0
+interphase,cathode,37.0,term-term,related_to (37),inter_category,37.0
+interphase,state,17.0,term-term,related_to (17),inter_category,17.0
+interphase,zhang,14.0,term-term,related_to (14),inter_category,14.0
+interphase,wang,17.0,term-term,related_to (17),inter_category,17.0
+interphase,charge,22.0,term-term,related_to (22),inter_category,22.0
+interphase,resistance,21.0,term-term,co-occurs_with (21),intra_category,21.0
+interphase,data,5.0,term-term,related_to (5),inter_category,5.0
+interphase,voltage,15.0,term-term,related_to (15),inter_category,15.0
+interphase,results,6.0,term-term,related_to (6),inter_category,6.0
+interphase,chemsuschem,6.0,term-term,related_to (6),inter_category,6.0
+resistance,electrode,34.0,term-term,related_to (34),inter_category,34.0
+resistance,particle,14.0,term-term,related_to (14),inter_category,14.0
+resistance,capacity,38.0,term-term,related_to (38),inter_category,38.0
+resistance,battery,26.0,term-term,related_to (26),inter_category,26.0
+resistance,phase,16.0,term-term,related_to (16),inter_category,16.0
+resistance,cycles,19.0,term-term,related_to (19),inter_category,19.0
+resistance,study,9.0,term-term,related_to (9),inter_category,9.0
+resistance,cycle,18.0,term-term,related_to (18),inter_category,18.0
+resistance,rate,16.0,term-term,related_to (16),inter_category,16.0
+resistance,batteries,10.0,term-term,related_to (10),inter_category,10.0
+resistance,energy,11.0,term-term,related_to (11),inter_category,11.0
+resistance,materials,9.0,term-term,related_to (9),inter_category,9.0
+resistance,solid,17.0,term-term,related_to (17),inter_category,17.0
+resistance,cell,45.0,term-term,related_to (45),inter_category,45.0
+resistance,material,13.0,term-term,related_to (13),inter_category,13.0
+resistance,surface,21.0,term-term,related_to (21),inter_category,21.0
+resistance,charge,49.0,term-term,related_to (49),inter_category,49.0
+resistance,results,18.0,term-term,related_to (18),inter_category,18.0
+resistance,state,12.0,term-term,related_to (12),inter_category,12.0
+resistance,voltage,23.0,term-term,related_to (23),inter_category,23.0
+resistance,cathode,10.0,term-term,related_to (10),inter_category,10.0
+resistance,electrolyte,48.0,term-term,related_to (48),inter_category,48.0
+resistance,electrochemical,17.0,term-term,related_to (17),inter_category,17.0
+resistance,figure,23.0,term-term,related_to (23),inter_category,23.0
+resistance,data,16.0,term-term,related_to (16),inter_category,16.0
+resistance,appendix,6.0,term-term,related_to (6),inter_category,6.0
+lipon,electrode,6.0,term-term,related_to (6),inter_category,6.0
+lipon,capacity,8.0,term-term,related_to (8),inter_category,8.0
+lipon,battery,8.0,term-term,related_to (8),inter_category,8.0
+lipon,cycles,8.0,term-term,related_to (8),inter_category,8.0
+lipon,study,7.0,term-term,related_to (7),inter_category,7.0
+lipon,batteries,5.0,term-term,related_to (5),inter_category,5.0
+lipon,energy,9.0,term-term,related_to (9),inter_category,9.0
+lipon,materials,7.0,term-term,related_to (7),inter_category,7.0
+lipon,solid,24.0,term-term,related_to (24),inter_category,24.0
+lipon,cell,14.0,term-term,related_to (14),inter_category,14.0
+lipon,material,8.0,term-term,related_to (8),inter_category,8.0
+lipon,surface,25.0,term-term,related_to (25),inter_category,25.0
+lipon,charge,7.0,term-term,related_to (7),inter_category,7.0
+lipon,results,11.0,term-term,related_to (11),inter_category,11.0
+lipon,state,12.0,term-term,related_to (12),inter_category,12.0
+lipon,figure,22.0,term-term,related_to (22),inter_category,22.0
+lipon,electrochemical,11.0,term-term,related_to (11),inter_category,11.0
+lipon,electrolyte,16.0,term-term,related_to (16),inter_category,16.0
+lipon,cathode,28.0,term-term,related_to (28),inter_category,28.0
+lipon,voltage,12.0,term-term,related_to (12),inter_category,12.0
+this work,electrode,16.0,term-term,related_to (16),inter_category,16.0
+this work,particle,10.0,term-term,related_to (10),inter_category,10.0
+this work,capacity,27.0,term-term,related_to (27),inter_category,27.0
+this work,battery,32.0,term-term,related_to (32),inter_category,32.0
+this work,phase,15.0,term-term,related_to (15),inter_category,15.0
+this work,cycles,11.0,term-term,related_to (11),inter_category,11.0
+this work,study,8.0,term-term,related_to (8),inter_category,8.0
+this work,cycle,20.0,term-term,related_to (20),inter_category,20.0
+this work,rate,7.0,term-term,related_to (7),inter_category,7.0
+this work,cell,23.0,term-term,related_to (23),inter_category,23.0
+this work,results,12.0,term-term,related_to (12),inter_category,12.0
+this work,state,12.0,term-term,related_to (12),inter_category,12.0
+this work,reference,5.0,term-term,related_to (5),inter_category,5.0
+this work,energy,30.0,term-term,related_to (30),inter_category,30.0
+this work,cathode,31.0,term-term,related_to (31),inter_category,31.0
+this work,surface,16.0,term-term,related_to (16),inter_category,16.0
+this work,material,13.0,term-term,related_to (13),inter_category,13.0
+this work,figure,12.0,term-term,related_to (12),inter_category,12.0
+this work,solid,15.0,term-term,related_to (15),inter_category,15.0
+this work,electrolyte,32.0,term-term,related_to (32),inter_category,32.0
+this work,electrochemical,22.0,term-term,related_to (22),inter_category,22.0
+this work,data,14.0,term-term,related_to (14),inter_category,14.0
+this work,charge,11.0,term-term,related_to (11),inter_category,11.0
+this work,materials,18.0,term-term,related_to (18),inter_category,18.0
+this work,batteries,12.0,term-term,related_to (12),inter_category,12.0
+this work,voltage,13.0,term-term,related_to (13),inter_category,13.0
+step,electrode,33.0,term-term,related_to (33),inter_category,33.0
+step,particle,5.0,term-term,related_to (5),inter_category,5.0
+step,capacity,14.0,term-term,related_to (14),inter_category,14.0
+step,battery,11.0,term-term,related_to (11),inter_category,11.0
+step,phase,12.0,term-term,related_to (12),inter_category,12.0
+step,cycles,12.0,term-term,related_to (12),inter_category,12.0
+step,study,6.0,term-term,related_to (6),inter_category,6.0
+step,cycle,12.0,term-term,related_to (12),inter_category,12.0
+step,rate,42.0,term-term,related_to (42),inter_category,42.0
+step,energy,13.0,term-term,related_to (13),inter_category,13.0
+step,materials,6.0,term-term,related_to (6),inter_category,6.0
+step,solid,7.0,term-term,related_to (7),inter_category,7.0
+step,cell,21.0,term-term,related_to (21),inter_category,21.0
+step,material,8.0,term-term,related_to (8),inter_category,8.0
+step,surface,32.0,term-term,related_to (32),inter_category,32.0
+step,charge,9.0,term-term,related_to (9),inter_category,9.0
+step,electrochemical,11.0,term-term,related_to (11),inter_category,11.0
+step,figure,20.0,term-term,related_to (20),inter_category,20.0
+step,results,8.0,term-term,related_to (8),inter_category,8.0
+step,electrolyte,12.0,term-term,related_to (12),inter_category,12.0
+step,voltage,49.0,term-term,related_to (49),inter_category,49.0
+step,state,9.0,term-term,related_to (9),inter_category,9.0
+step,cathode,13.0,term-term,related_to (13),inter_category,13.0
+electrode,particle,168.0,term-term,co-occurs_with (168),intra_category,168.0
+electrode,capacity,228.0,term-term,related_to (228),inter_category,228.0
+electrode,battery,210.0,term-term,related_to (210),inter_category,210.0
+electrode,phase,121.0,term-term,related_to (121),inter_category,121.0
+electrode,cycles,154.0,term-term,co-occurs_with (154),intra_category,154.0
+electrode,study,58.0,term-term,related_to (58),inter_category,58.0
+electrode,batteries,163.0,term-term,related_to (163),inter_category,163.0
+electrode,chem,8.0,term-term,related_to (8),inter_category,8.0
+electrode,materials,161.0,term-term,related_to (161),inter_category,161.0
+electrode,solid,161.0,term-term,co-occurs_with (161),intra_category,161.0
+electrode,cell,229.0,term-term,co-occurs_with (229),intra_category,229.0
+electrode,material,162.0,term-term,related_to (162),inter_category,162.0
+electrode,charge,148.0,term-term,related_to (148),inter_category,148.0
+electrode,results,75.0,term-term,related_to (75),inter_category,75.0
+electrode,surface,203.0,term-term,co-occurs_with (203),intra_category,203.0
+electrode,appendix,5.0,term-term,related_to (5),inter_category,5.0
+electrode,cycle,89.0,term-term,co-occurs_with (89),intra_category,89.0
+electrode,rate,153.0,term-term,related_to (153),inter_category,153.0
+electrode,energy,116.0,term-term,related_to (116),inter_category,116.0
+electrode,figure,245.0,term-term,co-occurs_with (245),intra_category,245.0
+electrode,electrochemical,203.0,term-term,related_to (203),inter_category,203.0
+electrode,zhang,19.0,term-term,related_to (19),inter_category,19.0
+electrode,sources,24.0,term-term,related_to (24),inter_category,24.0
+electrode,voltage,100.0,term-term,related_to (100),inter_category,100.0
+electrode,electrolyte,408.0,term-term,related_to (408),inter_category,408.0
+electrode,state,96.0,term-term,co-occurs_with (96),intra_category,96.0
+electrode,cathode,88.0,term-term,co-occurs_with (88),intra_category,88.0
+electrode,wang,14.0,term-term,related_to (14),inter_category,14.0
+electrode,data,51.0,term-term,related_to (51),inter_category,51.0
+electrode,reference,82.0,term-term,related_to (82),inter_category,82.0
+electrode,mater,5.0,term-term,related_to (5),inter_category,5.0
+electrode,solid-state batteries,7.0,term-term,related_to (7),inter_category,7.0
+figure,particle,123.0,term-term,co-occurs_with (123),intra_category,123.0
+figure,capacity,174.0,term-term,related_to (174),inter_category,174.0
+figure,battery,79.0,term-term,related_to (79),inter_category,79.0
+figure,phase,120.0,term-term,related_to (120),inter_category,120.0
+figure,cycles,175.0,term-term,co-occurs_with (175),intra_category,175.0
+figure,study,24.0,term-term,related_to (24),inter_category,24.0
+figure,cycle,167.0,term-term,co-occurs_with (167),intra_category,167.0
+figure,rate,103.0,term-term,related_to (103),inter_category,103.0
+figure,batteries,21.0,term-term,related_to (21),inter_category,21.0
+figure,energy,86.0,term-term,related_to (86),inter_category,86.0
+figure,materials,42.0,term-term,related_to (42),inter_category,42.0
+figure,solid,70.0,term-term,co-occurs_with (70),intra_category,70.0
+figure,cell,174.0,term-term,co-occurs_with (174),intra_category,174.0
+figure,material,59.0,term-term,related_to (59),inter_category,59.0
+figure,surface,144.0,term-term,co-occurs_with (144),intra_category,144.0
+figure,charge,136.0,term-term,related_to (136),inter_category,136.0
+figure,results,115.0,term-term,related_to (115),inter_category,115.0
+figure,state,76.0,term-term,co-occurs_with (76),intra_category,76.0
+figure,reference,30.0,term-term,related_to (30),inter_category,30.0
+figure,electrolyte,138.0,term-term,related_to (138),inter_category,138.0
+figure,electrochemical,89.0,term-term,related_to (89),inter_category,89.0
+figure,data,77.0,term-term,related_to (77),inter_category,77.0
+figure,voltage,126.0,term-term,related_to (126),inter_category,126.0
+figure,cathode,102.0,term-term,co-occurs_with (102),intra_category,102.0
+surface,particle,93.0,term-term,co-occurs_with (93),intra_category,93.0
+surface,capacity,74.0,term-term,related_to (74),inter_category,74.0
+surface,battery,63.0,term-term,related_to (63),inter_category,63.0
+surface,phase,122.0,term-term,related_to (122),inter_category,122.0
+surface,cycles,53.0,term-term,co-occurs_with (53),intra_category,53.0
+surface,study,45.0,term-term,related_to (45),inter_category,45.0
+surface,cycle,42.0,term-term,co-occurs_with (42),intra_category,42.0
+surface,rate,58.0,term-term,related_to (58),inter_category,58.0
+surface,batteries,63.0,term-term,related_to (63),inter_category,63.0
+surface,energy,83.0,term-term,related_to (83),inter_category,83.0
+surface,materials,84.0,term-term,related_to (84),inter_category,84.0
+surface,solid,81.0,term-term,co-occurs_with (81),intra_category,81.0
+surface,cell,73.0,term-term,co-occurs_with (73),intra_category,73.0
+surface,material,80.0,term-term,related_to (80),inter_category,80.0
+surface,state,52.0,term-term,co-occurs_with (52),intra_category,52.0
+surface,electrolyte,229.0,term-term,related_to (229),inter_category,229.0
+surface,charge,120.0,term-term,related_to (120),inter_category,120.0
+surface,results,50.0,term-term,related_to (50),inter_category,50.0
+surface,cathode,191.0,term-term,co-occurs_with (191),intra_category,191.0
+surface,sources,6.0,term-term,related_to (6),inter_category,6.0
+surface,electrochemical,57.0,term-term,related_to (57),inter_category,57.0
+surface,data,15.0,term-term,related_to (15),inter_category,15.0
+surface,reference,22.0,term-term,related_to (22),inter_category,22.0
+surface,zhang,6.0,term-term,related_to (6),inter_category,6.0
+surface,voltage,54.0,term-term,related_to (54),inter_category,54.0
+surface,wang,7.0,term-term,related_to (7),inter_category,7.0
+solid,particle,62.0,term-term,co-occurs_with (62),intra_category,62.0
+solid,capacity,97.0,term-term,related_to (97),inter_category,97.0
+solid,battery,224.0,term-term,related_to (224),inter_category,224.0
+solid,phase,113.0,term-term,related_to (113),inter_category,113.0
+solid,cycles,32.0,term-term,co-occurs_with (32),intra_category,32.0
+solid,study,42.0,term-term,related_to (42),inter_category,42.0
+solid,cycle,52.0,term-term,co-occurs_with (52),intra_category,52.0
+solid,rate,39.0,term-term,related_to (39),inter_category,39.0
+solid,batteries,402.0,term-term,related_to (402),inter_category,402.0
+solid,chem,34.0,term-term,related_to (34),inter_category,34.0
+solid,energy,151.0,term-term,related_to (151),inter_category,151.0
+solid,materials,117.0,term-term,related_to (117),inter_category,117.0
+solid,cell,84.0,term-term,co-occurs_with (84),intra_category,84.0
+solid,material,81.0,term-term,related_to (81),inter_category,81.0
+solid,electrochemical,127.0,term-term,related_to (127),inter_category,127.0
+solid,appendix,5.0,term-term,related_to (5),inter_category,5.0
+solid,state,696.0,term-term,co-occurs_with (696),intra_category,696.0
+solid,electrolyte,745.0,term-term,related_to (745),inter_category,745.0
+solid,sources,18.0,term-term,related_to (18),inter_category,18.0
+solid,charge,67.0,term-term,related_to (67),inter_category,67.0
+solid,solid-state lett,32.0,term-term,related_to (32),inter_category,32.0
+solid,solid-state batteries,92.0,term-term,related_to (92),inter_category,92.0
+solid,mater,46.0,term-term,related_to (46),inter_category,46.0
+solid,zhang,43.0,term-term,related_to (43),inter_category,43.0
+solid,data,12.0,term-term,related_to (12),inter_category,12.0
+solid,cathode,133.0,term-term,co-occurs_with (133),intra_category,133.0
+solid,results,22.0,term-term,related_to (22),inter_category,22.0
+solid,wang,78.0,term-term,related_to (78),inter_category,78.0
+solid,sheldon,5.0,term-term,related_to (5),inter_category,5.0
+solid,voltage,35.0,term-term,related_to (35),inter_category,35.0
+solid,reference,17.0,term-term,related_to (17),inter_category,17.0
+solid,chemsuschem,6.0,term-term,related_to (6),inter_category,6.0
+solid,solid state lett,7.0,term-term,related_to (7),inter_category,7.0
+cell,particle,49.0,term-term,co-occurs_with (49),intra_category,49.0
+cell,capacity,242.0,term-term,related_to (242),inter_category,242.0
+cell,battery,133.0,term-term,related_to (133),inter_category,133.0
+cell,phase,43.0,term-term,related_to (43),inter_category,43.0
+cell,cycles,171.0,term-term,co-occurs_with (171),intra_category,171.0
+cell,study,26.0,term-term,related_to (26),inter_category,26.0
+cell,cycle,103.0,term-term,co-occurs_with (103),intra_category,103.0
+cell,rate,82.0,term-term,related_to (82),inter_category,82.0
+cell,batteries,54.0,term-term,related_to (54),inter_category,54.0
+cell,chem,6.0,term-term,related_to (6),inter_category,6.0
+cell,energy,80.0,term-term,related_to (80),inter_category,80.0
+cell,materials,44.0,term-term,related_to (44),inter_category,44.0
+cell,material,59.0,term-term,related_to (59),inter_category,59.0
+cell,results,55.0,term-term,related_to (55),inter_category,55.0
+cell,electrochemical,169.0,term-term,related_to (169),inter_category,169.0
+cell,charge,122.0,term-term,related_to (122),inter_category,122.0
+cell,electrolyte,195.0,term-term,related_to (195),inter_category,195.0
+cell,data,48.0,term-term,related_to (48),inter_category,48.0
+cell,cathode,143.0,term-term,co-occurs_with (143),intra_category,143.0
+cell,voltage,192.0,term-term,related_to (192),inter_category,192.0
+cell,state,81.0,term-term,co-occurs_with (81),intra_category,81.0
+cell,wang,12.0,term-term,related_to (12),inter_category,12.0
+cell,sources,14.0,term-term,related_to (14),inter_category,14.0
+cell,reference,34.0,term-term,related_to (34),inter_category,34.0
+cell,zhang,6.0,term-term,related_to (6),inter_category,6.0
+cathode,particle,50.0,term-term,co-occurs_with (50),intra_category,50.0
+cathode,capacity,102.0,term-term,related_to (102),inter_category,102.0
+cathode,battery,158.0,term-term,related_to (158),inter_category,158.0
+cathode,phase,60.0,term-term,related_to (60),inter_category,60.0
+cathode,cycles,66.0,term-term,co-occurs_with (66),intra_category,66.0
+cathode,study,43.0,term-term,related_to (43),inter_category,43.0
+cathode,cycle,35.0,term-term,co-occurs_with (35),intra_category,35.0
+cathode,rate,46.0,term-term,related_to (46),inter_category,46.0
+cathode,batteries,170.0,term-term,related_to (170),inter_category,170.0
+cathode,chem,7.0,term-term,related_to (7),inter_category,7.0
+cathode,energy,104.0,term-term,related_to (104),inter_category,104.0
+cathode,materials,193.0,term-term,related_to (193),inter_category,193.0
+cathode,material,117.0,term-term,related_to (117),inter_category,117.0
+cathode,charge,73.0,term-term,related_to (73),inter_category,73.0
+cathode,results,46.0,term-term,related_to (46),inter_category,46.0
+cathode,state,76.0,term-term,co-occurs_with (76),intra_category,76.0
+cathode,reference,24.0,term-term,related_to (24),inter_category,24.0
+cathode,data,11.0,term-term,related_to (11),inter_category,11.0
+cathode,electrochemical,86.0,term-term,related_to (86),inter_category,86.0
+cathode,wang,31.0,term-term,related_to (31),inter_category,31.0
+cathode,sources,10.0,term-term,related_to (10),inter_category,10.0
+cathode,zhang,30.0,term-term,related_to (30),inter_category,30.0
+cathode,electrolyte,307.0,term-term,related_to (307),inter_category,307.0
+cathode,mater,20.0,term-term,related_to (20),inter_category,20.0
+cathode,voltage,88.0,term-term,related_to (88),inter_category,88.0
+cathode,solid-state batteries,5.0,term-term,related_to (5),inter_category,5.0
+cycle,particle,61.0,term-term,co-occurs_with (61),intra_category,61.0
+cycle,capacity,239.0,term-term,related_to (239),inter_category,239.0
+cycle,battery,130.0,term-term,related_to (130),inter_category,130.0
+cycle,phase,27.0,term-term,related_to (27),inter_category,27.0
+cycle,cycles,2.0,hierarchical,is_part_of,intra_category,2.0
+cycle,study,21.0,term-term,related_to (21),inter_category,21.0
+cycle,batteries,67.0,term-term,related_to (67),inter_category,67.0
+cycle,charge,129.0,term-term,related_to (129),inter_category,129.0
+cycle,energy,58.0,term-term,related_to (58),inter_category,58.0
+cycle,rate,79.0,term-term,related_to (79),inter_category,79.0
+cycle,wang,10.0,term-term,related_to (10),inter_category,10.0
+cycle,data,43.0,term-term,related_to (43),inter_category,43.0
+cycle,voltage,108.0,term-term,related_to (108),inter_category,108.0
+cycle,material,34.0,term-term,related_to (34),inter_category,34.0
+cycle,materials,27.0,term-term,related_to (27),inter_category,27.0
+cycle,results,30.0,term-term,related_to (30),inter_category,30.0
+cycle,electrolyte,66.0,term-term,related_to (66),inter_category,66.0
+cycle,electrochemical,56.0,term-term,related_to (56),inter_category,56.0
+cycle,state,51.0,term-term,co-occurs_with (51),intra_category,51.0
+state,particle,45.0,term-term,co-occurs_with (45),intra_category,45.0
+state,capacity,66.0,term-term,related_to (66),inter_category,66.0
+state,battery,158.0,term-term,related_to (158),inter_category,158.0
+state,phase,49.0,term-term,related_to (49),inter_category,49.0
+state,cycles,33.0,term-term,co-occurs_with (33),intra_category,33.0
+state,study,32.0,term-term,related_to (32),inter_category,32.0
+state,rate,46.0,term-term,related_to (46),inter_category,46.0
+state,batteries,305.0,term-term,related_to (305),inter_category,305.0
+state,chem,22.0,term-term,related_to (22),inter_category,22.0
+state,energy,123.0,term-term,related_to (123),inter_category,123.0
+state,materials,69.0,term-term,related_to (69),inter_category,69.0
+state,material,51.0,term-term,related_to (51),inter_category,51.0
+state,charge,114.0,term-term,related_to (114),inter_category,114.0
+state,results,21.0,term-term,related_to (21),inter_category,21.0
+state,reference,11.0,term-term,related_to (11),inter_category,11.0
+state,electrochemical,77.0,term-term,related_to (77),inter_category,77.0
+state,electrolyte,185.0,term-term,related_to (185),inter_category,185.0
+state,solid-state lett,32.0,term-term,related_to (32),inter_category,32.0
+state,solid-state batteries,92.0,term-term,related_to (92),inter_category,92.0
+state,mater,35.0,term-term,related_to (35),inter_category,35.0
+state,zhang,27.0,term-term,related_to (27),inter_category,27.0
+state,wang,54.0,term-term,related_to (54),inter_category,54.0
+state,sources,10.0,term-term,related_to (10),inter_category,10.0
+state,voltage,41.0,term-term,related_to (41),inter_category,41.0
+state,data,13.0,term-term,related_to (13),inter_category,13.0
+state,solid state lett,7.0,term-term,related_to (7),inter_category,7.0
+particle,capacity,55.0,term-term,related_to (55),inter_category,55.0
+particle,battery,71.0,term-term,related_to (71),inter_category,71.0
+particle,phase,87.0,term-term,related_to (87),inter_category,87.0
+particle,rate,73.0,term-term,related_to (73),inter_category,73.0
+particle,batteries,36.0,term-term,related_to (36),inter_category,36.0
+particle,material,60.0,term-term,related_to (60),inter_category,60.0
+particle,materials,24.0,term-term,related_to (24),inter_category,24.0
+particle,results,34.0,term-term,related_to (34),inter_category,34.0
+particle,appendix,11.0,term-term,related_to (11),inter_category,11.0
+particle,charge,68.0,term-term,related_to (68),inter_category,68.0
+particle,study,20.0,term-term,related_to (20),inter_category,20.0
+particle,cycles,33.0,term-term,co-occurs_with (33),intra_category,33.0
+particle,energy,22.0,term-term,related_to (22),inter_category,22.0
+particle,data,25.0,term-term,related_to (25),inter_category,25.0
+particle,electrochemical,37.0,term-term,related_to (37),inter_category,37.0
+particle,electrolyte,99.0,term-term,related_to (99),inter_category,99.0
+particle,voltage,22.0,term-term,related_to (22),inter_category,22.0
+particle,sources,5.0,term-term,related_to (5),inter_category,5.0
+particle,reference,5.0,term-term,related_to (5),inter_category,5.0
+cycles,capacity,243.0,term-term,related_to (243),inter_category,243.0
+cycles,battery,53.0,term-term,related_to (53),inter_category,53.0
+cycles,phase,26.0,term-term,related_to (26),inter_category,26.0
+cycles,study,18.0,term-term,related_to (18),inter_category,18.0
+cycles,energy,32.0,term-term,related_to (32),inter_category,32.0
+cycles,rate,115.0,term-term,related_to (115),inter_category,115.0
+cycles,results,34.0,term-term,related_to (34),inter_category,34.0
+cycles,charge,129.0,term-term,related_to (129),inter_category,129.0
+cycles,electrolyte,73.0,term-term,related_to (73),inter_category,73.0
+cycles,batteries,24.0,term-term,related_to (24),inter_category,24.0
+cycles,electrochemical,55.0,term-term,related_to (55),inter_category,55.0
+cycles,materials,17.0,term-term,related_to (17),inter_category,17.0
+cycles,material,23.0,term-term,related_to (23),inter_category,23.0
+cycles,voltage,124.0,term-term,related_to (124),inter_category,124.0
+cycles,data,36.0,term-term,related_to (36),inter_category,36.0
+cycles,reference,9.0,term-term,related_to (9),inter_category,9.0
+electrolyte,capacity,152.0,term-term,co-occurs_with (152),intra_category,152.0
+electrolyte,battery,260.0,term-term,co-occurs_with (260),intra_category,260.0
+electrolyte,phase,99.0,term-term,co-occurs_with (99),intra_category,99.0
+electrolyte,study,64.0,term-term,related_to (64),inter_category,64.0
+electrolyte,rate,91.0,term-term,co-occurs_with (91),intra_category,91.0
+electrolyte,batteries,240.0,term-term,co-occurs_with (240),intra_category,240.0
+electrolyte,chem,14.0,term-term,related_to (14),inter_category,14.0
+electrolyte,energy,116.0,term-term,co-occurs_with (116),intra_category,116.0
+electrolyte,materials,113.0,term-term,related_to (113),inter_category,113.0
+electrolyte,material,120.0,term-term,related_to (120),inter_category,120.0
+electrolyte,charge,146.0,term-term,co-occurs_with (146),intra_category,146.0
+electrolyte,results,49.0,term-term,related_to (49),inter_category,49.0
+electrolyte,reference,39.0,term-term,related_to (39),inter_category,39.0
+electrolyte,appendix,6.0,term-term,related_to (6),inter_category,6.0
+electrolyte,data,22.0,term-term,related_to (22),inter_category,22.0
+electrolyte,electrochemical,195.0,term-term,co-occurs_with (195),intra_category,195.0
+electrolyte,wang,46.0,term-term,related_to (46),inter_category,46.0
+electrolyte,sources,18.0,term-term,related_to (18),inter_category,18.0
+electrolyte,zhang,19.0,term-term,related_to (19),inter_category,19.0
+electrolyte,voltage,87.0,term-term,co-occurs_with (87),intra_category,87.0
+electrolyte,mater,21.0,term-term,related_to (21),inter_category,21.0
+electrolyte,solid-state batteries,20.0,term-term,related_to (20),inter_category,20.0
+electrolyte,chemsuschem,7.0,term-term,related_to (7),inter_category,7.0
+energy,capacity,78.0,term-term,co-occurs_with (78),intra_category,78.0
+energy,battery,150.0,term-term,co-occurs_with (150),intra_category,150.0
+energy,phase,74.0,term-term,co-occurs_with (74),intra_category,74.0
+energy,study,25.0,term-term,related_to (25),inter_category,25.0
+energy,rate,86.0,term-term,co-occurs_with (86),intra_category,86.0
+energy,batteries,288.0,term-term,co-occurs_with (288),intra_category,288.0
+energy,chem,19.0,term-term,related_to (19),inter_category,19.0
+energy,material,86.0,term-term,related_to (86),inter_category,86.0
+energy,materials,174.0,term-term,related_to (174),inter_category,174.0
+energy,electrochemical,82.0,term-term,co-occurs_with (82),intra_category,82.0
+energy,appendix,7.0,term-term,related_to (7),inter_category,7.0
+energy,data,30.0,term-term,related_to (30),inter_category,30.0
+energy,mater,174.0,term-term,related_to (174),inter_category,174.0
+energy,zhang,69.0,term-term,related_to (69),inter_category,69.0
+energy,wang,76.0,term-term,related_to (76),inter_category,76.0
+energy,results,22.0,term-term,related_to (22),inter_category,22.0
+energy,charge,40.0,term-term,co-occurs_with (40),intra_category,40.0
+energy,solid-state batteries,24.0,term-term,related_to (24),inter_category,24.0
+energy,reference,24.0,term-term,related_to (24),inter_category,24.0
+energy,voltage,49.0,term-term,co-occurs_with (49),intra_category,49.0
+energy,storage mater,27.0,term-term,related_to (27),inter_category,27.0
+energy,sources,14.0,term-term,related_to (14),inter_category,14.0
+capacity,battery,171.0,term-term,co-occurs_with (171),intra_category,171.0
+capacity,phase,54.0,term-term,co-occurs_with (54),intra_category,54.0
+capacity,materials,63.0,term-term,related_to (63),inter_category,63.0
+capacity,zhang,6.0,term-term,related_to (6),inter_category,6.0
+capacity,electrochemical,95.0,term-term,co-occurs_with (95),intra_category,95.0
+capacity,data,49.0,term-term,related_to (49),inter_category,49.0
+capacity,rate,171.0,term-term,co-occurs_with (171),intra_category,171.0
+capacity,charge,156.0,term-term,co-occurs_with (156),intra_category,156.0
+capacity,voltage,179.0,term-term,co-occurs_with (179),intra_category,179.0
+capacity,results,75.0,term-term,related_to (75),inter_category,75.0
+capacity,batteries,138.0,term-term,co-occurs_with (138),intra_category,138.0
+capacity,chem,5.0,term-term,related_to (5),inter_category,5.0
+capacity,study,26.0,term-term,related_to (26),inter_category,26.0
+capacity,sources,14.0,term-term,related_to (14),inter_category,14.0
+capacity,material,80.0,term-term,related_to (80),inter_category,80.0
+capacity,reference,9.0,term-term,related_to (9),inter_category,9.0
+capacity,wang,5.0,term-term,related_to (5),inter_category,5.0
+batteries,battery,104.0,term-term,co-occurs_with (104),intra_category,104.0
+batteries,phase,43.0,term-term,co-occurs_with (43),intra_category,43.0
+batteries,study,63.0,term-term,related_to (63),inter_category,63.0
+batteries,rate,44.0,term-term,co-occurs_with (44),intra_category,44.0
+batteries,chem,39.0,term-term,related_to (39),inter_category,39.0
+batteries,wang,114.0,term-term,related_to (114),inter_category,114.0
+batteries,sources,64.0,term-term,related_to (64),inter_category,64.0
+batteries,sheldon,5.0,term-term,related_to (5),inter_category,5.0
+batteries,materials,195.0,term-term,related_to (195),inter_category,195.0
+batteries,electrochemical,137.0,term-term,co-occurs_with (137),intra_category,137.0
+batteries,mater,63.0,term-term,related_to (63),inter_category,63.0
+batteries,zhang,82.0,term-term,related_to (82),inter_category,82.0
+batteries,solid-state batteries,92.0,term-term,related_to (92),inter_category,92.0
+batteries,material,76.0,term-term,related_to (76),inter_category,76.0
+batteries,charge,45.0,term-term,co-occurs_with (45),intra_category,45.0
+batteries,voltage,65.0,term-term,co-occurs_with (65),intra_category,65.0
+batteries,results,20.0,term-term,related_to (20),inter_category,20.0
+batteries,reference,6.0,term-term,related_to (6),inter_category,6.0
+batteries,data,18.0,term-term,related_to (18),inter_category,18.0
+batteries,storage mater,5.0,term-term,related_to (5),inter_category,5.0
+battery,phase,80.0,term-term,co-occurs_with (80),intra_category,80.0
+battery,study,61.0,term-term,related_to (61),inter_category,61.0
+battery,material,61.0,term-term,related_to (61),inter_category,61.0
+battery,rate,61.0,term-term,co-occurs_with (61),intra_category,61.0
+battery,results,39.0,term-term,related_to (39),inter_category,39.0
+battery,charge,70.0,term-term,co-occurs_with (70),intra_category,70.0
+battery,materials,163.0,term-term,related_to (163),inter_category,163.0
+battery,wang,39.0,term-term,related_to (39),inter_category,39.0
+battery,zhang,29.0,term-term,related_to (29),inter_category,29.0
+battery,electrochemical,144.0,term-term,co-occurs_with (144),intra_category,144.0
+battery,sources,29.0,term-term,related_to (29),inter_category,29.0
+battery,data,60.0,term-term,related_to (60),inter_category,60.0
+battery,solid-state batteries,13.0,term-term,related_to (13),inter_category,13.0
+battery,chem,15.0,term-term,related_to (15),inter_category,15.0
+battery,mater,22.0,term-term,related_to (22),inter_category,22.0
+battery,voltage,65.0,term-term,co-occurs_with (65),intra_category,65.0
+battery,chemsuschem,6.0,term-term,related_to (6),inter_category,6.0
+battery,reference,7.0,term-term,related_to (7),inter_category,7.0
+battery,appendix,6.0,term-term,related_to (6),inter_category,6.0
+electrochemical,phase,59.0,term-term,co-occurs_with (59),intra_category,59.0
+electrochemical,study,58.0,term-term,related_to (58),inter_category,58.0
+electrochemical,rate,53.0,term-term,co-occurs_with (53),intra_category,53.0
+electrochemical,chem,2.0,hierarchical,is_part_of,inter_category,2.0
+electrochemical,materials,77.0,term-term,related_to (77),inter_category,77.0
+electrochemical,material,60.0,term-term,related_to (60),inter_category,60.0
+electrochemical,charge,71.0,term-term,co-occurs_with (71),intra_category,71.0
+electrochemical,results,43.0,term-term,related_to (43),inter_category,43.0
+electrochemical,reference,12.0,term-term,related_to (12),inter_category,12.0
+electrochemical,data,28.0,term-term,related_to (28),inter_category,28.0
+electrochemical,zhang,22.0,term-term,related_to (22),inter_category,22.0
+electrochemical,wang,32.0,term-term,related_to (32),inter_category,32.0
+electrochemical,solid-state batteries,6.0,term-term,related_to (6),inter_category,6.0
+electrochemical,mater,9.0,term-term,related_to (9),inter_category,9.0
+electrochemical,sources,22.0,term-term,related_to (22),inter_category,22.0
+electrochemical,voltage,55.0,term-term,co-occurs_with (55),intra_category,55.0
+phase,study,27.0,term-term,related_to (27),inter_category,27.0
+phase,rate,38.0,term-term,co-occurs_with (38),intra_category,38.0
+phase,materials,77.0,term-term,related_to (77),inter_category,77.0
+phase,material,79.0,term-term,related_to (79),inter_category,79.0
+phase,charge,53.0,term-term,co-occurs_with (53),intra_category,53.0
+phase,results,31.0,term-term,related_to (31),inter_category,31.0
+phase,voltage,84.0,term-term,co-occurs_with (84),intra_category,84.0
+phase,data,24.0,term-term,related_to (24),inter_category,24.0
+phase,sources,6.0,term-term,related_to (6),inter_category,6.0
+phase,zhang,7.0,term-term,related_to (7),inter_category,7.0
+phase,reference,15.0,term-term,related_to (15),inter_category,15.0
+phase,wang,15.0,term-term,related_to (15),inter_category,15.0
+phase,solid-state batteries,5.0,term-term,related_to (5),inter_category,5.0
+voltage,study,17.0,term-term,related_to (17),inter_category,17.0
+voltage,rate,104.0,term-term,co-occurs_with (104),intra_category,104.0
+voltage,materials,39.0,term-term,related_to (39),inter_category,39.0
+voltage,material,55.0,term-term,related_to (55),inter_category,55.0
+voltage,charge,100.0,term-term,co-occurs_with (100),intra_category,100.0
+voltage,results,29.0,term-term,related_to (29),inter_category,29.0
+voltage,reference,9.0,term-term,related_to (9),inter_category,9.0
+voltage,appendix,7.0,term-term,related_to (7),inter_category,7.0
+voltage,data,25.0,term-term,related_to (25),inter_category,25.0
+voltage,wang,9.0,term-term,related_to (9),inter_category,9.0
+voltage,zhang,9.0,term-term,related_to (9),inter_category,9.0
+charge,study,25.0,term-term,related_to (25),inter_category,25.0
+charge,rate,93.0,term-term,co-occurs_with (93),intra_category,93.0
+charge,materials,33.0,term-term,related_to (33),inter_category,33.0
+charge,material,53.0,term-term,related_to (53),inter_category,53.0
+charge,results,30.0,term-term,related_to (30),inter_category,30.0
+charge,sources,5.0,term-term,related_to (5),inter_category,5.0
+charge,data,34.0,term-term,related_to (34),inter_category,34.0
+charge,wang,5.0,term-term,related_to (5),inter_category,5.0
+charge,reference,16.0,term-term,related_to (16),inter_category,16.0
+charge,zhang,5.0,term-term,related_to (5),inter_category,5.0
+rate,study,22.0,term-term,related_to (22),inter_category,22.0
+rate,material,49.0,term-term,related_to (49),inter_category,49.0
+rate,results,30.0,term-term,related_to (30),inter_category,30.0
+rate,sources,5.0,term-term,related_to (5),inter_category,5.0
+rate,materials,14.0,term-term,related_to (14),inter_category,14.0
+rate,data,23.0,term-term,related_to (23),inter_category,23.0
+rate,reference,16.0,term-term,related_to (16),inter_category,16.0
+rate,zhang,7.0,term-term,related_to (7),inter_category,7.0
+rate,appendix,9.0,term-term,related_to (9),inter_category,9.0
+reference,study,9.0,term-term,related_to (9),inter_category,9.0
+reference,materials,9.0,term-term,related_to (9),inter_category,9.0
+reference,material,12.0,term-term,related_to (12),inter_category,12.0
+reference,results,9.0,term-term,related_to (9),inter_category,9.0
+reference,data,15.0,term-term,related_to (15),inter_category,15.0
+appendix,material,6.0,term-term,related_to (6),inter_category,6.0
+j. am,chem,7.0,term-term,related_to (7),inter_category,7.0
+j. am,zhang,6.0,term-term,related_to (6),inter_category,6.0
+solid-state batteries,chem,5.0,term-term,related_to (5),inter_category,5.0
+solid-state batteries,materials,13.0,term-term,related_to (13),inter_category,13.0
+solid-state batteries,wang,7.0,term-term,related_to (7),inter_category,7.0
+solid-state batteries,zhang,5.0,term-term,related_to (5),inter_category,5.0
+solid-state batteries,mater,10.0,term-term,related_to (10),inter_category,10.0
+sheldon,mater,6.0,term-term,related_to (6),inter_category,6.0
+storage mater,zhang,5.0,term-term,related_to (5),inter_category,5.0
+storage mater,mater,28.0,term-term,related_to (28),inter_category,28.0
+materials,study,53.0,term-term,co-occurs_with (53),intra_category,53.0
+materials,chem,6.0,term-term,co-occurs_with (6),intra_category,6.0
+materials,results,35.0,term-term,co-occurs_with (35),intra_category,35.0
+materials,zhang,39.0,term-term,co-occurs_with (39),intra_category,39.0
+materials,sources,13.0,term-term,co-occurs_with (13),intra_category,13.0
+materials,material,2.0,hierarchical,is_part_of,intra_category,2.0
+materials,data,22.0,term-term,co-occurs_with (22),intra_category,22.0
+materials,mater,2.0,hierarchical,is_part_of,intra_category,2.0
+materials,wang,41.0,term-term,co-occurs_with (41),intra_category,41.0
+material,study,26.0,term-term,co-occurs_with (26),intra_category,26.0
+material,results,25.0,term-term,co-occurs_with (25),intra_category,25.0
+material,sources,5.0,term-term,co-occurs_with (5),intra_category,5.0
+material,data,17.0,term-term,co-occurs_with (17),intra_category,17.0
+material,wang,6.0,term-term,co-occurs_with (6),intra_category,6.0
+material,zhang,6.0,term-term,co-occurs_with (6),intra_category,6.0
+material,mater,2.0,hierarchical,is_part_of,,2.0
+results,study,15.0,term-term,co-occurs_with (15),intra_category,15.0
+results,data,27.0,term-term,co-occurs_with (27),intra_category,27.0
+chem,study,9.0,term-term,co-occurs_with (9),intra_category,9.0
+chem,mater,174.0,term-term,co-occurs_with (174),intra_category,174.0
+chem,sources,6.0,term-term,co-occurs_with (6),intra_category,6.0
+chem,zhang,43.0,term-term,co-occurs_with (43),intra_category,43.0
+chem,wang,39.0,term-term,co-occurs_with (39),intra_category,39.0
+mater,study,11.0,term-term,co-occurs_with (11),intra_category,11.0
+mater,wang,50.0,term-term,co-occurs_with (50),intra_category,50.0
+mater,zhang,49.0,term-term,co-occurs_with (49),intra_category,49.0
+wang,study,8.0,term-term,co-occurs_with (8),intra_category,8.0
+wang,sources,29.0,term-term,co-occurs_with (29),intra_category,29.0
+wang,zhang,142.0,term-term,co-occurs_with (142),intra_category,142.0
+data,study,18.0,term-term,co-occurs_with (18),intra_category,18.0
+zhang,study,8.0,term-term,co-occurs_with (8),intra_category,8.0
+zhang,sources,29.0,term-term,co-occurs_with (29),intra_category,29.0
+study,sources,11.0,term-term,co-occurs_with (11),intra_category,11.0
