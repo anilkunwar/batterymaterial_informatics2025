@@ -49,11 +49,11 @@ logging.basicConfig(
 )
 
 # Streamlit configuration
-st.set_page_config(page_title="Battery Reliability Analysis Tool (SciBERT)", layout="wide")
-st.title("Battery Reliability Analysis: Electrode Cracking, SEI Formation, Degradation")
+st.set_page_config(page_title="PREKNOWLEDGE: Priority-Enhanced Knowledge Graph for Battery Reliability Analysis", layout="wide")
+st.title("PREKNOWLEDGE: Priority-Enhanced Knowledge Graph for Battery Reliability Analysis")
 st.markdown("""
-This tool inspects SQLite databases (`battery_reliability.db` and `battery_reliability_universe.db`), categorizes terms related to battery reliability challenges (e.g., electrode cracking, SEI formation, cyclic mechanical damage, electrolyte degradation, capacity fade), builds a knowledge graph, and performs NER analysis using SciBERT. The default database is `battery_reliability_universe.db` for full-text analysis of arXiv papers.
-Select a database, then then use the tabs to inspect the database, categorize terms, visualize relationships, or extract entities with numerical values.
+PREKNOWLEDGE (Priority-Enhanced Knowledge Graph for Battery Reliability Analysis) inspects SQLite databases, categorizes terms related to battery reliability challenges (e.g., electrode cracking, SEI formation), builds a priority-enhanced knowledge graph emphasizing key terms, and performs NER analysis using SciBERT. The default database is `battery_reliability_universe.db` for full-text analysis of arXiv papers.
+Select a database, then use the tabs to inspect the database, categorize terms, visualize relationships, or extract entities with numerical values.
 """)
 
 # Load spaCy model with fallback
@@ -105,7 +105,7 @@ if "ner_results" not in st.session_state:
 if "categorized_terms" not in st.session_state:
     st.session_state.categorized_terms = None
 if "db_file" not in st.session_state:
-    st.session_state.db_file = UNIVERSE_DB_FILE if os.path.exists(UNIVERSE_DB_FILE) else None  # Default to battery_reliability_universe.db if it exists
+    st.session_state.db_file = UNIVERSE_DB_FILE if os.path.exists(UNIVERSE_DB_FILE) else None
 if "term_counts" not in st.session_state:
     st.session_state.term_counts = None
 if "csv_data" not in st.session_state:
@@ -159,6 +159,16 @@ KEY_TERMS = [
 # Precompute embeddings for key terms
 KEY_TERMS_EMBEDDINGS = [get_scibert_embedding(term) for term in KEY_TERMS if get_scibert_embedding(term) is not None]
 
+# Define term units for categories
+term_units = {
+    "Deformation": "%",
+    "Fatigue": "cycles",
+    "Crack and Fracture": "μm",
+    "Degradation": "%",
+    "Component": "None",
+    "Other": "None"
+}
+
 def inspect_database(db_path):
     try:
         update_log(f"Inspecting database: {os.path.basename(db_path)}")
@@ -174,15 +184,74 @@ def inspect_database(db_path):
             conn.close()
             return None
 
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pages';")
-        if cursor.fetchone():
+        # Check for 'papers' or 'pages' table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('papers', 'pages');")
+        available_tables = [t[0] for t in cursor.fetchall()]
+        
+        if "papers" in available_tables:
+            st.subheader("Schema of 'papers' Table")
+            cursor.execute("PRAGMA table_info(papers);")
+            schema = cursor.fetchall()
+            schema_df = pd.DataFrame(schema, columns=["cid", "name", "type", "notnull", "dflt_value", "pk"])
+            st.dataframe(schema_df[["name", "type", "notnull", "dflt_value", "pk"]], use_container_width=True)
+
+            query = "SELECT id AS paper_id, title, substr(content, 1, 200) AS sample_content FROM papers WHERE content IS NOT NULL LIMIT 5"
+            df = pd.read_sql_query(query, conn)
+            st.subheader("Sample Rows from 'papers' Table (First 5 Entries)")
+            if df.empty:
+                st.warning("No valid entries found in the 'papers' table.")
+            else:
+                st.dataframe(df, use_container_width=True)
+
+            cursor.execute("SELECT COUNT(*) as count FROM papers WHERE content IS NOT NULL")
+            total_entries = cursor.fetchone()[0]
+            st.subheader("Total Valid Entries")
+            st.write(f"{total_entries} entries")
+
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='page_fts';")
+            if cursor.fetchone():
+                search_query = st.text_input("Search papers (FTS5 enabled):", "")
+                if search_query:
+                    df_search = pd.read_sql_query(
+                        "SELECT id AS paper_id, title, content, rank FROM page_fts WHERE page_fts MATCH ? ORDER BY rank LIMIT 50",
+                        conn, params=(search_query,)
+                    )
+                    st.subheader("Search Results")
+                    st.dataframe(df_search, use_container_width=True)
+
+            terms_to_search = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress", "micro-cracking"]
+            st.subheader("Key Term Frequency in 'content' Column")
+            term_counts = {}
+            for term in terms_to_search:
+                cursor.execute(f"SELECT COUNT(*) FROM papers WHERE content LIKE '%{term}%' AND content IS NOT NULL")
+                count = cursor.fetchone()[0]
+                term_counts[term] = count
+                st.write(f"'{term}': {count} entries")
+
+            query = "SELECT id AS paper_id, title, substr(content, 1, 1000) AS content FROM papers WHERE content IS NOT NULL LIMIT 10"
+            df_full = pd.read_sql_query(query, conn)
+            csv_filename = f"database_sample_{uuid.uuid4().hex}.csv"
+            csv_path = os.path.join(DB_DIR, csv_filename)
+            df_full.to_csv(csv_path, index=False)
+            with open(csv_path, "rb") as f:
+                st.session_state.csv_data = f.read()
+            st.session_state.csv_filename = csv_filename
+            st.subheader("Download Sample Content")
+            st.download_button(
+                label="Download Sample CSV",
+                data=st.session_state.csv_data,
+                file_name="database_sample.csv",
+                mime="text/csv",
+                key="download_csv"
+            )
+        elif "pages" in available_tables:
             st.subheader("Schema of 'pages' Table")
             cursor.execute("PRAGMA table_info(pages);")
             schema = cursor.fetchall()
             schema_df = pd.DataFrame(schema, columns=["cid", "name", "type", "notnull", "dflt_value", "pk"])
             st.dataframe(schema_df[["name", "type", "notnull", "dflt_value", "pk"]], use_container_width=True)
 
-            query = "SELECT filename, page_num, substr(text, 1, 200) as sample_content FROM pages WHERE text IS NOT NULL LIMIT 5"
+            query = "SELECT filename, page_num, substr(text, 1, 200) AS sample_content FROM pages WHERE text IS NOT NULL LIMIT 5"
             df = pd.read_sql_query(query, conn)
             st.subheader("Sample Rows from 'pages' Table (First 5 Pages)")
             if df.empty:
@@ -215,7 +284,7 @@ def inspect_database(db_path):
                 term_counts[term] = count
                 st.write(f"'{term}': {count} pages")
 
-            query = "SELECT filename, page_num, substr(text, 1, 1000) as text FROM pages WHERE text IS NOT NULL LIMIT 10"
+            query = "SELECT filename, page_num, substr(text, 1, 1000) AS text FROM pages WHERE text IS NOT NULL LIMIT 10"
             df_full = pd.read_sql_query(query, conn)
             csv_filename = f"database_sample_{uuid.uuid4().hex}.csv"
             csv_path = os.path.join(DB_DIR, csv_filename)
@@ -231,13 +300,14 @@ def inspect_database(db_path):
                 mime="text/csv",
                 key="download_csv"
             )
-            conn.close()
-            st.success(f"Database inspection completed for {os.path.basename(db_path)}")
-            return term_counts
         else:
-            st.warning("No 'pages' table found in the database.")
+            st.warning("No 'papers' or 'pages' table found in the database.")
             conn.close()
             return None
+
+        conn.close()
+        st.success(f"Database inspection completed for {os.path.basename(db_path)}")
+        return term_counts
     except Exception as e:
         st.error(f"Error reading database: {str(e)}")
         return None
@@ -360,12 +430,13 @@ def build_knowledge_graph_data(categorized_terms, db_file, min_co_occurrence=2, 
         # Add all terms as nodes with enhanced attributes
         term_freqs = {}
         for cat, terms in categorized_terms.items():
-            for term, freq, score in terms:  # Include all terms, not limited to top_n
+            max_freq = max([f for _, f, _ in terms], default=1)
+            for term, freq, score in terms:
+                size = 1000 + 3000 * (freq / max_freq) if term in KEY_TERMS else 500 + 2000 * (freq / max_freq)
+                color = "gold" if term in KEY_TERMS else "salmon" if cat != "Component" else "lightgreen"
                 G.add_node(term, type="term" if cat != "Component" else "component", 
                           freq=freq, category=cat, unit=term_units.get(cat, "None"),
-                          size=500 + 2000 * (freq / max([f for _, f, _ in terms], default=1)),
-                          color="salmon" if cat != "Component" else "lightgreen",
-                          score=score)
+                          size=size, color=color, score=score)
                 G.add_edge(cat, term, weight=1.0, type="category-term", label="belongs_to")
                 term_freqs[term] = freq
 
@@ -404,14 +475,22 @@ def build_knowledge_graph_data(categorized_terms, db_file, min_co_occurrence=2, 
                         rel_type = "inter_category"
                         label = f"related_to ({count})"
                     
-                    # Add edge with enhanced attributes
-                    G.add_edge(term1, term2, weight=count, type="term-term", 
+                    # Compute semantic boost for edge weight
+                    term1_embedding = get_scibert_embedding(term1)
+                    term2_embedding = get_scibert_embedding(term2)
+                    if term1_embedding is not None and term2_embedding is not None:
+                        key_term_sim1 = max([cosine_similarity([term1_embedding], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS] + [0])
+                        key_term_sim2 = max([cosine_similarity([term2_embedding], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS] + [0])
+                        weight = count * (1 + 0.5 * (key_term_sim1 + key_term_sim2))
+                    else:
+                        weight = count
+                    
+                    G.add_edge(term1, term2, weight=weight, type="term-term", 
                               relationship=rel_type, label=label, strength=count)
         
         # Add hierarchical relationships between terms
         for term in list(G.nodes):
             if G.nodes[term].get("type") == "term":
-                # Find parent terms (shorter terms that are substrings)
                 for potential_parent in list(G.nodes):
                     if (G.nodes[potential_parent].get("type") == "term" and 
                         potential_parent != term and 
@@ -450,12 +529,10 @@ def build_knowledge_graph_data(categorized_terms, db_file, min_co_occurrence=2, 
     
     except Exception as e:
         update_log(f"Error building knowledge graph data: {str(e)}")
+        st.error(f"Error building knowledge graph data: {str(e)}")
         return None, None
 
 def enhance_ner_with_knowledge_graph(ner_df, knowledge_graph):
-    """
-    Enhance NER results using knowledge graph insights
-    """
     if ner_df.empty or knowledge_graph is None:
         return ner_df
     
@@ -467,26 +544,19 @@ def enhance_ner_with_knowledge_graph(ner_df, knowledge_graph):
         
         # Find related entities in the knowledge graph
         if entity_text in knowledge_graph.nodes:
-            # Get neighbors in the knowledge graph
             neighbors = list(knowledge_graph.neighbors(entity_text))
-            
-            # Find related terms with strong connections
             strong_connections = []
             for neighbor in neighbors:
                 edge_data = knowledge_graph.get_edge_data(entity_text, neighbor)
-                if edge_data and edge_data.get("strength", 0) > 3:  # Threshold for strong connection
+                if edge_data and edge_data.get("strength", 0) > 3:
                     strong_connections.append((neighbor, edge_data.get("strength", 0)))
             
-            # Sort by strength
             strong_connections.sort(key=lambda x: x[1], reverse=True)
-            
-            # Add context from knowledge graph
             context_enhanced = row["context"]
             if strong_connections:
                 related_terms = ", ".join([f"{term}({strength})" for term, strength in strong_connections[:3]])
                 context_enhanced += f" [KG: Related to {related_terms}]"
             
-            # Create enhanced row
             enhanced_row = row.to_dict()
             enhanced_row["context"] = context_enhanced
             enhanced_row["kg_related_terms"] = ", ".join([term for term, _ in strong_connections])
@@ -637,7 +707,7 @@ def perform_ner_on_terms(db_file, selected_terms):
                                 unit_score = np.dot(context_embedding, unit_embedding) / (np.linalg.norm(context_embedding) * np.linalg.norm(unit_embedding))
                                 if unit_score > 0.6:
                                     unit_valid = True
-                                    unit = v_unit  # Correct to the valid unit if close
+                                    unit = v_unit
                                     break
                             if not unit_valid:
                                 continue
@@ -650,7 +720,6 @@ def perform_ner_on_terms(db_file, selected_terms):
                         if not range_valid:
                             continue
                     elif any(v is None for v in valid_units.get(best_label, [])):
-                        # Allow qualitative if None is in valid_units
                         pass
                     else:
                         continue
@@ -677,7 +746,6 @@ def perform_ner_on_terms(db_file, selected_terms):
                 update_log(f"Error processing entry {row['paper_id']}: {str(e)}")
         update_log(f"Extracted {len(entities)} entities")
         
-        # Enhance NER results with knowledge graph if available
         if st.session_state.knowledge_graph is not None:
             entities_df = pd.DataFrame(entities)
             enhanced_entities = enhance_ner_with_knowledge_graph(entities_df, st.session_state.knowledge_graph)
@@ -761,7 +829,7 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
     figs = []
     for category, unit in categories_units.items():
         cat_df = value_df[value_df["entity_label"] == category]
-        if unit:  # If a specific unit is requested
+        if unit:
             cat_df = cat_df[cat_df["unit"] == unit]
         if cat_df.empty:
             update_log(f"No data for {category} with unit {unit}")
@@ -773,7 +841,7 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
             continue
         
         fig, ax = plt.subplots(figsize=(8, 4))
-        color = cm.get_cmap(colormap)(0.5)  # Use a consistent color from colormap
+        color = cm.get_cmap(colormap)(0.5)
         ax.hist(values, bins=20, color=color, edgecolor="black")
         ax.set_xlabel(f"Value ({unit})")
         ax.set_ylabel("Count")
@@ -787,7 +855,6 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
 st.header("Select or Upload Database")
 db_files = glob.glob(os.path.join(DB_DIR, "*.db"))
 db_options = [os.path.basename(f) for f in db_files if f in [RELIABILITY_DB_FILE, UNIVERSE_DB_FILE]] + ["Upload a new .db file"]
-# Ensure battery_reliability_universe.db is included and set as default
 if os.path.basename(UNIVERSE_DB_FILE) not in db_options and os.path.exists(UNIVERSE_DB_FILE):
     db_options.insert(0, os.path.basename(UNIVERSE_DB_FILE))
 default_index = db_options.index(os.path.basename(UNIVERSE_DB_FILE)) if os.path.basename(UNIVERSE_DB_FILE) in db_options else 0
@@ -862,14 +929,11 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                 with st.spinner("Building knowledge graph..."):
                     G, csv_data = build_knowledge_graph_data(st.session_state.categorized_terms, st.session_state.db_file, min_co_occurrence=min_freq)
                     if G and G.edges():
-                        # Create the figure with a hierarchical layout
                         fig, ax = plt.subplots(figsize=(12, 12))
-                        # Use a hierarchical layout to emphasize category branches
                         pos = nx.spring_layout(G, k=0.8, iterations=50, seed=42)
-                        # Adjust positions to group terms by category
                         for cat in categories:
                             if G.has_node(cat):
-                                pos[cat][1] += 2  # Shift category nodes upward
+                                pos[cat][1] += 2
                         node_colors = []
                         node_sizes = []
                         for node in G.nodes:
@@ -880,13 +944,11 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                                 node_colors.append("lightgreen")
                                 node_sizes.append(1500)
                             else:
-                                node_colors.append("salmon")
+                                node_colors.append(G.nodes[node].get("color", "salmon"))
                                 node_sizes.append(G.nodes[node].get("size", 500))
                         
-                        # Draw nodes
                         nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8, ax=ax)
                         
-                        # Draw edges with different styles based on type
                         category_term_edges = [(u, v) for u, v, d in G.edges(data=True) if d["type"] == "category-term"]
                         term_term_edges = [(u, v) for u, v, d in G.edges(data=True) if d["type"] == "term-term"]
                         hierarchical_edges = [(u, v) for u, v, d in G.edges(data=True) if d["type"] == "hierarchical"]
@@ -895,35 +957,37 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                         nx.draw_networkx_edges(G, pos, edgelist=term_term_edges, width=1.0, edge_color="gray", ax=ax)
                         nx.draw_networkx_edges(G, pos, edgelist=hierarchical_edges, width=1.5, edge_color="green", style="dashed", ax=ax)
                         
-                        # Draw labels
                         nx.draw_networkx_labels(G, pos, font_size=8, ax=ax)
                         
-                        # Add edge labels
                         edge_labels = {(u, v): d.get("label", "") for u, v, d in G.edges(data=True)}
                         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=6, ax=ax)
                         
-                        ax.set_title("Knowledge Graph of Battery Reliability Phenomena (All Terms, Branched by Category)")
+                        ax.set_title("PREKNOWLEDGE: Knowledge Graph of Battery Reliability Phenomena")
                         plt.tight_layout()
                         
                         st.pyplot(fig)
                         
-                        # Show community detection visualization
                         st.subheader("Community Detection")
-                        community_fig = visualize_knowledge_graph_communities(G)
-                        if community_fig:
-                            st.pyplot(community_fig)
+                        communities = community_louvain.best_partition(G)
+                        community_colors = [cm.get_cmap("viridis")(communities[node] / max(communities.values(), default=1)) for node in G.nodes()]
+                        fig_comm, ax_comm = plt.subplots(figsize=(12, 12))
+                        nx.draw_networkx_nodes(G, pos, node_color=community_colors, node_size=node_sizes, alpha=0.8, ax=ax_comm)
+                        nx.draw_networkx_edges(G, pos, edgelist=category_term_edges, width=2.0, edge_color="blue", ax=ax_comm)
+                        nx.draw_networkx_edges(G, pos, edgelist=term_term_edges, width=1.0, edge_color="gray", ax=ax_comm)
+                        nx.draw_networkx_edges(G, pos, edgelist=hierarchical_edges, width=1.5, edge_color="green", style="dashed", ax=ax_comm)
+                        nx.draw_networkx_labels(G, pos, font_size=8, ax=ax_comm)
+                        ax_comm.set_title("Community Detection in Knowledge Graph")
+                        plt.tight_layout()
+                        st.pyplot(fig_comm)
                         
-                        # Focused subgraph on key terms
                         st.subheader("Focused Subgraph on Key Terms")
-                        # Create focused subgraph
-                        key_nodes = [node for node in G.nodes if node in key_terms]
+                        key_nodes = [node for node in G.nodes if node in KEY_TERMS]
                         neighbors = set()
                         for node in key_nodes:
                             neighbors.update(nx.neighbors(G, node))
                         focused_nodes = set(key_nodes) | neighbors
                         sub_G = G.subgraph(focused_nodes)
                         
-                        # Plot focused subgraph
                         if sub_G.edges():
                             fig_sub, ax_sub = plt.subplots(figsize=(10, 8))
                             pos_sub = nx.spring_layout(sub_G, k=0.6, iterations=50, seed=42)
@@ -937,7 +1001,6 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                             plt.tight_layout()
                             st.pyplot(fig_sub)
                         
-                        # Download CSVs
                         nodes_csv_data, nodes_csv_filename, edges_csv_data, edges_csv_filename = csv_data
                         st.download_button(
                             label="Download Knowledge Graph Nodes",
@@ -972,7 +1035,6 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
             default_terms = [term for term in ["electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress", "micro-cracking"] if term in available_terms]
             selected_terms = st.multiselect("Select Terms for NER", available_terms, default_terms, key="select_terms")
             
-            # Add option to use knowledge graph for NER enhancement
             use_kg_enhancement = st.checkbox("Use Knowledge Graph for NER Enhancement", value=True, 
                                            help="Use knowledge graph relationships to improve NER results")
             
@@ -981,14 +1043,13 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                     st.warning("Select at least one term for NER analysis.")
                 else:
                     with st.spinner(f"Processing NER analysis for {len(selected_terms)} terms..."):
-                        ner_df = perform_ner_on_terms(db_file, selected_terms)
+                        ner_df = perform_ner_on_terms(st.session_state.db_file, selected_terms)
                         st.session_state.ner_results = ner_df
                     if ner_df.empty:
                         st.warning("No entities were found.")
                     else:
                         st.success(f"Extracted {len(ner_df)} entities!")
                         
-                        # Show enhanced NER results if knowledge graph was used
                         if use_kg_enhancement and "kg_related_terms" in ner_df.columns:
                             st.subheader("NER Results Enhanced with Knowledge Graph")
                             st.dataframe(
@@ -1010,7 +1071,6 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                         fig_box = plot_ner_value_boxplot(ner_df, top_n, colormap)
                         if fig_box:
                             st.pyplot(fig_box)
-                        # Plot histograms for numerical values with specified units
                         categories_units = {
                             "Deformation": "%",
                             "Fatigue": "cycles",
@@ -1032,12 +1092,11 @@ else:
 st.markdown("""
 ---
 **Notes**
+- **PREKNOWLEDGE Overview**: PREKNOWLEDGE prioritizes key terms (e.g., electrode cracking, SEI formation) in the knowledge graph, ensuring focus on battery degradation, fatigue, and reliability phenomena, even in large datasets.
 - **Database Inspection**: View tables, schemas, and sample data from `battery_reliability.db` or `battery_reliability_universe.db`. Default database is `battery_reliability_universe.db` for full-text analysis of arXiv papers.
 - **Term Categorization**: Groups terms into Deformation, Fatigue, Crack and Fracture, Degradation using SciBERT embeddings, based on full-text content from `battery_reliability_universe.db`.
-- **Knowledge Graph**: Visualizes relationships between categories, terms, and components with enhanced branching and community detection, using `battery_reliability_universe.db`.
+- **Knowledge Graph**: Visualizes relationships with a focus on key terms via larger nodes, semantic edge weighting, and a focused subgraph, using `battery_reliability_universe.db`.
 - **NER Analysis**: Extracts entities with context-aware unit assignment from `battery_reliability_universe.db`, enhanced with knowledge graph relationships.
-- **Knowledge Graph Enhancement**: Uses community detection to identify related term clusters and hierarchical relationships.
 - Place `battery_reliability.db` and `battery_reliability_universe.db` in the script's directory or upload them. `battery_reliability_universe.db` is required for full-text analysis and must have a `content` column.
-- The script dynamically adjusts to missing columns (e.g., `categories`, `abstract`) in `battery_reliability_universe.db` by querying only available columns.
 - Check `battery_reliability_analysis.log` for detailed logs, including schema details and query adjustments.
 """)
