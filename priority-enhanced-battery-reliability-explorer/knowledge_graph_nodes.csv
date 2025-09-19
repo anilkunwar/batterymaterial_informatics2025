@@ -1,0 +1,64 @@
+node,type,category,frequency,unit,similarity_score
+Deformation,category,,0,None,0.0
+Fatigue,category,,0,None,0.0
+Crack and Fracture,category,,0,None,0.0
+Degradation,category,,0,None,0.0
+Component,category,,0,None,0.0
+Other,category,,0,None,0.0
+potential,term,Deformation,1156,%,0.7968166470527649
+particle,term,Deformation,1121,%,0.8194513916969299
+discharge,term,Deformation,958,%,0.8603872060775757
+chemical,term,Deformation,859,%,0.7891619801521301
+shown,term,Deformation,837,%,0.7805125117301941
+journal,term,Deformation,832,%,0.7272739410400391
+film,term,Deformation,629,%,0.8670478463172913
+temperature,term,Deformation,623,%,0.8339582085609436
+volume,term,Deformation,588,%,0.7310343384742737
+graphite,term,Deformation,557,%,0.8071662187576294
+stress,term,Fatigue,1353,cycles,0.9471251368522644
+cycling,term,Fatigue,1279,cycles,0.9005441665649414
+cells,term,Fatigue,943,cycles,0.7351582050323486
+power sources,term,Fatigue,647,cycles,0.745044469833374
+experimental,term,Fatigue,589,cycles,0.7452570199966431
+diffusion,term,Fatigue,533,cycles,0.8724458813667297
+evolution,term,Fatigue,485,cycles,0.8296588659286499
+conditions,term,Fatigue,441,cycles,0.738384485244751
+experiments,term,Fatigue,420,cycles,0.7613929510116577
+chen,term,Fatigue,373,cycles,0.7505974769592285
+electrode,term,Crack and Fracture,2601,μm,0.8114984035491943
+figure,term,Crack and Fracture,2509,μm,0.7399616837501526
+surface,term,Crack and Fracture,1928,μm,0.8925421833992004
+solid,term,Crack and Fracture,1774,μm,0.8630552887916565
+cell,term,Crack and Fracture,1708,μm,0.7751566171646118
+current,term,Crack and Fracture,1456,μm,0.8384130001068115
+cathode,term,Crack and Fracture,1331,μm,0.8726008534431458
+cycle,term,Crack and Fracture,1275,μm,0.8884750008583069
+state,term,Crack and Fracture,1254,μm,0.837119460105896
+cycles,term,Crack and Fracture,1110,μm,0.8649430274963379
+lithium,term,Degradation,3247,%,0.8565831780433655
+electrolyte,term,Degradation,2621,%,0.8713921904563904
+energy,term,Degradation,2079,%,0.787058413028717
+capacity,term,Degradation,1938,%,0.8931721448898315
+batteries,term,Degradation,1699,%,0.7825968861579895
+battery,term,Degradation,1671,%,0.8851545453071594
+electrochemical,term,Degradation,1557,%,0.8600375652313232
+phase,term,Degradation,1354,%,0.8497655391693115
+voltage,term,Degradation,1253,%,0.847805917263031
+charge,term,Degradation,1216,%,0.8414180278778076
+performed,component,Component,399,None,0.0
+reference,component,Component,318,None,0.0
+containing,component,Component,153,None,0.0
+approximately,component,Component,137,None,0.0
+elemental,component,Component,108,None,0.0
+figures,component,Component,106,None,0.0
+determine,component,Component,101,None,0.0
+materials,term,Other,1323,None,0.0
+material,term,Other,934,None,0.0
+results,term,Other,747,None,0.0
+chem,term,Other,679,None,0.0
+mater,term,Other,667,None,0.0
+wang,term,Other,652,None,0.0
+data,term,Other,627,None,0.0
+zhang,term,Other,587,None,0.0
+respectively,term,Other,580,None,0.0
+study,term,Other,507,None,0.0
