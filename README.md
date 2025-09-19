@@ -35,4 +35,10 @@ Knoweldge graph visualization
 
 ## Priority Enhanced Knowledge Graph (PREKNOWLEDGE)
 
+App for Graph Construction and NER Analysis
+
+PREKnoweldge graph visualization
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradation-streamlit-red)](https://batterysolid-priorityenhancedkgvisual.streamlit.app/)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradationr1-streamlit-red)](https://batterysolid-priorityenhancedkgvisualr1.streamlit.app/)
 
