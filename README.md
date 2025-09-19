@@ -33,3 +33,6 @@ Knoweldge graph visualization
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/knowledgegraphbatterydegradationr1-streamlit-red)](https://batterysolid-mediumdbkgvisualr1.streamlit.app/)
 
 
+## Priority Enhanced Knowledge Graph (PREKNOWLEDGE)
+
+
