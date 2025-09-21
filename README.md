@@ -42,3 +42,6 @@ PREKnoweldge graph visualization
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradationr1-streamlit-red)](https://batterysolid-priorityenhancedkgvisualr1.streamlit.app/)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradationr2-streamlit-red)](https://batterysolid-priorityenhancedkgvisualr2.streamlit.app/)
+
+
