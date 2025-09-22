@@ -44,7 +44,7 @@ def load_scibert():
         model.eval()
         return tokenizer, model
     except Exception as e:
-        st.warning(f"Failed to load SciBERT: {str(e)}. Semantic similarity will be disabled.")
+        st.warning(f"Failed to load SciBERT: {str(e)}. Semantic similarity will use exact matches only.")
         return None, None
 
 scibert_tokenizer, scibert_model = load_scibert()
@@ -92,9 +92,6 @@ def load_data():
 # 2. Priority Score Calculation
 # -----------------------
 def calculate_priority_scores(G, nodes_df):
-    """
-    Calculate priority scores for nodes based on frequency, centrality, and semantic relevance.
-    """
     max_freq = nodes_df['frequency'].max() if nodes_df['frequency'].max() > 0 else 1
     nodes_df['norm_frequency'] = nodes_df['frequency'] / max_freq
     
@@ -133,35 +130,51 @@ def calculate_priority_scores(G, nodes_df):
 # 3. Semantic Similarity Grouping
 # -----------------------
 def find_similar_terms(node_terms, selected_nodes, similarity_threshold=0.7):
-    """
-    Find semantically similar terms using SciBERT embeddings.
-    """
     if not selected_nodes:
-        return set()
-    
-    selected_embeddings = get_scibert_embedding(selected_nodes)
-    selected_embeddings_dict = dict(zip(selected_nodes, selected_embeddings))
-    
-    term_embeddings = get_scibert_embedding(node_terms)
-    term_embeddings_dict = dict(zip(node_terms, term_embeddings))
+        return set(), {}
     
     similar_terms = set(selected_nodes)
     similarity_scores = {}
+    
+    if scibert_tokenizer is None or scibert_model is None:
+        st.warning("SciBERT not available. Using exact matches for key terms.")
+        for term in node_terms:
+            for selected in selected_nodes:
+                if selected in term.lower() or term.lower() in selected:
+                    similar_terms.add(term)
+                    similarity_scores[term] = (selected, 1.0)
+        return similar_terms, similarity_scores
+    
+    selected_embeddings = get_scibert_embedding(selected_nodes)
+    if not any(selected_embeddings):
+        st.warning("No valid embeddings for selected nodes. Including selected nodes only.")
+        return set(selected_nodes), {}
+    
+    selected_embeddings_dict = dict(zip(selected_nodes, selected_embeddings))
+    term_embeddings = get_scibert_embedding(node_terms)
+    term_embeddings_dict = dict(zip(node_terms, term_embeddings))
+    
     for term in node_terms:
         if term in similar_terms:
             continue
         term_emb = term_embeddings_dict.get(term)
         if term_emb is not None:
             max_sim = 0
+            matched_term = None
             for selected_term, selected_emb in selected_embeddings_dict.items():
                 if selected_emb is not None:
-                    sim = cosine_similarity([term_emb], [selected_emb])[0][0]
-                    if sim > max_sim:
-                        max_sim = sim
-                        similarity_scores[term] = (selected_term, sim)
-                    if sim > similarity_threshold:
-                        similar_terms.add(term)
-                        break
+                    try:
+                        sim = cosine_similarity([term_emb], [selected_emb])[0][0]
+                        if sim > max_sim:
+                            max_sim = sim
+                            matched_term = selected_term
+                        if sim > similarity_threshold:
+                            similar_terms.add(term)
+                            similarity_scores[term] = (matched_term, sim)
+                            break
+                    except Exception as e:
+                        st.warning(f"Error computing similarity for {term}: {str(e)}")
+                        continue
     
     return similar_terms, similarity_scores
 
@@ -388,6 +401,11 @@ try:
     excluded_terms = st.sidebar.text_input("Exclude terms (comma-separated)", value="").split(',')
     excluded_terms = [t.strip().lower() for t in excluded_terms if t.strip()]
 
+    # Custom Related Terms
+    st.sidebar.subheader("🔗 Custom Related Terms")
+    related_terms_input = st.sidebar.text_input("Add related terms (comma-separated, e.g., crack,fracture)", value="crack,fracture,micro-cracking")
+    related_terms = [t.strip().lower() for t in related_terms_input.split(',') if t.strip()]
+
     # Highlighting and Suppression
     st.sidebar.subheader("🎯 Priority Highlighting")
     highlight_priority = st.sidebar.checkbox("Highlight high-priority nodes", value=True)
@@ -402,20 +420,23 @@ try:
     edge_width_factor = st.sidebar.slider("Edge Width Factor", 0.1, 2.0, 0.5)
 
     # Filter the graph
-    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, semantic_similarity_threshold, suppress_low_priority):
+    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, semantic_similarity_threshold, suppress_low_priority, related_terms):
         G_filtered = nx.Graph()
         valid_nodes = set()
         
         # Find semantically similar terms
-        similar_terms, similarity_scores = find_similar_terms(list(G.nodes()), selected_nodes, semantic_similarity_threshold)
+        similar_terms, similarity_scores = find_similar_terms(list(G.nodes()), selected_nodes + related_terms, semantic_similarity_threshold)
         
-        # Check if selected nodes are in the graph
-        missing_nodes = [n for n in selected_nodes if n not in G.nodes()]
+        # Check for missing nodes
+        all_selected = selected_nodes + related_terms
+        missing_nodes = [n for n in all_selected if n not in G.nodes()]
         if missing_nodes:
             st.sidebar.warning(f"Warning: The following selected nodes are not in the graph: {', '.join(missing_nodes)}")
+            st.sidebar.info(f"Suggestions: Try terms like {', '.join([t for t in KEY_TERMS if t in G.nodes()][:5])}")
         
-        if selected_nodes:
-            for node in selected_nodes:
+        # Include selected nodes, related terms, and their neighbors
+        if all_selected:
+            for node in all_selected:
                 if node in G.nodes():
                     valid_nodes.add(node)
                     valid_nodes.update(G.neighbors(node))
@@ -444,10 +465,12 @@ try:
                     st.sidebar.write(f"- {term} (similar to '{matched_term}', score: {sim_score:.2f})")
                 else:
                     st.sidebar.write(f"- {term}")
+        else:
+            st.sidebar.info("No semantically similar terms found. Try lowering the similarity threshold or adding related terms.")
         
         return G_filtered
 
-    G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, semantic_similarity_threshold, suppress_low_priority)
+    G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, semantic_similarity_threshold, suppress_low_priority, related_terms)
     st.sidebar.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
 
     # Community Detection
@@ -540,7 +563,7 @@ try:
             st.sidebar.markdown(href_svg, unsafe_allow_html=True)
             st.sidebar.success("Static visualization generated. Click the links above to download.")
     else:
-        st.warning("No nodes match the current filter criteria. Try adjusting the filters or lowering the semantic similarity threshold.")
+        st.warning("No nodes match the current filter criteria. Try adjusting the filters, lowering the similarity threshold, or adding related terms.")
 
     # Hub Nodes and Analysis
     if G_filtered.number_of_nodes() > 0:
