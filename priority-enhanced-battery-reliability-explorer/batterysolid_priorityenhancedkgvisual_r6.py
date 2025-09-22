@@ -146,7 +146,9 @@ def find_similar_terms(node_terms, selected_nodes, similarity_threshold=0.7):
         return similar_terms, similarity_scores
     
     selected_embeddings = get_scibert_embedding(selected_nodes)
-    if not any(selected_embeddings):
+    
+    # FIXED: Check if any embeddings are valid (not None)
+    if selected_embeddings is None or all(emb is None for emb in selected_embeddings):
         st.warning("No valid embeddings for selected nodes. Including selected nodes only.")
         return set(selected_nodes), {}
     
@@ -504,7 +506,7 @@ try:
             x1, y1 = pos[edge[1]]
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
-            edge_weights.append(G_filtered.edges[edge].get("weight", 1))
+            edge_weights.append(G_filtered.edges[edge].get('weight', 1))
         
         if edge_weights:
             max_weight = max(edge_weights)
@@ -608,8 +610,8 @@ try:
             if neighbors:
                 st.sidebar.write("**Connected Terms:**")
                 for n in neighbors:
-                    w = G_filtered.edges[selected_node, n].get("weight", 1)
-                    rel_type = G_filtered.edges[selected_node, n].get("type", "")
+                    w = G_filtered.edges[selected_node, n].get('weight', 1)
+                    rel_type = G_filtered.edges[selected_node, n].get('type', "")
                     st.sidebar.write(f"- {n} ({rel_type}, weight: {w})")
             else:
                 st.sidebar.write("No connected terms above current filter threshold.")
