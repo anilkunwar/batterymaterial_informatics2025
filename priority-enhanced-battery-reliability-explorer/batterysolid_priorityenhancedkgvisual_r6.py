@@ -88,9 +88,10 @@ def load_data():
     edges_df = pd.read_csv(edges_path)
     nodes_df = pd.read_csv(nodes_path)
     
-    # Ensure all KEY_TERMS are in nodes_df
+    # Normalize node names before checking for missing terms
+    nodes_df['node'] = nodes_df['node'].apply(normalize_term)
     existing_nodes = set(nodes_df['node'].str.lower())
-    missing_terms = [t for t in KEY_TERMS if t not in existing_nodes]
+    missing_terms = [t for t in KEY_TERMS if t.lower() not in existing_nodes]
     if missing_terms:
         st.warning(f"Adding {len(missing_terms)} missing key terms to nodes data: {', '.join(missing_terms[:5])}{', ...' if len(missing_terms) > 5 else ''}")
         new_nodes = []
@@ -103,6 +104,10 @@ def load_data():
                 'unit': 'None'
             })
         nodes_df = pd.concat([nodes_df, pd.DataFrame(new_nodes)], ignore_index=True)
+    
+    # Debug: Log nodes for verification
+    st.write("Debug: Nodes in graph after loading:", sorted(nodes_df['node'].tolist()[:10]))
+    st.write("Debug: Missing KEY_TERMS after normalization:", [t for t in KEY_TERMS if t.lower() not in nodes_df['node'].str.lower().tolist()])
     
     return edges_df, nodes_df
 
@@ -165,7 +170,8 @@ def find_similar_terms(node_terms, selected_nodes, similarity_threshold=0.6):
         return similar_terms, similarity_scores
     
     selected_embeddings = get_scibert_embedding(selected_nodes)
-    if not any(selected_embeddings):
+    # Check if any embeddings are valid (not None)
+    if not selected_embeddings or all(emb is None for emb in selected_embeddings):
         st.warning("No valid embeddings for selected nodes. Including selected nodes only.")
         return set(selected_nodes), {}
     
@@ -354,8 +360,25 @@ def analyze_clusters(_G_filtered):  # Added underscore
     return cluster_summary
 
 # -----------------------
-# 5. Helper Functions for Export
+# 5. Helper Functions
 # -----------------------
+def normalize_term(term: str) -> str:
+    if not isinstance(term, str):
+        return ""
+    term = term.lower().strip()
+    replacements = {
+        "batteries": "battery",
+        "materials": "material",
+        "mater": "material",
+        "lithium ions": "lithium ion",
+        "lithium ion(s)": "lithium ion",
+        "fatigue": "fatigue",
+        "cracking": "crack",
+        "microcracking": "micro-cracking",
+        "sei": "sei formation"
+    }
+    return replacements.get(term, term)
+
 def fig_to_base64(fig, format='png', dpi=300):
     buf = BytesIO()
     fig.savefig(buf, format=format, bbox_inches='tight', dpi=dpi)
@@ -383,28 +406,6 @@ def create_static_visualization(_G_filtered, pos, node_colors, node_sizes, font_
 try:
     # Load data
     edges_df, nodes_df = load_data()
-
-    # Normalize Terms
-    def normalize_term(term: str) -> str:
-        if not isinstance(term, str):
-            return ""
-        term = term.lower().strip()
-        replacements = {
-            "batteries": "battery",
-            "materials": "material",
-            "mater": "material",
-            "lithium ions": "lithium ion",
-            "lithium ion(s)": "lithium ion",
-            "fatigue": "fatigue",
-            "cracking": "crack",
-            "microcracking": "micro-cracking",
-            "sei": "sei formation"
-        }
-        return replacements.get(term, term)
-
-    nodes_df["node"] = nodes_df["node"].apply(normalize_term)
-    edges_df["source"] = edges_df["source"].apply(normalize_term)
-    edges_df["target"] = edges_df["target"].apply(normalize_term)
 
     # Build Initial Graph
     G = nx.Graph()
