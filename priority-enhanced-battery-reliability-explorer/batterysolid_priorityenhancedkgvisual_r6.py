@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from transformers import AutoModel, AutoTokenizer
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
+import difflib
 
 # -----------------------
 # 1. Setup and Data Loading with Caching
@@ -109,7 +110,7 @@ def load_data():
 # 2. Priority Score Calculation
 # -----------------------
 @st.cache_data
-def calculate_priority_scores(_G, nodes_df):  # Added leading underscore to _G
+def calculate_priority_scores(_G, nodes_df):  # Added underscore
     max_freq = nodes_df['frequency'].max() if nodes_df['frequency'].max() > 0 else 1
     nodes_df['norm_frequency'] = nodes_df['frequency'] / max_freq
     
@@ -468,9 +469,40 @@ try:
         show_edge_labels = st.checkbox("Show Edge Labels (High-Weight)", value=False, help="Display labels for edges with high weights")
 
     # Filter the graph
-    def filter_graph(_G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority, related_terms, semantic_similarity_threshold):
+    def filter_graph(_G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority, related_terms, semantic_similarity_threshold):
         G_filtered = nx.Graph()
         valid_nodes = set()
+        
+        # Normalize selected_nodes and related_terms with difflib
+        cleaned_selected_nodes = []
+        term_mappings = []
+        for term in selected_nodes:
+            if term in _G.nodes():
+                cleaned_selected_nodes.append(term)
+            else:
+                close = difflib.get_close_matches(term, _G.nodes(), n=1, cutoff=0.7)
+                if close:
+                    cleaned_selected_nodes.append(close[0])
+                    term_mappings.append(f"'{term}' → '{close[0]}'")
+        
+        cleaned_related_terms = []
+        for term in related_terms:
+            if term in _G.nodes():
+                cleaned_related_terms.append(term)
+            else:
+                close = difflib.get_close_matches(term, _G.nodes(), n=1, cutoff=0.7)
+                if close:
+                    cleaned_related_terms.append(close[0])
+                    term_mappings.append(f"'{term}' → '{close[0]}'")
+        
+        # Display term mappings
+        if term_mappings:
+            st.sidebar.subheader("🔗 Term Mappings")
+            for mapping in term_mappings:
+                st.sidebar.write(f"- {mapping}")
+        
+        selected_nodes = list(set(cleaned_selected_nodes))
+        related_terms = list(set(cleaned_related_terms))
         
         # Find semantically similar terms
         similar_terms, similarity_scores = find_similar_terms(list(_G.nodes()), selected_nodes + related_terms, semantic_similarity_threshold)
@@ -491,7 +523,7 @@ try:
             valid_nodes.update(similar_terms)
         else:
             for n, d in _G.nodes(data=True):
-                if (d.get("frequency", 0) >= min_freq and 
+                if (d.get("frequency", 0) >= min_node_freq and 
                     d.get("category", "") in selected_categories and
                     d.get("type", "") in selected_types and
                     (not suppress_low_priority or d.get("priority_score", 0) >= min_priority_score)):
@@ -769,7 +801,7 @@ try:
         - **Purpose**: Identify tightly connected groups of failure mechanisms
         - **How to use**: Select "Cluster Analysis" to explore clusters and their properties.
         ### Research Questions to Explore:
-        - How are different cracking mechanisms (electrode, SEI, particle) related?
+        - How are different cracking mechanisms (electrode, sei, particle) related?
         - What connects mechanical degradation to capacity fade?
         - Which failure mechanisms act as bridges between different degradation modes?
         - How do failure communities correspond to different battery components?
