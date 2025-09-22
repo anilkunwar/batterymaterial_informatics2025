@@ -468,6 +468,37 @@ try:
         default=node_types
     )
     
+    # Priority score filter
+    min_priority_score = st.sidebar.slider(
+        "Min priority score", 
+        min_value=0.0, 
+        max_value=1.0, 
+        value=0.2, 
+        step=0.05
+    )
+
+    # Semantic Similarity Threshold
+    semantic_similarity_threshold = st.sidebar.slider(
+        "Semantic similarity threshold", 
+        min_value=0.5, 
+        max_value=1.0, 
+        value=0.8, 
+        step=0.05
+    )
+
+    # User-based node selection and exclusion
+    st.sidebar.subheader("🔍 Node Inclusion/Exclusion")
+    selected_nodes = st.sidebar.multiselect(
+        "Include specific nodes (optional)", 
+        options=sorted(G.nodes()),
+        default=["electrode cracking", "SEI formation", "capacity fade"] if any(n in G.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else []
+    )
+    excluded_terms = st.sidebar.text_input(
+        "Exclude terms (comma-separated)", 
+        value="battery, material"
+    ).split(',')
+    excluded_terms = [t.strip().lower() for t in excluded_terms if t.strip()]
+
     # Label size controls for publication-quality figures
     st.sidebar.subheader("📝 Label Settings for Publications")
     show_labels = st.sidebar.checkbox("Show Node Labels", value=True)
@@ -477,18 +508,38 @@ try:
     # Edge width control
     edge_width_factor = st.sidebar.slider("Edge Width Factor", 0.1, 2.0, 0.5)
 
-    # Filter the graph
-    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types):
+    # Filter the graph with user-based nodes and exclusions
+    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, semantic_similarity_threshold):
         G_filtered = nx.Graph()
         
-        # Add nodes that meet criteria
-        for n, d in G.nodes(data=True):
-            if (d.get("frequency", 0) >= min_freq and 
-                d.get("category", "") in selected_categories and
-                d.get("type", "") in selected_types):
-                G_filtered.add_node(n, **d)
+        # Determine nodes to include
+        valid_nodes = set()
+        if selected_nodes:
+            # Include selected nodes and their neighbors (radius=1 for connectivity)
+            for node in selected_nodes:
+                if node in G.nodes() and G.nodes[node].get('priority_score', 0) >= min_priority_score:
+                    valid_nodes.add(node)
+                    valid_nodes.update(G.neighbors(node))
+            # Include semantically similar terms
+            similar_terms = find_similar_terms(list(G.nodes()), selected_nodes, semantic_similarity_threshold)
+            valid_nodes.update(similar_terms)
+        else:
+            # Include all nodes meeting criteria
+            for n, d in G.nodes(data=True):
+                if (d.get("frequency", 0) >= min_freq and 
+                    d.get("category", "") in selected_categories and
+                    d.get("type", "") in selected_types and
+                    d.get("priority_score", 0) >= min_priority_score):
+                    valid_nodes.add(n)
         
-        # Add edges that meet criteria
+        # Remove excluded terms
+        valid_nodes = {n for n in valid_nodes if not any(ex in n.lower() for ex in excluded_terms)}
+        
+        # Add nodes
+        for n in valid_nodes:
+            G_filtered.add_node(n, **G.nodes[n])
+        
+        # Add edges
         for u, v, d in G.edges(data=True):
             if (u in G_filtered.nodes and v in G_filtered.nodes and 
                 d.get("weight", 0) >= min_weight):
@@ -496,7 +547,7 @@ try:
         
         return G_filtered
 
-    G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types)
+    G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, semantic_similarity_threshold)
 
     # Show graph stats
     st.sidebar.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
@@ -528,7 +579,7 @@ try:
         pos = nx.spring_layout(G_filtered, k=1, iterations=100, seed=42, weight='weight')
         
         # Prepare node sizes based on priority score
-        frequencies = [G_filtered.nodes[node].get('priority_score', 1) for node in G_filtered.nodes()]
+        frequencies = [G_filtered.nodes[node].get('frequency', 1) for node in G_filtered.nodes()]
         min_size, max_size = 15, 60  # Increased sizes for better visibility
         if max(frequencies) > min(frequencies):
             node_sizes = [min_size + (max_size - min_size) * 
@@ -696,9 +747,8 @@ try:
             st.sidebar.write(f"**Category:** {node_data.get('category','N/A')}")
             st.sidebar.write(f"**Type:** {node_data.get('type','N/A')}")
             st.sidebar.write(f"**Frequency:** {node_data.get('frequency', 'N/A')}")
-            st.sidebar.write(f"**Unit:** {node_data.get('unit', 'N/A')}")
+            st.sidebar.write(f"**Unit:** {node_data.get('unit', 'N/A')")
             st.sidebar.write(f"**Similarity Score:** {node_data.get('similarity_score', 'N/A')}")
-            st.sidebar.write(f"**Priority Score:** {node_data.get('priority_score', 0):.3f}")
             
             # Centrality measures
             node_centrality = centrality_df[centrality_df['node'] == selected_node]
@@ -736,7 +786,6 @@ try:
                               title="Top Nodes by Priority Score")
             st.plotly_chart(fig_nodes, use_container_width=True)
         
-        # Edge type distribution
         edge_type_counts = edges_df['type'].value_counts()
         fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values,
                          title="Edge Type Distribution",
@@ -762,8 +811,6 @@ try:
                     st.write("**Top categories:**")
                     for cat, count in category_counter.most_common(3):
                         st.write(f"- {cat}: {count} nodes")
-                    avg_priority = sum(G_filtered.nodes[node].get('priority_score', 0) for node in nodes) / len(nodes)
-                    st.write(f"**Average Priority Score:** {avg_priority:.3f}")
 
     # Data Export
     st.sidebar.subheader("💾 Export Data")
@@ -794,215 +841,3 @@ try:
         
         nodes_export = pd.DataFrame(filtered_nodes)
         edges_export = pd.DataFrame(filtered_edges)
-        
-        st.sidebar.download_button(
-            label="Download Nodes CSV",
-            data=nodes_export.to_csv(index=False),
-            file_name="filtered_nodes.csv",
-            mime="text/csv"
-        )
-        
-        st.sidebar.download_button(
-            label="Download Edges CSV",
-            data=edges_export.to_csv(index=False),
-            file_name="filtered_edges.csv",
-            mime="text/csv"
-        )
-
-    # -----------------------
-    # 6. Failure Analysis Dashboard
-    # -----------------------
-    st.header("🔍 Advanced Failure Mechanism Analysis")
-    
-    with st.expander("📖 Post-Processing Guide: How to Study Battery Failure Mechanisms"):
-        st.markdown("""
-        ## Post-Processing Techniques for Battery Failure Analysis
-        
-        ### 1. Centrality Analysis
-        - **Purpose**: Identify the most important failure mechanisms in your knowledge graph
-        - **How to use**: 
-          1. Select "Centrality Analysis" from the dropdown
-          2. Look for nodes with high degree, betweenness, or eigenvector centrality
-          3. Focus on terms like "cracking", "degradation", "fatigue", "failure"
-        
-        ### 2. Community Detection
-        - **Purpose**: Discover groups of related failure concepts
-        - **How to use**:
-          1. Select "Community Detection" from the dropdown
-          2. Examine each community for dominant failure types
-          3. Look for communities focused on specific failure modes
-        
-        ### 3. Ego Network Analysis
-        - **Purpose**: Study specific failure mechanisms in detail
-        - **How to use**:
-          1. Select "Ego Network Analysis" from the dropdown
-          2. Choose key failure terms like "electrode cracking" or "SEI formation"
-          3. Examine their immediate connections and network properties
-        
-        ### 4. Pathway Analysis
-        - **Purpose**: Find connections between different failure mechanisms
-        - **How to use**:
-          1. Select "Pathway Analysis" from the dropdown
-          2. Choose source and target failure mechanisms
-          3. Analyze the shortest paths between them
-        
-        ### 5. Temporal Analysis
-        - **Purpose**: Analyze how failure concepts evolve over time (if 'year' data is available)
-        - **How to use**:
-          1. Select "Temporal Analysis" from the dropdown
-          2. Examine trends in failure concepts
-        
-        ### 6. Correlation Analysis
-        - **Purpose**: Identify relationships between failure mechanisms
-        - **How to use**:
-          1. Select "Correlation Analysis" from the dropdown
-          2. Examine the heatmap for strong correlations
-          3. Focus on relationships between mechanical and chemical degradation
-        
-        ### Research Questions to Explore:
-        - How are different cracking mechanisms (electrode, SEI, particle) related?
-        - What connects mechanical degradation to capacity fade?
-        - Which failure mechanisms act as bridges between different degradation modes?
-        - How do failure communities correspond to different battery components?
-        """)
-    
-    # Analysis type selection
-    analysis_type = st.selectbox(
-        "Select Analysis Type",
-        [
-            "Centrality Analysis",
-            "Community Detection",
-            "Ego Network Analysis",
-            "Pathway Analysis",
-            "Temporal Analysis",
-            "Correlation Analysis"
-        ]
-    )
-    
-    if analysis_type == "Centrality Analysis":
-        st.subheader("Centrality of Failure-Related Terms")
-        failure_df = analyze_failure_centrality(G_filtered)
-        if not failure_df.empty:
-            fig = px.scatter(
-                failure_df, x='degree', y='betweenness',
-                color='category', size='eigenvector',
-                hover_data=['node', 'closeness'],
-                title="Centrality of Failure Mechanisms"
-            )
-            st.plotly_chart(fig)
-            
-            # Top failure mechanisms by centrality
-            st.subheader("Top Failure Mechanisms")
-            for centrality_measure in ['degree', 'betweenness', 'closeness', 'eigenvector']:
-                top_nodes = failure_df.nlargest(5, centrality_measure)
-                st.write(f"**By {centrality_measure.title()}:**")
-                for _, row in top_nodes.iterrows():
-                    st.write(f"- {row['node']} ({row[centrality_measure]:.3f})")
-    
-    elif analysis_type == "Community Detection":
-        st.subheader("Failure Mechanism Communities")
-        communities, partition = detect_failure_communities(G_filtered)
-        
-        for comm_id, data in communities.items():
-            with st.expander(f"Community {comm_id} ({len(data['nodes'])} nodes)"):
-                st.write("**Top Categories:**")
-                for category, count in data['categories'].most_common(3):
-                    st.write(f"- {category}: {count} nodes")
-                
-                st.write("**Failure Keywords:**")
-                for keyword, count in data['failure_keywords'].most_common():
-                    st.write(f"- {keyword}: {count} occurrences")
-                
-                st.write("**Representative Nodes:**")
-                st.write(", ".join(data['nodes'][:10]))
-    
-    elif analysis_type == "Ego Network Analysis":
-        st.subheader("Ego Network Analysis")
-        central_nodes = st.multiselect(
-            "Select central nodes for ego network analysis",
-            options=sorted(G_filtered.nodes()),
-            default=["electrode cracking", "SEI formation", "capacity fade"] if any(n in G_filtered.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else []
-        )
-        
-        if central_nodes:
-            ego_results = analyze_ego_networks(G_filtered, central_nodes)
-            for node, data in ego_results.items():
-                with st.expander(f"Ego Network: {node}"):
-                    st.write(f"**Network Size:** {data['node_count']} nodes, {data['edge_count']} edges")
-                    st.write(f"**Density:** {data['density']:.3f}")
-                    st.write(f"**Average Degree:** {data['average_degree']:.2f}")
-                    st.write("**Immediate Neighbors:**")
-                    st.write(", ".join(data['neighbors']))
-    
-    elif analysis_type == "Pathway Analysis":
-        st.subheader("Pathways Between Failure Mechanisms")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            source_terms = st.multiselect(
-                "Source mechanisms",
-                options=sorted(G_filtered.nodes()),
-                default=["electrode cracking", "micro-cracking"] if any(n in G_filtered.nodes() for n in ["electrode cracking", "micro-cracking"]) else []
-            )
-        with col2:
-            target_terms = st.multiselect(
-                "Target mechanisms",
-                options=sorted(G_filtered.nodes()),
-                default=["capacity fade", "SEI formation"] if any(n in G_filtered.nodes() for n in ["capacity fade", "SEI formation"]) else []
-            )
-        
-        if source_terms and target_terms:
-            pathways = find_failure_pathways(G_filtered, source_terms, target_terms)
-            for pathway_name, data in pathways.items():
-                if data['path']:
-                    st.write(f"**{pathway_name}** (Length: {data['length']})")
-                    st.write(" → ".join(data['nodes']))
-                else:
-                    st.write(f"**{pathway_name}**: No path found")
-    
-    elif analysis_type == "Temporal Analysis" and 'year' in nodes_df.columns:
-        st.subheader("Temporal Evolution of Failure Concepts")
-        temporal_data = analyze_temporal_patterns(nodes_df, edges_df)
-        
-        years = list(temporal_data.keys())
-        failure_counts = [data['failure_concepts'] for data in temporal_data.values()]
-        total_counts = [data['total_concepts'] for data in temporal_data.values()]
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=years, y=failure_counts, name='Failure Concepts',
-                                line=dict(width=4)))
-        fig.add_trace(go.Scatter(x=years, y=total_counts, name='All Concepts',
-                                line=dict(width=2, dash='dash')))
-        fig.update_layout(title="Evolution of Failure Concepts Over Time",
-                         xaxis_title="Year", yaxis_title="Number of Concepts")
-        st.plotly_chart(fig)
-        
-    elif analysis_type == "Correlation Analysis":
-        st.subheader("Correlation Between Failure Mechanisms")
-        corr_matrix, failure_terms = analyze_failure_correlations(G_filtered)
-        
-        fig = px.imshow(corr_matrix,
-                       x=failure_terms,
-                       y=failure_terms,
-                       title="Correlation Between Failure Mechanisms",
-                       color_continuous_scale='Reds')
-        fig.update_layout(xaxis_title="Failure Mechanism",
-                         yaxis_title="Failure Mechanism")
-        st.plotly_chart(fig)
-        
-        st.subheader("Strongest Correlations")
-        correlations = []
-        for i, term1 in enumerate(failure_terms):
-            for j, term2 in enumerate(failure_terms):
-                if i < j and corr_matrix[i, j] > 0:
-                    correlations.append((term1, term2, corr_matrix[i, j]))
-        
-        correlations.sort(key=lambda x: x[2], reverse=True)
-        
-        for term1, term2, strength in correlations[:10]:
-            st.write(f"**{term1}** ↔ **{term2}** (strength: {strength:.2f})")
-
-except Exception as e:
-    st.error(f"An error occurred: {str(e)}")
-    st.text("Detailed error information:")
-    st.text(traceback.format_exc())
