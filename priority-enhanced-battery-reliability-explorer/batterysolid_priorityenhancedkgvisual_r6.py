@@ -1,4 +1,3 @@
-```python
 import os
 import streamlit as st
 import pandas as pd
@@ -957,4 +956,4 @@ except Exception as e:
     st.error(f"An error occurred: {str(e)}")
     st.text("Detailed error information:")
     st.text(traceback.format_exc())
-```
+
