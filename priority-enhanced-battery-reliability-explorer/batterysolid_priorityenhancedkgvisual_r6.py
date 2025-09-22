@@ -135,7 +135,38 @@ def calculate_priority_scores(G, nodes_df):
     return priority_scores
 
 # -----------------------
-# 3. Failure Analysis Functions
+# 3. Semantic Similarity Grouping
+# -----------------------
+def find_similar_terms(node_terms, selected_nodes, similarity_threshold=0.8):
+    """
+    Find semantically similar terms using SciBERT embeddings.
+    """
+    if not selected_nodes:
+        return set()
+    
+    selected_embeddings = get_scibert_embedding(selected_nodes)
+    selected_embeddings_dict = dict(zip(selected_nodes, selected_embeddings))
+    
+    term_embeddings = get_scibert_embedding(node_terms)
+    term_embeddings_dict = dict(zip(node_terms, term_embeddings))
+    
+    similar_terms = set(selected_nodes)
+    for term in node_terms:
+        if term in similar_terms:
+            continue
+        term_emb = term_embeddings_dict.get(term)
+        if term_emb is not None:
+            for selected_emb in selected_embeddings_dict.values():
+                if selected_emb is not None:
+                    sim = cosine_similarity([term_emb], [selected_emb])[0][0]
+                    if sim > similarity_threshold:
+                        similar_terms.add(term)
+                        break
+    
+    return similar_terms
+
+# -----------------------
+# 4. Failure Analysis Functions
 # -----------------------
 def analyze_failure_centrality(G_filtered, focus_terms=None):
     """
@@ -313,7 +344,7 @@ def analyze_failure_correlations(G_filtered):
 def fig_to_base64(fig, format='png'):
     """Convert a matplotlib figure to a base64 string"""
     buf = BytesIO()
-    fig.savefig(buf, format=format, bbox_inches='tight', dpi=200)
+    fig.savefig(buf, format=format, bbox_inches='tight', dpi=300)
     buf.seek(0)
     img_str = base64.b64encode(buf.read()).decode()
     return img_str
@@ -436,35 +467,7 @@ try:
         node_types, 
         default=node_types
     )
-
-    # Priority score filter
-    min_priority_score = st.sidebar.slider(
-        "Min priority score", 
-        min_value=0.0, 
-        max_value=1.0, 
-        value=0.2, 
-        step=0.05
-    )
-
-    # User-based node selection and exclusion
-    st.sidebar.subheader("🔍 Node Inclusion/Exclusion")
-    selected_nodes = st.sidebar.multiselect(
-        "Include specific nodes (optional)", 
-        options=sorted(G.nodes()),
-        default=["electrode cracking", "SEI formation", "capacity fade"] if any(n in G.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else []
-    )
-    excluded_terms = st.sidebar.text_input(
-        "Exclude terms (comma-separated)", 
-        value="battery, material"
-    ).split(',')
-    excluded_terms = [t.strip().lower() for t in excluded_terms if t.strip()]
-
-    # Highlight high-priority nodes
-    st.sidebar.subheader("🎯 Priority Highlighting")
-    highlight_priority = st.sidebar.checkbox("Highlight high-priority nodes", value=True)
-    priority_threshold = st.sidebar.slider("Priority highlight threshold", 0.5, 1.0, 0.7, step=0.05)
-    suppress_low_priority = st.sidebar.checkbox("Suppress low-priority nodes", value=False)
-
+    
     # Label size controls for publication-quality figures
     st.sidebar.subheader("📝 Label Settings for Publications")
     show_labels = st.sidebar.checkbox("Show Node Labels", value=True)
@@ -474,33 +477,18 @@ try:
     # Edge width control
     edge_width_factor = st.sidebar.slider("Edge Width Factor", 0.1, 2.0, 0.5)
 
-    # Filter the graph with user-based nodes and exclusions
-    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
+    # Filter the graph
+    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types):
         G_filtered = nx.Graph()
         
-        # Determine nodes to include
-        valid_nodes = set()
-        if selected_nodes:
-            for node in selected_nodes:
-                if node in G.nodes() and G.nodes[node].get('priority_score', 0) >= min_priority_score:
-                    valid_nodes.add(node)
-                    valid_nodes.update(G.neighbors(node))
-        else:
-            for n, d in G.nodes(data=True):
-                if (d.get("frequency", 0) >= min_freq and 
-                    d.get("category", "") in selected_categories and
-                    d.get("type", "") in selected_types and
-                    (not suppress_low_priority or d.get("priority_score", 0) >= min_priority_score)):
-                    valid_nodes.add(n)
+        # Add nodes that meet criteria
+        for n, d in G.nodes(data=True):
+            if (d.get("frequency", 0) >= min_freq and 
+                d.get("category", "") in selected_categories and
+                d.get("type", "") in selected_types):
+                G_filtered.add_node(n, **d)
         
-        # Remove excluded terms
-        valid_nodes = {n for n in valid_nodes if not any(ex in n.lower() for ex in excluded_terms)}
-        
-        # Add nodes
-        for n in valid_nodes:
-            G_filtered.add_node(n, **G.nodes[n])
-        
-        # Add edges
+        # Add edges that meet criteria
         for u, v, d in G.edges(data=True):
             if (u in G_filtered.nodes and v in G_filtered.nodes and 
                 d.get("weight", 0) >= min_weight):
@@ -508,21 +496,26 @@ try:
         
         return G_filtered
 
-    G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority)
+    G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types)
 
     # Show graph stats
     st.sidebar.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
 
-    # Community Detection
+    # Community Detection (Louvain for weighted graphs)
     if G_filtered.number_of_nodes() > 0 and G_filtered.number_of_edges() > 0:
+        # Create a weighted graph for community detection
         G_weighted = nx.Graph()
         for n, d in G_filtered.nodes(data=True):
             G_weighted.add_node(n, **d)
         for u, v, d in G_filtered.edges(data=True):
             G_weighted.add_edge(u, v, weight=d.get("weight", 1))
         
+        # Detect communities using Louvain method (works better with weights)
         partition = community_louvain.best_partition(G_weighted, weight='weight')
+        
+        # Map nodes to communities
         comm_map = partition
+        # Generate distinct colors for communities
         n_communities = len(set(partition.values()))
         colors = px.colors.qualitative.Set3[:n_communities]
         node_colors = [colors[comm_map[node] % len(colors)] for node in G_filtered.nodes()]
@@ -531,18 +524,20 @@ try:
 
     # Node Positions & Visualization
     if G_filtered.number_of_nodes() > 0:
+        # Use spring layout with weights
         pos = nx.spring_layout(G_filtered, k=1, iterations=100, seed=42, weight='weight')
         
-        # Node sizes based on priority score
-        priority_scores = [G_filtered.nodes[node].get('priority_score', 0) for node in G_filtered.nodes()]
-        min_size, max_size = 15, 60
-        if max(priority_scores) > min(priority_scores):
+        # Prepare node sizes based on priority score
+        frequencies = [G_filtered.nodes[node].get('priority_score', 1) for node in G_filtered.nodes()]
+        min_size, max_size = 15, 60  # Increased sizes for better visibility
+        if max(frequencies) > min(frequencies):
             node_sizes = [min_size + (max_size - min_size) * 
-                         (score - min(priority_scores)) / (max(priority_scores) - min(priority_scores)) 
-                         for score in priority_scores]
+                         (freq - min(frequencies)) / (max(frequencies) - min(frequencies)) 
+                         for freq in frequencies]
         else:
-            node_sizes = [30] * len(priority_scores)
+            node_sizes = [30] * len(frequencies)
         
+        # Create edge traces
         edge_x = []
         edge_y = []
         edge_weights = []
@@ -553,6 +548,7 @@ try:
             edge_y.extend([y0, y1, None])
             edge_weights.append(G_filtered.edges[edge].get("weight", 1))
         
+        # Normalize edge weights for visualization
         if edge_weights:
             max_weight = max(edge_weights)
             min_weight = min(edge_weights)
@@ -569,11 +565,11 @@ try:
             hoverinfo='none',
             mode='lines')
         
+        # Create node traces
         node_x = []
         node_y = []
         node_text = []
         node_labels = []
-        node_symbols = []  # For highlighting
         for node in G_filtered.nodes():
             x, y = pos[node]
             node_x.append(x)
@@ -584,19 +580,15 @@ try:
                 f"Category: {node_data.get('category', 'N/A')}<br>"
                 f"Type: {node_data.get('type', 'N/A')}<br>"
                 f"Frequency: {node_data.get('frequency', 'N/A')}<br>"
-                f"Unit: {node_data.get('unit', 'N/A')}<br>"
-                f"Priority Score: {node_data.get('priority_score', 0):.3f}"
+                f"Unit: {node_data.get('unit', 'N/A')}"
             )
+            # Truncate labels for better visibility
             if len(node) > label_max_chars:
                 node_labels.append(node[:label_max_chars] + "...")
             else:
                 node_labels.append(node)
-            # Highlight high-priority nodes with different symbol
-            if highlight_priority and node_data.get('priority_score', 0) > priority_threshold:
-                node_symbols.append('star')
-            else:
-                node_symbols.append('circle')
         
+        # Create node trace with optional labels
         if show_labels:
             node_trace = go.Scatter(
                 x=node_x, y=node_y,
@@ -610,7 +602,6 @@ try:
                     showscale=False,
                     color=node_colors,
                     size=node_sizes,
-                    symbol=node_symbols,  # Highlight with different symbols
                     line_width=2))
         else:
             node_trace = go.Scatter(
@@ -622,16 +613,18 @@ try:
                     showscale=False,
                     color=node_colors,
                     size=node_sizes,
-                    symbol=node_symbols,  # Highlight with different symbols
                     line_width=2))
         
+        # Create the figure with basic layout
         fig = go.Figure(data=[edge_trace, node_trace])
+
+        # Update layout with proper parameter names
         fig.update_layout(
             title='Battery Research Knowledge Graph',
-            title_font_size=20,
+            title_font_size=20,  # Increased title size
             showlegend=False,
             hovermode='closest',
-            margin=dict(b=20, l=5, r=5, t=60),
+            margin=dict(b=20, l=5, r=5, t=60),  # Increased top margin for larger title
             annotations=[dict(
                 text="Interactive graph. Hover for details, click on nodes to explore connections.",
                 showarrow=False,
@@ -639,7 +632,7 @@ try:
                 yref="paper",
                 x=0.005,
                 y=-0.002,
-                font=dict(size=10)
+                font=dict(size=10)  # Smaller font for annotation
             )],
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
@@ -647,16 +640,21 @@ try:
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Export static visualization
+        # Add download button for static image (using matplotlib instead of kaleido)
         st.sidebar.subheader("📤 Export for Publication")
         if st.sidebar.button("Generate Static Visualization"):
             static_fig = create_static_visualization(G_filtered, pos, node_colors, node_sizes)
+            
+            # Convert to base64 for download
             img_str = fig_to_base64(static_fig)
             href = f'<a href="data:image/png;base64,{img_str}" download="knowledge_graph.png">Download PNG</a>'
             st.sidebar.markdown(href, unsafe_allow_html=True)
+            
+            # Also provide SVG option
             img_str_svg = fig_to_base64(static_fig, format='svg')
             href_svg = f'<a href="data:image/svg+xml;base64,{img_str_svg}" download="knowledge_graph.svg">Download SVG</a>'
             st.sidebar.markdown(href_svg, unsafe_allow_html=True)
+            
             st.sidebar.success("Static visualization generated. Click the links above to download.")
             
     else:
@@ -664,10 +662,12 @@ try:
 
     # Hub Nodes and Analysis
     if G_filtered.number_of_nodes() > 0:
+        # Calculate centrality measures
         degree_centrality = nx.degree_centrality(G_filtered)
         betweenness_centrality = nx.betweenness_centrality(G_filtered)
         closeness_centrality = nx.closeness_centrality(G_filtered)
         
+        # Create a DataFrame with centrality measures
         centrality_df = pd.DataFrame({
             'node': list(degree_centrality.keys()),
             'degree': list(degree_centrality.values()),
@@ -675,15 +675,18 @@ try:
             'closeness': list(closeness_centrality.values())
         })
         
+        # Add node attributes
         centrality_df['category'] = centrality_df['node'].apply(lambda x: G_filtered.nodes[x].get('category', 'N/A'))
         centrality_df['type'] = centrality_df['node'].apply(lambda x: G_filtered.nodes[x].get('type', 'N/A'))
         centrality_df['frequency'] = centrality_df['node'].apply(lambda x: G_filtered.nodes[x].get('frequency', 0))
         
+        # Display top hub nodes
         st.sidebar.subheader("🔑 Top Hub Nodes")
         top_hubs = centrality_df.nlargest(10, 'degree')[['node', 'degree']]
         for _, row in top_hubs.iterrows():
             st.sidebar.write(f"**{row['node']}** ({row['degree']:.3f})")
         
+        # Node Details Panel
         st.sidebar.subheader("🔍 Explore Node Details")
         selected_node = st.sidebar.selectbox("Choose a node", sorted(G_filtered.nodes()))
         
@@ -695,13 +698,16 @@ try:
             st.sidebar.write(f"**Frequency:** {node_data.get('frequency', 'N/A')}")
             st.sidebar.write(f"**Unit:** {node_data.get('unit', 'N/A')}")
             st.sidebar.write(f"**Similarity Score:** {node_data.get('similarity_score', 'N/A')}")
+            st.sidebar.write(f"**Priority Score:** {node_data.get('priority_score', 0):.3f}")
             
+            # Centrality measures
             node_centrality = centrality_df[centrality_df['node'] == selected_node]
             if not node_centrality.empty:
                 st.sidebar.write(f"**Degree Centrality:** {node_centrality['degree'].values[0]:.3f}")
                 st.sidebar.write(f"**Betweenness Centrality:** {node_centrality['betweenness'].values[0]:.3f}")
                 st.sidebar.write(f"**Closeness Centrality:** {node_centrality['closeness'].values[0]:.3f}")
             
+            # Neighbors
             neighbors = list(G_filtered.neighbors(selected_node))
             if neighbors:
                 st.sidebar.write("**Connected Terms:**")
@@ -724,11 +730,13 @@ try:
             st.plotly_chart(fig_cat, use_container_width=True)
         
         with col2:
+            # Top nodes by priority score
             top_nodes = nodes_df.nlargest(10, 'priority_score')[['node', 'priority_score']]
             fig_nodes = px.bar(top_nodes, x='priority_score', y='node', orientation='h',
                               title="Top Nodes by Priority Score")
             st.plotly_chart(fig_nodes, use_container_width=True)
         
+        # Edge type distribution
         edge_type_counts = edges_df['type'].value_counts()
         fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values,
                          title="Edge Type Distribution",
@@ -754,6 +762,8 @@ try:
                     st.write("**Top categories:**")
                     for cat, count in category_counter.most_common(3):
                         st.write(f"- {cat}: {count} nodes")
+                    avg_priority = sum(G_filtered.nodes[node].get('priority_score', 0) for node in nodes) / len(nodes)
+                    st.write(f"**Average Priority Score:** {avg_priority:.3f}")
 
     # Data Export
     st.sidebar.subheader("💾 Export Data")
@@ -766,7 +776,8 @@ try:
                 'category': data.get('category', ''),
                 'frequency': data.get('frequency', 0),
                 'unit': data.get('unit', ''),
-                'similarity_score': data.get('similarity_score', 0)
+                'similarity_score': data.get('similarity_score', 0),
+                'priority_score': data.get('priority_score', 0)
             })
         
         filtered_edges = []
