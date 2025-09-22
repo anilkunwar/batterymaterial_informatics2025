@@ -10,6 +10,9 @@ from collections import Counter
 import numpy as np
 import traceback
 from itertools import combinations
+import base64
+from io import BytesIO
+import matplotlib.pyplot as plt
 
 # -----------------------
 # 1. Data Loading with Caching
@@ -214,7 +217,41 @@ def analyze_failure_correlations(G_filtered):
     return corr_matrix, failure_terms
 
 # -----------------------
-# 3. Main Application
+# 3. Helper Functions for Export
+# -----------------------
+def fig_to_base64(fig, format='png'):
+    """Convert a matplotlib figure to a base64 string"""
+    buf = BytesIO()
+    fig.savefig(buf, format=format, bbox_inches='tight', dpi=300)
+    buf.seek(0)
+    img_str = base64.b64encode(buf.read()).decode()
+    return img_str
+
+def create_static_visualization(G_filtered, pos, node_colors, node_sizes):
+    """Create a static matplotlib visualization for export"""
+    plt.figure(figsize=(16, 12))
+    
+    # Draw edges
+    nx.draw_networkx_edges(G_filtered, pos, alpha=0.3, width=1)
+    
+    # Draw nodes
+    nx.draw_networkx_nodes(G_filtered, pos, 
+                          node_color=node_colors, 
+                          node_size=node_sizes,
+                          alpha=0.8)
+    
+    # Draw labels
+    nx.draw_networkx_labels(G_filtered, pos, 
+                           font_size=8, 
+                           font_family='sans-serif')
+    
+    plt.title("Battery Research Knowledge Graph", fontsize=16)
+    plt.axis('off')
+    
+    return plt
+
+# -----------------------
+# 4. Main Application
 # -----------------------
 try:
     # Load data
@@ -476,22 +513,22 @@ try:
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Add download button for high-resolution image
+        # Add download button for static image (using matplotlib instead of kaleido)
         st.sidebar.subheader("📤 Export for Publication")
-        if st.sidebar.button("Download High-Res Image"):
-            # Create a higher resolution version
-            fig.update_layout(
-                width=1200,
-                height=800,
-                title_font_size=24,
-            )
+        if st.sidebar.button("Generate Static Visualization"):
+            static_fig = create_static_visualization(G_filtered, pos, node_colors, node_sizes)
             
-            # Increase all font sizes for publication
-            if show_labels:
-                fig.update_traces(textfont=dict(size=label_font_size+4))
-                
-            fig.write_image("knowledge_graph.png", scale=2)
-            st.sidebar.success("High-resolution image saved as 'knowledge_graph.png'")
+            # Convert to base64 for download
+            img_str = fig_to_base64(static_fig)
+            href = f'<a href="data:image/png;base64,{img_str}" download="knowledge_graph.png">Download PNG</a>'
+            st.sidebar.markdown(href, unsafe_allow_html=True)
+            
+            # Also provide SVG option
+            img_str_svg = fig_to_base64(static_fig, format='svg')
+            href_svg = f'<a href="data:image/svg+xml;base64,{img_str_svg}" download="knowledge_graph.svg">Download SVG</a>'
+            st.sidebar.markdown(href_svg, unsafe_allow_html=True)
+            
+            st.sidebar.success("Static visualization generated. Click the links above to download.")
             
     else:
         st.warning("No nodes match the current filter criteria. Try adjusting the filters.")
@@ -657,6 +694,53 @@ try:
     # 4. Failure Analysis Dashboard
     # -----------------------
     st.header("🔍 Advanced Failure Mechanism Analysis")
+    
+    # Post-processing guide
+    with st.expander("📖 Post-Processing Guide: How to Study Battery Failure Mechanisms"):
+        st.markdown("""
+        ## Post-Processing Techniques for Battery Failure Analysis
+        
+        ### 1. Centrality Analysis
+        - **Purpose**: Identify the most important failure mechanisms in your knowledge graph
+        - **How to use**: 
+          1. Select "Centrality Analysis" from the dropdown
+          2. Look for nodes with high degree, betweenness, or eigenvector centrality
+          3. Focus on terms like "cracking", "degradation", "fatigue", "failure"
+        
+        ### 2. Community Detection
+        - **Purpose**: Discover groups of related failure concepts
+        - **How to use**:
+          1. Select "Community Detection" from the dropdown
+          2. Examine each community for dominant failure types
+          3. Look for communities focused on specific failure modes
+        
+        ### 3. Ego Network Analysis
+        - **Purpose**: Study specific failure mechanisms in detail
+        - **How to use**:
+          1. Select "Ego Network Analysis" from the dropdown
+          2. Choose key failure terms like "electrode cracking" or "SEI formation"
+          3. Examine their immediate connections and network properties
+        
+        ### 4. Pathway Analysis
+        - **Purpose**: Find connections between different failure mechanisms
+        - **How to use**:
+          1. Select "Pathway Analysis" from the dropdown
+          2. Choose source and target failure mechanisms
+          3. Analyze the shortest paths between them
+        
+        ### 5. Correlation Analysis
+        - **Purpose**: Identify relationships between failure mechanisms
+        - **How to use**:
+          1. Select "Correlation Analysis" from the dropdown
+          2. Examine the heatmap for strong correlations
+          3. Focus on relationships between mechanical and chemical degradation
+        
+        ### Research Questions to Explore:
+        - How are different cracking mechanisms (electrode, SEI, particle) related?
+        - What connects mechanical degradation to capacity fade?
+        - Which failure mechanisms act as bridges between different degradation modes?
+        - How do failure communities correspond to different battery components?
+        """)
     
     # Analysis type selection
     analysis_type = st.selectbox(
