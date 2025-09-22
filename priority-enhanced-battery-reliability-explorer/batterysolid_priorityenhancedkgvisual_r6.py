@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 from transformers import AutoModel, AutoTokenizer
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
-import uuid
 
 # -----------------------
 # 1. Setup and Data Loading with Caching
@@ -24,16 +23,16 @@ DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() e
 
 # Predefined key terms for battery reliability
 KEY_TERMS = [
-    "electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress",
+    "electrode cracking", "sei formation", "cyclic mechanical damage", "diffusion-induced stress",
     "micro-cracking", "electrolyte degradation", "capacity fade", "lithium plating", "thermal runaway",
     "mechanical degradation", "cycle life", "lithium", "electrode", "crack", "fracture", "battery",
     "particles", "cathode", "mechanical", "cycles", "electrolyte", "degradation", "surface", "capacity",
     "cycling", "stress", "diffusion", "solid electrolyte interphase", "impendence", "degrades the battery capacity",
     "cycling degradation", "calendar degradation", "complex cycling damage", "chemo-mechanical degradation mechanisms",
-    "microcrack formation", "active particles", "differential degradation mechanisms", "SOL swing", "lithiation",
-    "electrochemical performance", "mechanical integrity", "battery safety", "Coupled mechanical-chemical degradation",
-    "physics-based models", "predict degradation mechanisms", "Electrode Side Reactions", "Capacity Loss",
-    "Mechanical Degradation", "Particle Versus SEI Cracking", "degradation models", "predict degradation"
+    "microcrack formation", "active particles", "differential degradation mechanisms", "sol swing", "lithiation",
+    "electrochemical performance", "mechanical integrity", "battery safety", "coupled mechanical-chemical degradation",
+    "physics-based models", "predict degradation mechanisms", "electrode side reactions", "capacity loss",
+    "mechanical degradation", "particle versus sei cracking", "degradation models", "predict degradation"
 ]
 
 # Load SciBERT model for semantic similarity
@@ -88,10 +87,21 @@ def load_data():
     edges_df = pd.read_csv(edges_path)
     nodes_df = pd.read_csv(nodes_path)
     
-    # Validate key terms
-    missing_terms = [t for t in KEY_TERMS if t not in nodes_df['node'].values]
+    # Ensure all KEY_TERMS are in nodes_df
+    existing_nodes = set(nodes_df['node'].str.lower())
+    missing_terms = [t for t in KEY_TERMS if t not in existing_nodes]
     if missing_terms:
-        st.warning(f"Warning: {len(missing_terms)} key terms not found in nodes data: {', '.join(missing_terms[:5])}{', ...' if len(missing_terms) > 5 else ''}")
+        st.warning(f"Adding {len(missing_terms)} missing key terms to nodes data: {', '.join(missing_terms[:5])}{', ...' if len(missing_terms) > 5 else ''}")
+        new_nodes = []
+        for term in missing_terms:
+            new_nodes.append({
+                'node': term,
+                'type': 'Unknown',
+                'category': 'Failure Mechanism',
+                'frequency': 1,
+                'unit': 'None'
+            })
+        nodes_df = pd.concat([nodes_df, pd.DataFrame(new_nodes)], ignore_index=True)
     
     return edges_df, nodes_df
 
@@ -99,23 +109,23 @@ def load_data():
 # 2. Priority Score Calculation
 # -----------------------
 @st.cache_data
-def calculate_priority_scores(G, nodes_df):
+def calculate_priority_scores(_G, nodes_df):  # Added leading underscore to _G
     max_freq = nodes_df['frequency'].max() if nodes_df['frequency'].max() > 0 else 1
     nodes_df['norm_frequency'] = nodes_df['frequency'] / max_freq
     
-    degree_centrality = nx.degree_centrality(G)
-    betweenness_centrality = nx.betweenness_centrality(G)
+    degree_centrality = nx.degree_centrality(_G)
+    betweenness_centrality = nx.betweenness_centrality(_G)
     try:
-        eigenvector_centrality = nx.eigenvector_centrality(G, max_iter=1000)
+        eigenvector_centrality = nx.eigenvector_centrality(_G, max_iter=1000)
     except:
-        eigenvector_centrality = {node: 0 for node in G.nodes()}
+        eigenvector_centrality = {node: 0 for node in _G.nodes()}
     
     node_terms = nodes_df['node'].tolist()
     term_embeddings = get_scibert_embedding(node_terms)
     term_embeddings_dict = dict(zip(node_terms, term_embeddings))
     
     semantic_scores = {}
-    for node in G.nodes():
+    for node in _G.nodes():
         emb = term_embeddings_dict.get(node)
         if emb is None:
             semantic_scores[node] = 0
@@ -124,7 +134,7 @@ def calculate_priority_scores(G, nodes_df):
             semantic_scores[node] = max(similarities, default=0)
     
     priority_scores = {}
-    for node in G.nodes():
+    for node in _G.nodes():
         priority_scores[node] = (
             0.4 * nodes_df[nodes_df['node'] == node]['norm_frequency'].iloc[0] +
             0.3 * degree_centrality.get(node, 0) +
@@ -190,20 +200,20 @@ def find_similar_terms(node_terms, selected_nodes, similarity_threshold=0.6):
 # 4. Failure Analysis Functions
 # -----------------------
 @st.cache_data
-def analyze_failure_centrality(G_filtered, focus_terms=None):
+def analyze_failure_centrality(_G_filtered, focus_terms=None):  # Added underscore
     if focus_terms is None:
-        focus_terms = ["crack", "fracture", "degradation", "fatigue", "damage", "failure", "mechanical", "cycling", "capacity fade", "SEI"]
+        focus_terms = ["crack", "fracture", "degradation", "fatigue", "damage", "failure", "mechanical", "cycling", "capacity fade", "sei"]
     
-    degree_centrality = nx.degree_centrality(G_filtered)
-    betweenness_centrality = nx.betweenness_centrality(G_filtered)
-    closeness_centrality = nx.closeness_centrality(G_filtered)
+    degree_centrality = nx.degree_centrality(_G_filtered)
+    betweenness_centrality = nx.betweenness_centrality(_G_filtered)
+    closeness_centrality = nx.closeness_centrality(_G_filtered)
     try:
-        eigenvector_centrality = nx.eigenvector_centrality(G_filtered, max_iter=1000)
+        eigenvector_centrality = nx.eigenvector_centrality(_G_filtered, max_iter=1000)
     except:
-        eigenvector_centrality = {node: 0 for node in G_filtered.nodes()}
+        eigenvector_centrality = {node: 0 for node in _G_filtered.nodes()}
     
     centrality_results = []
-    for node in G_filtered.nodes():
+    for node in _G_filtered.nodes():
         if any(term in node.lower() for term in focus_terms):
             centrality_results.append({
                 'node': node,
@@ -211,18 +221,18 @@ def analyze_failure_centrality(G_filtered, focus_terms=None):
                 'betweenness': betweenness_centrality.get(node, 0),
                 'closeness': closeness_centrality.get(node, 0),
                 'eigenvector': eigenvector_centrality.get(node, 0),
-                'category': G_filtered.nodes[node].get('category', ''),
-                'type': G_filtered.nodes[node].get('type', '')
+                'category': _G_filtered.nodes[node].get('category', ''),
+                'type': _G_filtered.nodes[node].get('type', '')
             })
     
     return pd.DataFrame(centrality_results)
 
 @st.cache_data
-def detect_failure_communities(G_filtered, resolution=1.2):
+def detect_failure_communities(_G_filtered, resolution=1.2):  # Added underscore
     try:
-        partition = community_louvain.best_partition(G_filtered, weight='weight', resolution=resolution)
+        partition = community_louvain.best_partition(_G_filtered, weight='weight', resolution=resolution)
     except:
-        partition = {node: 0 for node in G_filtered.nodes()}
+        partition = {node: 0 for node in _G_filtered.nodes()}
     
     community_analysis = {}
     for node, community_id in partition.items():
@@ -234,7 +244,7 @@ def detect_failure_communities(G_filtered, resolution=1.2):
             }
         
         community_analysis[community_id]['nodes'].append(node)
-        category = G_filtered.nodes[node].get('category', '')
+        category = _G_filtered.nodes[node].get('category', '')
         if category:
             community_analysis[community_id]['categories'][category] += 1
         
@@ -246,15 +256,15 @@ def detect_failure_communities(G_filtered, resolution=1.2):
     return community_analysis, partition
 
 @st.cache_data
-def analyze_ego_networks(G_filtered, central_nodes=None):
+def analyze_ego_networks(_G_filtered, central_nodes=None):  # Added underscore
     if central_nodes is None:
-        central_nodes = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress", "capacity fade", "lithium plating"]
+        central_nodes = ["electrode cracking", "sei formation", "cyclic mechanical damage", "diffusion-induced stress", "capacity fade", "lithium plating"]
     
     ego_results = {}
     for central_node in central_nodes:
-        if central_node in G_filtered.nodes():
+        if central_node in _G_filtered.nodes():
             try:
-                ego_net = nx.ego_graph(G_filtered, central_node, radius=2)
+                ego_net = nx.ego_graph(_G_filtered, central_node, radius=2)
                 ego_results[central_node] = {
                     'node_count': ego_net.number_of_nodes(),
                     'edge_count': ego_net.number_of_edges(),
@@ -278,14 +288,14 @@ def analyze_ego_networks(G_filtered, central_nodes=None):
     return ego_results
 
 @st.cache_data
-def find_failure_pathways(G_filtered, source_terms, target_terms):
+def find_failure_pathways(_G_filtered, source_terms, target_terms):  # Added underscore
     pathways = {}
     for source in source_terms:
         for target in target_terms:
-            if source in G_filtered.nodes() and target in G_filtered.nodes():
+            if source in _G_filtered.nodes() and target in _G_filtered.nodes():
                 try:
-                    path = nx.shortest_path(G_filtered, source=source, target=target, weight='weight')
-                    weight = sum(G_filtered[u][v].get('weight', 1) for u, v in zip(path[:-1], path[1:]))
+                    path = nx.shortest_path(_G_filtered, source=source, target=target, weight='weight')
+                    weight = sum(_G_filtered[u][v].get('weight', 1) for u, v in zip(path[:-1], path[1:]))
                     pathways[f"{source} -> {target}"] = {
                         'path': path,
                         'length': len(path) - 1,
@@ -319,25 +329,25 @@ def analyze_temporal_patterns(nodes_df, edges_df, time_column='year'):
         return {"error": "Time column not found in data"}
 
 @st.cache_data
-def analyze_failure_correlations(G_filtered):
-    failure_terms = [n for n in G_filtered.nodes() if any(kw in n.lower() for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure'])]
+def analyze_failure_correlations(_G_filtered):  # Added underscore
+    failure_terms = [n for n in _G_filtered.nodes() if any(kw in n.lower() for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure'])]
     corr_matrix = np.zeros((len(failure_terms), len(failure_terms)))
     for i, term1 in enumerate(failure_terms):
         for j, term2 in enumerate(failure_terms):
-            if G_filtered.has_edge(term1, term2):
-                corr_matrix[i, j] = G_filtered[term1][term2].get('weight', 0)
+            if _G_filtered.has_edge(term1, term2):
+                corr_matrix[i, j] = _G_filtered[term1][term2].get('weight', 0)
             else:
                 corr_matrix[i, j] = 0
     return corr_matrix, failure_terms
 
 @st.cache_data
-def analyze_clusters(G_filtered):
-    clusters = list(nx.algorithms.community.girvan_newman(G_filtered))
+def analyze_clusters(_G_filtered):  # Added underscore
+    clusters = list(nx.algorithms.community.girvan_newman(_G_filtered))
     cluster_summary = {}
     for i, cluster in enumerate(clusters[0]):  # Use the first level of clustering
         cluster_summary[i] = {
             'nodes': list(cluster),
-            'categories': Counter([G_filtered.nodes[n].get('category', '') for n in cluster]),
+            'categories': Counter([_G_filtered.nodes[n].get('category', '') for n in cluster]),
             'failure_keywords': Counter([kw for n in cluster for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure'] if kw in n.lower()])
         }
     return cluster_summary
@@ -352,15 +362,15 @@ def fig_to_base64(fig, format='png', dpi=300):
     img_str = base64.b64encode(buf.read()).decode()
     return img_str
 
-def create_static_visualization(G_filtered, pos, node_colors, node_sizes, font_size=8):
+def create_static_visualization(_G_filtered, pos, node_colors, node_sizes, font_size=8):  # Added underscore
     plt.figure(figsize=(16, 12))
-    edge_weights = [G_filtered[u][v].get('weight', 1) for u, v in G_filtered.edges()]
+    edge_weights = [_G_filtered[u][v].get('weight', 1) for u, v in _G_filtered.edges()]
     max_weight = max(edge_weights, default=1)
     edge_widths = [0.5 + 2.5 * (w / max_weight) for w in edge_weights]
     
-    nx.draw_networkx_edges(G_filtered, pos, alpha=0.3, width=edge_widths)
-    nx.draw_networkx_nodes(G_filtered, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8)
-    nx.draw_networkx_labels(G_filtered, pos, font_size=font_size, font_family='sans-serif')
+    nx.draw_networkx_edges(_G_filtered, pos, alpha=0.3, width=edge_widths)
+    nx.draw_networkx_nodes(_G_filtered, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8)
+    nx.draw_networkx_labels(_G_filtered, pos, font_size=font_size, font_family='sans-serif')
     
     plt.title("Battery Research Knowledge Graph", fontsize=16)
     plt.axis('off')
@@ -385,6 +395,9 @@ try:
             "lithium ions": "lithium ion",
             "lithium ion(s)": "lithium ion",
             "fatigue": "fatigue",
+            "cracking": "crack",
+            "microcracking": "micro-cracking",
+            "sei": "sei formation"
         }
         return replacements.get(term, term)
 
@@ -455,29 +468,29 @@ try:
         show_edge_labels = st.checkbox("Show Edge Labels (High-Weight)", value=False, help="Display labels for edges with high weights")
 
     # Filter the graph
-    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority, related_terms, semantic_similarity_threshold):
+    def filter_graph(_G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority, related_terms, semantic_similarity_threshold):
         G_filtered = nx.Graph()
         valid_nodes = set()
         
         # Find semantically similar terms
-        similar_terms, similarity_scores = find_similar_terms(list(G.nodes()), selected_nodes + related_terms, semantic_similarity_threshold)
+        similar_terms, similarity_scores = find_similar_terms(list(_G.nodes()), selected_nodes + related_terms, semantic_similarity_threshold)
         
         # Check for missing nodes
         all_selected = selected_nodes + related_terms
-        missing_nodes = [n for n in all_selected if n not in G.nodes()]
+        missing_nodes = [n for n in all_selected if n not in _G.nodes()]
         if missing_nodes:
             st.sidebar.warning(f"Warning: The following selected nodes are not in the graph: {', '.join(missing_nodes)}")
-            st.sidebar.info(f"Suggestions: Try terms like {', '.join([t for t in KEY_TERMS if t in G.nodes()][:5])}")
+            st.sidebar.info(f"Suggestions: Try terms like {', '.join([t for t in KEY_TERMS if t in _G.nodes()][:5])}")
         
         # Include selected nodes, related terms, and their neighbors
         if all_selected:
             for node in all_selected:
-                if node in G.nodes():
+                if node in _G.nodes():
                     valid_nodes.add(node)
-                    valid_nodes.update(G.neighbors(node))
+                    valid_nodes.update(_G.neighbors(node))
             valid_nodes.update(similar_terms)
         else:
-            for n, d in G.nodes(data=True):
+            for n, d in _G.nodes(data=True):
                 if (d.get("frequency", 0) >= min_freq and 
                     d.get("category", "") in selected_categories and
                     d.get("type", "") in selected_types and
@@ -486,8 +499,8 @@ try:
         
         valid_nodes = {n for n in valid_nodes if not any(ex in n.lower() for ex in excluded_terms)}
         for n in valid_nodes:
-            G_filtered.add_node(n, **G.nodes[n])
-        for u, v, d in G.edges(data=True):
+            G_filtered.add_node(n, **_G.nodes[n])
+        for u, v, d in _G.edges(data=True):
             if u in G_filtered.nodes and v in G_filtered.nodes and d.get("weight", 0) >= min_weight:
                 G_filtered.add_edge(u, v, **d)
         
@@ -736,13 +749,13 @@ try:
         ## Post-Processing Techniques for Battery Failure Analysis
         ### 1. Centrality Analysis
         - **Purpose**: Identify the most important failure mechanisms in your knowledge graph
-        - **How to use**: Select "Centrality Analysis" to identify nodes with high degree, betweenness, or eigenvector centrality. Focus on terms like "cracking", "degradation", "fatigue", "failure".
+        - **How to use**: Select "Centrality Analysis" to identify nodes with high degree, betweenness, or eigenvector centrality. Focus on terms like "crack", "fracture", "degradation".
         ### 2. Community Detection
         - **Purpose**: Discover groups of related failure concepts
         - **How to use**: Select "Community Detection" to examine communities for dominant failure types.
         ### 3. Ego Network Analysis
         - **Purpose**: Study specific failure mechanisms in detail
-        - **How to use**: Select "Ego Network Analysis" and choose key failure terms like "electrode cracking" or "SEI formation".
+        - **How to use**: Select "Ego Network Analysis" and choose key failure terms like "electrode cracking" or "sei formation".
         ### 4. Pathway Analysis
         - **Purpose**: Find connections between different failure mechanisms
         - **How to use**: Select "Pathway Analysis" to analyze shortest paths between source and target mechanisms.
@@ -796,7 +809,7 @@ try:
 
     elif analysis_type == "Ego Network Analysis":
         st.subheader("Ego Network Analysis")
-        central_nodes = st.multiselect("Select central nodes for ego network analysis", options=sorted(G_filtered.nodes()), default=["electrode cracking", "SEI formation", "capacity fade"] if any(n in G_filtered.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else [])
+        central_nodes = st.multiselect("Select central nodes for ego network analysis", options=sorted(G_filtered.nodes()), default=["electrode cracking", "sei formation", "capacity fade"] if any(n in G_filtered.nodes() for n in ["electrode cracking", "sei formation", "capacity fade"]) else [])
         if central_nodes:
             ego_results = analyze_ego_networks(G_filtered, central_nodes)
             for node, data in ego_results.items():
@@ -813,7 +826,7 @@ try:
         with col1:
             source_terms = st.multiselect("Source mechanisms", options=sorted(G_filtered.nodes()), default=["electrode cracking", "micro-cracking"] if any(n in G_filtered.nodes() for n in ["electrode cracking", "micro-cracking"]) else [])
         with col2:
-            target_terms = st.multiselect("Target mechanisms", options=sorted(G_filtered.nodes()), default=["capacity fade", "SEI formation"] if any(n in G_filtered.nodes() for n in ["capacity fade", "SEI formation"]) else [])
+            target_terms = st.multiselect("Target mechanisms", options=sorted(G_filtered.nodes()), default=["capacity fade", "sei formation"] if any(n in G_filtered.nodes() for n in ["capacity fade", "sei formation"]) else [])
         if source_terms and target_terms:
             pathways = find_failure_pathways(G_filtered, source_terms, target_terms)
             for pathway_name, data in pathways.items():
