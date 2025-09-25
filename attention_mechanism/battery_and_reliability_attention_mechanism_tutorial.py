@@ -20,7 +20,7 @@ tokenizer, model = load_scibert()
 
 # Two groups of target tokens
 battery_tokens = {"battery", "batteries"}
-degradation_tokens = {"fracture", "fatigue", "degradation", "crack",
+reliability_tokens = {"fracture", "fatigue", "degradation", "crack",
                       "failure", "damage", "thermal runaway", "reliability"}
 
 # Available colormaps for Matplotlib
@@ -50,7 +50,7 @@ def get_attention_scores(text, max_tokens=None):
 
     token_scores = {}
     for i, tok in enumerate(token_strs):
-        if tok in battery_tokens or tok in degradation_tokens:
+        if tok in battery_tokens or tok in reliability_tokens:
             attn_score = attn_last_layer[:, i].sum().item()
             token_scores[tok] = attn_score
 
@@ -60,7 +60,7 @@ def get_attention_scores(text, max_tokens=None):
 def compute_relevance(token_scores):
     # Check if both groups are represented
     has_battery = any(tok in battery_tokens for tok in token_scores)
-    has_degradation = any(tok in degradation_tokens for tok in token_scores)
+    has_degradation = any(tok in reliability_tokens for tok in token_scores)
 
     if not (has_battery and has_degradation):
         return 0.2  # Low relevance if one group missing
@@ -89,7 +89,7 @@ def plot_matplotlib_heatmap(attn_matrix, token_strs, cmap, fontsize, show_target
 
     if show_target_annotations:
         for i, tok in enumerate(token_strs):
-            if tok in battery_tokens or tok in degradation_tokens:
+            if tok in battery_tokens or tok in reliability_tokens:
                 ax.text(
                     i + 0.5, i + 0.5, f"{tok}\n({attn_matrix[:, i].sum():.2f})",
                     ha="center", va="center", color="red", fontsize=fontsize-2,
@@ -148,8 +148,8 @@ if "attn_matrix" in st.session_state:
     st.subheader("🧠 Attention Map (Plotly, Last Layer, Averaged Heads)")
     fig_plotly = go.Figure(data=go.Heatmap(
         z=attn_matrix,
-        x=[f"<b>{tok}</b>" if tok in battery_tokens or tok in degradation_tokens else tok for tok in token_strs],
-        y=[f"<b>{tok}</b>" if tok in battery_tokens or tok in degradation_tokens else tok for tok in token_strs],
+        x=[f"<b>{tok}</b>" if tok in battery_tokens or tok in reliability_tokens else tok for tok in token_strs],
+        y=[f"<b>{tok}</b>" if tok in battery_tokens or tok in reliability_tokens else tok for tok in token_strs],
         text=[[f"Query: {token_strs[i]}<br>Key: {token_strs[j]}<br>Attention: {attn_matrix[i, j]:.3f}"
                for j in range(len(token_strs))] for i in range(len(token_strs))],
         hoverinfo="text",
