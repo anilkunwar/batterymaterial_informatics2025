@@ -60,9 +60,9 @@ def get_attention_scores(text, max_tokens=None):
 def compute_relevance(token_scores):
     # Check if both groups are represented
     has_battery = any(tok in battery_tokens for tok in token_scores)
-    has_degradation = any(tok in reliability_tokens for tok in token_scores)
+    has_reliability = any(tok in reliability_tokens for tok in token_scores)
 
-    if not (has_battery and has_degradation):
+    if not (has_battery and has_reliability):
         return 0.2  # Low relevance if one group missing
 
     avg_score = np.mean(list(token_scores.values()))
