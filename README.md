@@ -8,6 +8,9 @@ To convert the text data embedded in pdf files into sqlite format:
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/attentiontutorial-streamlit-red)](https://batteryreliability-attentionmechanism-tutorial.streamlit.app/)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/andattentiontutorial-streamlit-red)](https://batteryandreliability-attention-mechanism-tutorial.streamlit.app/)
+
+
 
 ## Small Database and Knowledge Engineering
 NER
