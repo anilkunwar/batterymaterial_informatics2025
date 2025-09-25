@@ -19,7 +19,8 @@ def load_scibert():
 tokenizer, model = load_scibert()
 
 # Updated target tokens for battery degradation research context
-target_tokens = {"fracture", "fatigue", "degradation", "battery"}
+#target_tokens = {"fracture", "fatigue", "degradation", "battery"}
+target_tokens = {"fracture", "fatigue", "degradation","crack","failure", "damage", "thermal runaway", "reliability", "battery"}
 
 # Available colormaps for Matplotlib
 available_cmaps = sorted([m for m in plt.colormaps() if not m.endswith("_r")])
