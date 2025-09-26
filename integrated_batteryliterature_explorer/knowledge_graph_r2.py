@@ -487,12 +487,12 @@ try:
     edge_width_factor = st.sidebar.slider("Edge Width Factor", 0.1, 2.0, 0.5)
 
     # Filter the graph with user-based nodes and exclusions
-    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types,
-                 selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
+    # Filter the graph with user-based nodes and exclusions
+def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
     G_filtered = nx.Graph()
+    valid_nodes = set()
     
     # Determine nodes to include
-    valid_nodes = set()
     if selected_nodes:
         for node in selected_nodes:
             if node in G.nodes() and G.nodes[node].get('priority_score', 0) >= min_priority_score:
