@@ -57,5 +57,7 @@ PREKnoweldge graph visualization
 ## Term categories by integrating regex, scibert embeddings and mlpclassifiers
 
 
-[![machinelearningbatterytensormechanics](https://img.shields.io/badge/integratedknowledgegraphbatterydegradationr1-streamlit-red)](https://knowledge-graph-integrated-categories.streamlit.app/)
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/integratedknowledgegraphbatterydegradation-streamlit-red)](https://knowledge-graph-integrated-categories.streamlit.app/)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/integratedknowledgegraphbatterydegradation1-streamlit-red)](https://knowledge-graph-integrated-categories1.streamlit.app/)
 
