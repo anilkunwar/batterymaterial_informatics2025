@@ -514,7 +514,7 @@ try:
     # Label size controls for publication-quality figures
     st.sidebar.subheader("📝 Label Settings for Publications")
     show_labels = st.sidebar.checkbox("Show Node Labels", value=True)
-    label_font_size = st.sidebar.slider("Label Font Size", 10, 24, 16)  # Increased default from 14 to 16
+    label_font_size = st.sidebar.slider("Label Font Size", 10, 100, 16)  # Increased default from 14 to 16
     label_max_chars = st.sidebar.slider("Max Characters per Label", 10, 30, 15)
     
     # Edge width control
