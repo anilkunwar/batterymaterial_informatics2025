@@ -521,6 +521,7 @@ try:
     
     return G_filtered
 
+
     G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority)
 
     # Show graph stats
