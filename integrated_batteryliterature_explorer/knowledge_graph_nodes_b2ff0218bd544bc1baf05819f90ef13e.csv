@@ -1,0 +1,45 @@
+node,type,category,frequency,unit,similarity_score
+Deformation,category,,0,None,0.0
+Fatigue,category,,0,None,0.0
+Crack and Fracture,category,,0,None,0.0
+Degradation,category,,0,None,0.0
+energy,term,Deformation,2079,%,0.9982715845108032
+capacity,term,Deformation,1938,%,1.2489327192306519
+surface,term,Deformation,1928,%,1.0834051370620728
+rate,term,Deformation,1177,%,1.1179078817367554
+potential,term,Deformation,1156,%,1.0899401903152466
+concentration,term,Deformation,1113,%,1.1349700689315796
+growth,term,Deformation,1052,%,1.1312904357910156
+discharge,term,Deformation,958,%,1.0398497581481934
+shown,term,Deformation,837,%,1.0707664489746094
+density,term,Deformation,758,%,1.2634130716323853
+current,term,Fatigue,1456,cycles,0.9778737425804138
+stress,term,Fatigue,1353,cycles,1.5592776536941528
+cycling,term,Fatigue,1279,cycles,1.46006441116333
+cycle,term,Fatigue,1275,cycles,1.39302396774292
+cycles,term,Fatigue,1110,cycles,1.455315113067627
+mechanical,term,Fatigue,710,cycles,1.1057137250900269
+chem,term,Fatigue,679,cycles,0.8365495204925537
+wang,term,Fatigue,652,cycles,0.8656582236289978
+corresponding,term,Fatigue,428,cycles,0.8644992113113403
+li metal,term,Fatigue,402,cycles,1.0842894315719604
+figure,term,Crack and Fracture,2509,μm,0.9213322401046753
+journal,term,Crack and Fracture,832,μm,0.9265370965003967
+fracture,term,Crack and Fracture,713,μm,1.7453546524047852
+study,term,Crack and Fracture,507,μm,0.8365215063095093
+sources,term,Crack and Fracture,494,μm,0.8471425771713257
+crack,term,Crack and Fracture,478,μm,1.6217271089553833
+section,term,Crack and Fracture,428,μm,0.9554096460342407
+the sei,term,Crack and Fracture,372,μm,1.054087519645691
+case,term,Crack and Fracture,368,μm,0.9048354625701904
+table,term,Crack and Fracture,350,μm,0.8301522731781006
+lithium,term,Degradation,3247,%,1.0733411312103271
+solid,term,Degradation,1774,%,1.079893708229065
+cell,term,Degradation,1708,%,1.0257846117019653
+batteries,term,Degradation,1699,%,1.1605250835418701
+electrochemical,term,Degradation,1557,%,1.2469371557235718
+state,term,Degradation,1254,%,1.1424410343170166
+voltage,term,Degradation,1253,%,1.0848841667175293
+charge,term,Degradation,1216,%,1.161160945892334
+particle,term,Degradation,1121,%,1.1007111072540283
+metal,term,Degradation,1108,%,1.1713979244232178

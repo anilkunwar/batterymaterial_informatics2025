@@ -1,0 +1,821 @@
+source,target,weight,type,label,relationship,strength
+Deformation,energy,1.0,category-term,belongs_to,,0.0
+Deformation,capacity,1.0,category-term,belongs_to,,0.0
+Deformation,surface,1.0,category-term,belongs_to,,0.0
+Deformation,rate,1.0,category-term,belongs_to,,0.0
+Deformation,potential,1.0,category-term,belongs_to,,0.0
+Deformation,concentration,1.0,category-term,belongs_to,,0.0
+Deformation,growth,1.0,category-term,belongs_to,,0.0
+Deformation,discharge,1.0,category-term,belongs_to,,0.0
+Deformation,shown,1.0,category-term,belongs_to,,0.0
+Deformation,density,1.0,category-term,belongs_to,,0.0
+Fatigue,current,1.0,category-term,belongs_to,,0.0
+Fatigue,stress,1.0,category-term,belongs_to,,0.0
+Fatigue,cycling,1.0,category-term,belongs_to,,0.0
+Fatigue,cycle,1.0,category-term,belongs_to,,0.0
+Fatigue,cycles,1.0,category-term,belongs_to,,0.0
+Fatigue,mechanical,1.0,category-term,belongs_to,,0.0
+Fatigue,chem,1.0,category-term,belongs_to,,0.0
+Fatigue,wang,1.0,category-term,belongs_to,,0.0
+Fatigue,corresponding,1.0,category-term,belongs_to,,0.0
+Fatigue,li metal,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,figure,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,journal,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,fracture,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,study,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,sources,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,crack,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,section,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,the sei,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,case,1.0,category-term,belongs_to,,0.0
+Crack and Fracture,table,1.0,category-term,belongs_to,,0.0
+Degradation,lithium,1.0,category-term,belongs_to,,0.0
+Degradation,solid,1.0,category-term,belongs_to,,0.0
+Degradation,cell,1.0,category-term,belongs_to,,0.0
+Degradation,batteries,1.0,category-term,belongs_to,,0.0
+Degradation,electrochemical,1.0,category-term,belongs_to,,0.0
+Degradation,state,1.0,category-term,belongs_to,,0.0
+Degradation,voltage,1.0,category-term,belongs_to,,0.0
+Degradation,charge,1.0,category-term,belongs_to,,0.0
+Degradation,particle,1.0,category-term,belongs_to,,0.0
+Degradation,metal,1.0,category-term,belongs_to,,0.0
+energy,crack,57.73648452758789,term-term,related_to (30),inter_category,30.0
+energy,sources,138.89810180664062,term-term,related_to (79),inter_category,79.0
+energy,fracture,73.12234497070312,term-term,related_to (38),inter_category,38.0
+energy,the sei,80.1821060180664,term-term,related_to (44),inter_category,44.0
+energy,cell,145.97509765625,term-term,related_to (80),inter_category,80.0
+energy,cycles,144.32032775878906,term-term,related_to (75),inter_category,75.0
+energy,discharge,131.31137084960938,term-term,co-occurs_with (71),intra_category,71.0
+energy,case,117.16868591308594,term-term,related_to (66),inter_category,66.0
+energy,journal,80.39480590820312,term-term,related_to (45),inter_category,45.0
+energy,figure,131.03463745117188,term-term,related_to (73),inter_category,73.0
+energy,solid,151.95272827148438,term-term,related_to (82),inter_category,82.0
+energy,lithium,155.7710723876953,term-term,related_to (84),inter_category,84.0
+energy,particle,113.70641326904297,term-term,related_to (61),inter_category,61.0
+energy,charge,150.6023712158203,term-term,related_to (82),inter_category,82.0
+energy,current,151.18011474609375,term-term,related_to (82),inter_category,82.0
+energy,density,151.69789123535156,term-term,co-occurs_with (81),intra_category,81.0
+energy,surface,153.447265625,term-term,co-occurs_with (82),intra_category,82.0
+energy,batteries,155.1339874267578,term-term,related_to (84),inter_category,84.0
+energy,growth,121.27242279052734,term-term,co-occurs_with (65),intra_category,65.0
+energy,capacity,157.63629150390625,term-term,co-occurs_with (82),intra_category,82.0
+energy,potential,149.20489501953125,term-term,co-occurs_with (81),intra_category,81.0
+energy,table,108.93623352050781,term-term,related_to (63),inter_category,63.0
+energy,stress,84.67416381835938,term-term,related_to (44),inter_category,44.0
+energy,metal,139.33810424804688,term-term,related_to (75),inter_category,75.0
+energy,wang,143.7534942626953,term-term,related_to (81),inter_category,81.0
+energy,concentration,120.7771224975586,term-term,co-occurs_with (65),intra_category,65.0
+energy,corresponding,128.7830810546875,term-term,related_to (73),inter_category,73.0
+energy,shown,152.14669799804688,term-term,co-occurs_with (84),intra_category,84.0
+energy,mechanical,114.9485092163086,term-term,related_to (62),inter_category,62.0
+energy,section,116.90142822265625,term-term,related_to (66),inter_category,66.0
+energy,electrochemical,152.8911895751953,term-term,related_to (83),inter_category,83.0
+energy,study,143.3856658935547,term-term,related_to (82),inter_category,82.0
+energy,state,153.59637451171875,term-term,related_to (83),inter_category,83.0
+energy,chem,124.72455596923828,term-term,related_to (72),inter_category,72.0
+energy,rate,150.84298706054688,term-term,co-occurs_with (81),intra_category,81.0
+energy,cycle,146.35916137695312,term-term,related_to (77),inter_category,77.0
+energy,cycling,157.7943115234375,term-term,related_to (82),inter_category,82.0
+energy,voltage,136.13104248046875,term-term,related_to (74),inter_category,74.0
+energy,li metal,63.703033447265625,term-term,related_to (35),inter_category,35.0
+capacity,crack,55.89540481567383,term-term,related_to (28),inter_category,28.0
+capacity,sources,142.73365783691406,term-term,related_to (78),inter_category,78.0
+capacity,fracture,71.85553741455078,term-term,related_to (36),inter_category,36.0
+capacity,the sei,85.23159790039062,term-term,related_to (45),inter_category,45.0
+capacity,cell,149.81590270996094,term-term,related_to (79),inter_category,79.0
+capacity,cycles,149.69894409179688,term-term,related_to (75),inter_category,75.0
+capacity,discharge,136.4031219482422,term-term,co-occurs_with (71),intra_category,71.0
+capacity,case,120.05487823486328,term-term,related_to (65),inter_category,65.0
+capacity,journal,81.76371002197266,term-term,related_to (44),inter_category,44.0
+capacity,figure,134.4031219482422,term-term,related_to (72),inter_category,72.0
+capacity,solid,155.9085693359375,term-term,related_to (81),inter_category,81.0
+capacity,lithium,159.86898803710938,term-term,related_to (83),inter_category,83.0
+capacity,particle,116.14527130126953,term-term,related_to (60),inter_category,60.0
+capacity,charge,154.57467651367188,term-term,related_to (81),inter_category,81.0
+capacity,current,155.14535522460938,term-term,related_to (81),inter_category,81.0
+capacity,density,153.6177520751953,term-term,co-occurs_with (79),intra_category,79.0
+capacity,surface,157.38487243652344,term-term,co-occurs_with (81),intra_category,81.0
+capacity,batteries,159.23948669433594,term-term,related_to (83),inter_category,83.0
+capacity,growth,123.99645233154297,term-term,co-occurs_with (64),intra_category,64.0
+capacity,potential,155.01380920410156,term-term,co-occurs_with (81),intra_category,81.0
+capacity,table,113.45427703857422,term-term,related_to (63),inter_category,63.0
+capacity,stress,85.83349609375,term-term,related_to (43),inter_category,43.0
+capacity,metal,140.8576202392578,term-term,related_to (73),inter_category,73.0
+capacity,wang,145.8695068359375,term-term,related_to (79),inter_category,79.0
+capacity,concentration,125.4385986328125,term-term,co-occurs_with (65),intra_category,65.0
+capacity,corresponding,132.18240356445312,term-term,related_to (72),inter_category,72.0
+capacity,shown,156.28778076171875,term-term,co-occurs_with (83),intra_category,83.0
+capacity,mechanical,115.54338073730469,term-term,related_to (60),inter_category,60.0
+capacity,section,117.94872283935547,term-term,related_to (64),inter_category,64.0
+capacity,electrochemical,156.92974853515625,term-term,related_to (82),inter_category,82.0
+capacity,study,149.26629638671875,term-term,related_to (82),inter_category,82.0
+capacity,state,155.70416259765625,term-term,related_to (81),inter_category,81.0
+capacity,chem,128.0840301513672,term-term,related_to (71),inter_category,71.0
+capacity,rate,156.6519012451172,term-term,co-occurs_with (81),intra_category,81.0
+capacity,cycle,149.90872192382812,term-term,related_to (76),inter_category,76.0
+capacity,cycling,159.68287658691406,term-term,related_to (80),inter_category,80.0
+capacity,voltage,141.43795776367188,term-term,related_to (74),inter_category,74.0
+capacity,li metal,64.32125091552734,term-term,related_to (34),inter_category,34.0
+surface,crack,56.41018295288086,term-term,related_to (29),inter_category,29.0
+surface,sources,138.74899291992188,term-term,related_to (78),inter_category,78.0
+surface,fracture,71.96135711669922,term-term,related_to (37),inter_category,37.0
+surface,the sei,82.93274688720703,term-term,related_to (45),inter_category,45.0
+surface,cell,145.78012084960938,term-term,related_to (79),inter_category,79.0
+surface,cycles,145.86752319335938,term-term,related_to (75),inter_category,75.0
+surface,discharge,130.9059600830078,term-term,co-occurs_with (70),intra_category,70.0
+surface,case,118.53022766113281,term-term,related_to (66),inter_category,66.0
+surface,journal,81.3231201171875,term-term,related_to (45),inter_category,45.0
+surface,figure,132.5405731201172,term-term,related_to (73),inter_category,73.0
+surface,solid,151.77061462402344,term-term,related_to (81),inter_category,81.0
+surface,lithium,155.62887573242188,term-term,related_to (83),inter_category,83.0
+surface,particle,113.08013153076172,term-term,related_to (60),inter_category,60.0
+surface,charge,150.43673706054688,term-term,related_to (81),inter_category,81.0
+surface,current,151.00741577148438,term-term,related_to (81),inter_category,81.0
+surface,density,149.58197021484375,term-term,co-occurs_with (79),intra_category,79.0
+surface,batteries,154.99937438964844,term-term,related_to (83),inter_category,83.0
+surface,growth,120.72697448730469,term-term,co-occurs_with (64),intra_category,64.0
+surface,potential,149.01321411132812,term-term,co-occurs_with (80),intra_category,80.0
+surface,table,110.23587799072266,term-term,related_to (63),inter_category,63.0
+surface,stress,83.63681030273438,term-term,related_to (43),inter_category,43.0
+surface,metal,139.00685119628906,term-term,related_to (74),inter_category,74.0
+surface,wang,141.833740234375,term-term,related_to (79),inter_category,79.0
+surface,concentration,122.11802673339844,term-term,co-occurs_with (65),intra_category,65.0
+surface,corresponding,130.2890167236328,term-term,related_to (73),inter_category,73.0
+surface,shown,152.0476531982422,term-term,co-occurs_with (83),intra_category,83.0
+surface,mechanical,112.4782485961914,term-term,related_to (60),inter_category,60.0
+surface,section,116.47110748291016,term-term,related_to (65),inter_category,65.0
+surface,electrochemical,152.74072265625,term-term,related_to (82),inter_category,82.0
+surface,study,143.3080291748047,term-term,related_to (81),inter_category,81.0
+surface,state,151.5662384033203,term-term,related_to (81),inter_category,81.0
+surface,chem,126.2098617553711,term-term,related_to (72),inter_category,72.0
+surface,rate,150.63107299804688,term-term,co-occurs_with (80),intra_category,80.0
+surface,cycle,146.02621459960938,term-term,related_to (76),inter_category,76.0
+surface,cycling,155.5960235595703,term-term,related_to (80),inter_category,80.0
+surface,voltage,137.65762329101562,term-term,related_to (74),inter_category,74.0
+surface,li metal,64.42505645751953,term-term,related_to (35),inter_category,35.0
+rate,crack,54.21162796020508,term-term,related_to (28),inter_category,28.0
+rate,sources,136.2733612060547,term-term,related_to (77),inter_category,77.0
+rate,fracture,69.69068908691406,term-term,related_to (36),inter_category,36.0
+rate,the sei,80.6916275024414,term-term,related_to (44),inter_category,44.0
+rate,cell,143.22898864746094,term-term,related_to (78),inter_category,78.0
+rate,cycles,141.317138671875,term-term,related_to (73),inter_category,73.0
+rate,discharge,130.27252197265625,term-term,co-occurs_with (70),intra_category,70.0
+rate,case,114.3592529296875,term-term,related_to (64),inter_category,64.0
+rate,journal,79.11778259277344,term-term,related_to (44),inter_category,44.0
+rate,figure,130.07342529296875,term-term,related_to (72),inter_category,72.0
+rate,solid,149.17298889160156,term-term,related_to (80),inter_category,80.0
+rate,lithium,153.0117950439453,term-term,related_to (82),inter_category,82.0
+rate,particle,112.53718566894531,term-term,related_to (60),inter_category,60.0
+rate,charge,147.85556030273438,term-term,related_to (80),inter_category,80.0
+rate,current,148.41920471191406,term-term,related_to (80),inter_category,80.0
+rate,density,146.9827117919922,term-term,co-occurs_with (78),intra_category,78.0
+rate,batteries,152.389892578125,term-term,related_to (82),inter_category,82.0
+rate,growth,118.27051544189453,term-term,co-occurs_with (63),intra_category,63.0
+rate,potential,148.28927612304688,term-term,co-occurs_with (80),intra_category,80.0
+rate,table,107.92506408691406,term-term,related_to (62),inter_category,62.0
+rate,stress,83.24769592285156,term-term,related_to (43),inter_category,43.0
+rate,metal,134.59835815429688,term-term,related_to (72),inter_category,72.0
+rate,wang,139.33255004882812,term-term,related_to (78),inter_category,78.0
+rate,concentration,117.79045867919922,term-term,co-occurs_with (63),intra_category,63.0
+rate,corresponding,127.85270690917969,term-term,related_to (72),inter_category,72.0
+rate,shown,149.47373962402344,term-term,co-occurs_with (82),intra_category,82.0
+rate,mechanical,110.06971740722656,term-term,related_to (59),inter_category,59.0
+rate,section,115.8829116821289,term-term,related_to (65),inter_category,65.0
+rate,electrochemical,150.1450653076172,term-term,related_to (81),inter_category,81.0
+rate,study,142.57505798339844,term-term,related_to (81),inter_category,81.0
+rate,state,148.9711151123047,term-term,related_to (80),inter_category,80.0
+rate,chem,123.81446838378906,term-term,related_to (71),inter_category,71.0
+rate,cycle,141.5137939453125,term-term,related_to (74),inter_category,74.0
+rate,cycling,152.93618774414062,term-term,related_to (79),inter_category,79.0
+rate,voltage,135.1367950439453,term-term,related_to (73),inter_category,73.0
+rate,li metal,60.44500732421875,term-term,related_to (33),inter_category,33.0
+potential,crack,53.64537811279297,term-term,related_to (28),inter_category,28.0
+potential,sources,136.46572875976562,term-term,related_to (78),inter_category,78.0
+potential,fracture,70.87828063964844,term-term,related_to (37),inter_category,37.0
+potential,the sei,79.80181121826172,term-term,related_to (44),inter_category,44.0
+potential,cell,143.46762084960938,term-term,related_to (79),inter_category,79.0
+potential,cycles,139.84083557128906,term-term,related_to (73),inter_category,73.0
+potential,discharge,127.01608276367188,term-term,co-occurs_with (69),intra_category,69.0
+potential,case,114.83160400390625,term-term,related_to (65),inter_category,65.0
+potential,journal,78.22795867919922,term-term,related_to (44),inter_category,44.0
+potential,figure,126.83098602294922,term-term,related_to (71),inter_category,71.0
+potential,solid,147.55511474609375,term-term,related_to (80),inter_category,80.0
+potential,lithium,151.35350036621094,term-term,related_to (82),inter_category,82.0
+potential,particle,109.46839141845703,term-term,related_to (59),inter_category,59.0
+potential,charge,146.23770141601562,term-term,related_to (80),inter_category,80.0
+potential,current,146.80133056640625,term-term,related_to (80),inter_category,80.0
+potential,density,145.40528869628906,term-term,co-occurs_with (78),intra_category,78.0
+potential,batteries,150.73158264160156,term-term,related_to (82),inter_category,82.0
+potential,growth,116.99645233154297,term-term,co-occurs_with (63),intra_category,63.0
+potential,table,110.11222839355469,term-term,related_to (64),inter_category,64.0
+potential,stress,84.29386901855469,term-term,related_to (44),inter_category,44.0
+potential,metal,133.1422882080078,term-term,related_to (72),inter_category,72.0
+potential,wang,137.755126953125,term-term,related_to (78),inter_category,78.0
+potential,concentration,118.36585998535156,term-term,co-occurs_with (64),intra_category,64.0
+potential,corresponding,126.39662170410156,term-term,related_to (72),inter_category,72.0
+potential,shown,147.8154296875,term-term,co-occurs_with (82),intra_category,82.0
+potential,mechanical,108.87654113769531,term-term,related_to (59),inter_category,59.0
+potential,section,111.04322052001953,term-term,related_to (63),inter_category,63.0
+potential,electrochemical,148.5069580078125,term-term,related_to (81),inter_category,81.0
+potential,study,140.9369659423828,term-term,related_to (81),inter_category,81.0
+potential,state,147.35324096679688,term-term,related_to (80),inter_category,80.0
+potential,chem,120.65496826171875,term-term,related_to (70),inter_category,70.0
+potential,cycle,140.0172576904297,term-term,related_to (74),inter_category,74.0
+potential,cycling,151.33856201171875,term-term,related_to (79),inter_category,79.0
+potential,voltage,135.491455078125,term-term,related_to (74),inter_category,74.0
+potential,li metal,59.77763748168945,term-term,related_to (33),inter_category,33.0
+concentration,crack,52.1634635925293,term-term,related_to (27),inter_category,27.0
+concentration,sources,109.46934509277344,term-term,related_to (62),inter_category,62.0
+concentration,fracture,63.74620056152344,term-term,related_to (33),inter_category,33.0
+concentration,the sei,64.04129028320312,term-term,related_to (35),inter_category,35.0
+concentration,cell,115.42353057861328,term-term,related_to (63),inter_category,63.0
+concentration,cycles,115.90210723876953,term-term,related_to (60),inter_category,60.0
+concentration,discharge,103.98564910888672,term-term,co-occurs_with (56),intra_category,56.0
+concentration,case,98.04926300048828,term-term,related_to (55),inter_category,55.0
+concentration,journal,59.20140838623047,term-term,related_to (33),inter_category,33.0
+concentration,figure,102.73827362060547,term-term,related_to (57),inter_category,57.0
+concentration,solid,120.93333435058594,term-term,related_to (65),inter_category,65.0
+concentration,lithium,122.88197326660156,term-term,related_to (66),inter_category,66.0
+concentration,particle,87.9591064453125,term-term,related_to (47),inter_category,47.0
+concentration,charge,118.01888275146484,term-term,related_to (64),inter_category,64.0
+concentration,current,120.32088470458984,term-term,related_to (65),inter_category,65.0
+concentration,density,118.45539093017578,term-term,co-occurs_with (63),intra_category,63.0
+concentration,batteries,122.38141632080078,term-term,related_to (66),inter_category,66.0
+concentration,growth,93.65802001953125,term-term,co-occurs_with (50),intra_category,50.0
+concentration,table,85.09229278564453,term-term,related_to (49),inter_category,49.0
+concentration,stress,69.5463638305664,term-term,related_to (36),inter_category,36.0
+concentration,metal,113.78160858154297,term-term,related_to (61),inter_category,61.0
+concentration,wang,110.49424743652344,term-term,related_to (62),inter_category,62.0
+concentration,corresponding,102.75179290771484,term-term,related_to (58),inter_category,58.0
+concentration,shown,120.03427124023438,term-term,co-occurs_with (66),intra_category,66.0
+concentration,mechanical,93.07195281982422,term-term,related_to (50),inter_category,50.0
+concentration,section,92.49055480957031,term-term,related_to (52),inter_category,52.0
+concentration,electrochemical,120.2170639038086,term-term,related_to (65),inter_category,65.0
+concentration,study,112.38633728027344,term-term,related_to (64),inter_category,64.0
+concentration,state,120.7693099975586,term-term,related_to (65),inter_category,65.0
+concentration,chem,100.9035415649414,term-term,related_to (58),inter_category,58.0
+concentration,cycle,112.58374786376953,term-term,related_to (59),inter_category,59.0
+concentration,cycling,121.70035552978516,term-term,related_to (63),inter_category,63.0
+concentration,voltage,107.12828826904297,term-term,related_to (58),inter_category,58.0
+concentration,li metal,51.17049026489258,term-term,related_to (28),inter_category,28.0
+growth,crack,50.42960739135742,term-term,related_to (26),inter_category,26.0
+growth,sources,111.71503448486328,term-term,related_to (63),inter_category,63.0
+growth,fracture,62.05833435058594,term-term,related_to (32),inter_category,32.0
+growth,the sei,66.14537048339844,term-term,related_to (36),inter_category,36.0
+growth,cell,115.90359497070312,term-term,related_to (63),inter_category,63.0
+growth,cycles,112.48065948486328,term-term,related_to (58),inter_category,58.0
+growth,discharge,102.54786682128906,term-term,co-occurs_with (55),intra_category,55.0
+growth,case,91.3070297241211,term-term,related_to (51),inter_category,51.0
+growth,journal,68.46086883544922,term-term,related_to (38),inter_category,38.0
+growth,figure,101.36256408691406,term-term,related_to (56),inter_category,56.0
+growth,solid,121.42863464355469,term-term,related_to (65),inter_category,65.0
+growth,lithium,123.38490295410156,term-term,related_to (66),inter_category,66.0
+growth,particle,88.31724548339844,term-term,related_to (47),inter_category,47.0
+growth,charge,118.50656127929688,term-term,related_to (64),inter_category,64.0
+growth,current,118.95747375488281,term-term,related_to (64),inter_category,64.0
+growth,density,118.9354476928711,term-term,co-occurs_with (63),intra_category,63.0
+growth,batteries,122.88433837890625,term-term,related_to (66),inter_category,66.0
+growth,table,87.20986938476562,term-term,related_to (50),inter_category,50.0
+growth,stress,65.94176483154297,term-term,related_to (34),inter_category,34.0
+growth,metal,108.62775421142578,term-term,related_to (58),inter_category,58.0
+growth,wang,116.3360366821289,term-term,related_to (65),inter_category,65.0
+growth,corresponding,97.85613250732422,term-term,related_to (55),inter_category,55.0
+growth,shown,120.53718566894531,term-term,co-occurs_with (66),intra_category,66.0
+growth,mechanical,95.3219985961914,term-term,related_to (51),inter_category,51.0
+growth,section,91.10050964355469,term-term,related_to (51),inter_category,51.0
+growth,electrochemical,122.56946563720703,term-term,related_to (66),inter_category,66.0
+growth,study,112.87400817871094,term-term,related_to (64),inter_category,64.0
+growth,state,119.39900207519531,term-term,related_to (64),inter_category,64.0
+growth,chem,99.59815979003906,term-term,related_to (57),inter_category,57.0
+growth,cycle,114.94913482666016,term-term,related_to (60),inter_category,60.0
+growth,cycling,126.05915832519531,term-term,related_to (65),inter_category,65.0
+growth,voltage,109.4249038696289,term-term,related_to (59),inter_category,59.0
+growth,li metal,49.548709869384766,term-term,related_to (27),inter_category,27.0
+discharge,crack,40.389854431152344,term-term,related_to (21),inter_category,21.0
+discharge,sources,117.71771240234375,term-term,related_to (67),inter_category,67.0
+discharge,fracture,51.92232894897461,term-term,related_to (27),inter_category,27.0
+discharge,the sei,63.7384147644043,term-term,related_to (35),inter_category,35.0
+discharge,cell,123.99567413330078,term-term,related_to (68),inter_category,68.0
+discharge,cycles,128.84422302246094,term-term,related_to (67),inter_category,67.0
+discharge,case,101.12142944335938,term-term,related_to (57),inter_category,57.0
+discharge,journal,67.84246826171875,term-term,related_to (38),inter_category,38.0
+discharge,figure,109.42008972167969,term-term,related_to (61),inter_category,61.0
+discharge,solid,129.63014221191406,term-term,related_to (70),inter_category,70.0
+discharge,lithium,133.4300079345703,term-term,related_to (72),inter_category,72.0
+discharge,particle,95.00364685058594,term-term,related_to (51),inter_category,51.0
+discharge,charge,2.0,hierarchical,is_part_of,inter_category,2.0
+discharge,current,128.9705810546875,term-term,related_to (70),inter_category,70.0
+discharge,density,127.26815032958984,term-term,co-occurs_with (68),intra_category,68.0
+discharge,batteries,132.88392639160156,term-term,related_to (72),inter_category,72.0
+discharge,table,93.30787658691406,term-term,related_to (54),inter_category,54.0
+discharge,stress,65.38845825195312,term-term,related_to (34),inter_category,34.0
+discharge,metal,116.96696472167969,term-term,related_to (63),inter_category,63.0
+discharge,wang,120.5987777709961,term-term,related_to (68),inter_category,68.0
+discharge,corresponding,111.06450653076172,term-term,related_to (63),inter_category,63.0
+discharge,shown,130.3234100341797,term-term,co-occurs_with (72),intra_category,72.0
+discharge,mechanical,92.63925170898438,term-term,related_to (50),inter_category,50.0
+discharge,section,99.12060546875,term-term,related_to (56),inter_category,56.0
+discharge,electrochemical,130.69960021972656,term-term,related_to (71),inter_category,71.0
+discharge,study,122.31678771972656,term-term,related_to (70),inter_category,70.0
+discharge,state,129.4534912109375,term-term,related_to (70),inter_category,70.0
+discharge,chem,109.05693054199219,term-term,related_to (63),inter_category,63.0
+discharge,cycle,125.36997985839844,term-term,related_to (66),inter_category,66.0
+discharge,cycling,132.69375610351562,term-term,related_to (69),inter_category,69.0
+discharge,voltage,117.65668487548828,term-term,related_to (64),inter_category,64.0
+discharge,li metal,54.56591033935547,term-term,related_to (30),inter_category,30.0
+shown,crack,56.554222106933594,term-term,related_to (30),inter_category,30.0
+shown,sources,137.5036163330078,term-term,related_to (80),inter_category,80.0
+shown,fracture,71.62481689453125,term-term,related_to (38),inter_category,38.0
+shown,the sei,80.23103332519531,term-term,related_to (45),inter_category,45.0
+shown,cell,144.60769653320312,term-term,related_to (81),inter_category,81.0
+shown,cycles,143.24954223632812,term-term,related_to (76),inter_category,76.0
+shown,case,116.30359649658203,term-term,related_to (67),inter_category,67.0
+shown,journal,80.36856079101562,term-term,related_to (46),inter_category,46.0
+shown,figure,129.91339111328125,term-term,related_to (74),inter_category,74.0
+shown,solid,150.53489685058594,term-term,related_to (83),inter_category,83.0
+shown,lithium,154.27574157714844,term-term,related_to (85),inter_category,85.0
+shown,particle,111.302490234375,term-term,related_to (61),inter_category,61.0
+shown,charge,149.16807556152344,term-term,related_to (83),inter_category,83.0
+shown,current,149.7528533935547,term-term,related_to (83),inter_category,83.0
+shown,density,148.5057830810547,term-term,co-occurs_with (81),intra_category,81.0
+shown,batteries,153.63108825683594,term-term,related_to (85),inter_category,85.0
+shown,table,108.14323425292969,term-term,related_to (64),inter_category,64.0
+shown,stress,84.82518768310547,term-term,related_to (45),inter_category,45.0
+shown,metal,136.38247680664062,term-term,related_to (75),inter_category,75.0
+shown,wang,140.56138610839844,term-term,related_to (81),inter_category,81.0
+shown,corresponding,127.63098907470703,term-term,related_to (74),inter_category,74.0
+shown,mechanical,112.50517272949219,term-term,related_to (62),inter_category,62.0
+shown,section,114.30046844482422,term-term,related_to (66),inter_category,66.0
+shown,electrochemical,151.42291259765625,term-term,related_to (84),inter_category,84.0
+shown,study,141.8633575439453,term-term,related_to (83),inter_category,83.0
+shown,state,150.32545471191406,term-term,related_to (83),inter_category,83.0
+shown,chem,123.58000946044922,term-term,related_to (73),inter_category,73.0
+shown,cycle,143.32469177246094,term-term,related_to (77),inter_category,77.0
+shown,cycling,154.5628204345703,term-term,related_to (82),inter_category,82.0
+shown,voltage,135.0150146484375,term-term,related_to (75),inter_category,75.0
+shown,li metal,62.32373046875,term-term,related_to (35),inter_category,35.0
+density,crack,58.40052032470703,term-term,related_to (30),inter_category,30.0
+density,sources,135.30572509765625,term-term,related_to (76),inter_category,76.0
+density,fracture,72.01705169677734,term-term,related_to (37),inter_category,37.0
+density,the sei,77.46711730957031,term-term,related_to (42),inter_category,42.0
+density,cell,142.2053985595703,term-term,related_to (77),inter_category,77.0
+density,cycles,140.14120483398438,term-term,related_to (72),inter_category,72.0
+density,case,115.03473663330078,term-term,related_to (64),inter_category,64.0
+density,journal,77.77349090576172,term-term,related_to (43),inter_category,43.0
+density,figure,127.1990737915039,term-term,related_to (70),inter_category,70.0
+density,solid,148.14212036132812,term-term,related_to (79),inter_category,79.0
+density,lithium,152.00071716308594,term-term,related_to (81),inter_category,81.0
+density,particle,111.2842788696289,term-term,related_to (59),inter_category,59.0
+density,charge,146.84117126464844,term-term,related_to (79),inter_category,79.0
+density,current,147.39776611328125,term-term,related_to (79),inter_category,79.0
+density,batteries,151.38638305664062,term-term,related_to (81),inter_category,81.0
+density,table,106.82815551757812,term-term,related_to (61),inter_category,61.0
+density,stress,83.7015380859375,term-term,related_to (43),inter_category,43.0
+density,metal,137.23826599121094,term-term,related_to (73),inter_category,73.0
+density,wang,140.15579223632812,term-term,related_to (78),inter_category,78.0
+density,corresponding,125.04004669189453,term-term,related_to (70),inter_category,70.0
+density,mechanical,112.56856536865234,term-term,related_to (60),inter_category,60.0
+density,section,114.77558135986328,term-term,related_to (64),inter_category,64.0
+density,electrochemical,149.13575744628906,term-term,related_to (80),inter_category,80.0
+density,study,139.88848876953125,term-term,related_to (79),inter_category,79.0
+density,state,149.81546020507812,term-term,related_to (80),inter_category,80.0
+density,chem,122.80940246582031,term-term,related_to (70),inter_category,70.0
+density,cycle,142.29481506347656,term-term,related_to (74),inter_category,74.0
+density,cycling,153.76998901367188,term-term,related_to (79),inter_category,79.0
+density,voltage,134.04551696777344,term-term,related_to (72),inter_category,72.0
+density,li metal,62.635520935058594,term-term,related_to (34),inter_category,34.0
+current,crack,57.52591323852539,term-term,related_to (30),inter_category,30.0
+current,sources,136.5924072265625,term-term,related_to (78),inter_category,78.0
+current,fracture,70.93836975097656,term-term,related_to (37),inter_category,37.0
+current,the sei,81.68856811523438,term-term,related_to (45),inter_category,45.0
+current,cell,143.59591674804688,term-term,related_to (79),inter_category,79.0
+current,cycles,143.7938995361328,term-term,co-occurs_with (75),intra_category,75.0
+current,case,116.70542907714844,term-term,related_to (66),inter_category,66.0
+current,journal,80.07894897460938,term-term,related_to (45),inter_category,45.0
+current,figure,128.73426818847656,term-term,related_to (72),inter_category,72.0
+current,solid,149.53109741210938,term-term,related_to (81),inter_category,81.0
+current,lithium,153.3340606689453,term-term,related_to (83),inter_category,83.0
+current,particle,109.564208984375,term-term,related_to (59),inter_category,59.0
+current,charge,150.0268096923828,term-term,related_to (82),inter_category,82.0
+current,batteries,152.70457458496094,term-term,related_to (83),inter_category,83.0
+current,table,108.49403381347656,term-term,related_to (63),inter_category,63.0
+current,stress,84.36532592773438,term-term,co-occurs_with (44),intra_category,44.0
+current,metal,135.11004638671875,term-term,related_to (73),inter_category,73.0
+current,wang,139.64952087402344,term-term,co-occurs_with (79),intra_category,79.0
+current,corresponding,126.51355743408203,term-term,co-occurs_with (72),intra_category,72.0
+current,mechanical,112.66633605957031,term-term,co-occurs_with (61),intra_category,61.0
+current,section,112.90974426269531,term-term,related_to (64),inter_category,64.0
+current,electrochemical,150.4735565185547,term-term,related_to (82),inter_category,82.0
+current,study,141.0685272216797,term-term,related_to (81),inter_category,81.0
+current,state,149.32672119140625,term-term,related_to (81),inter_category,81.0
+current,chem,122.4939193725586,term-term,co-occurs_with (71),intra_category,71.0
+current,cycle,143.92494201660156,term-term,co-occurs_with (76),intra_category,76.0
+current,cycling,153.3841552734375,term-term,co-occurs_with (80),intra_category,80.0
+current,voltage,133.77903747558594,term-term,related_to (73),inter_category,73.0
+current,li metal,61.64430236816406,term-term,co-occurs_with (34),intra_category,34.0
+stress,crack,49.95708465576172,term-term,related_to (25),inter_category,25.0
+stress,sources,82.43720245361328,term-term,related_to (45),inter_category,45.0
+stress,fracture,57.94218063354492,term-term,related_to (29),inter_category,29.0
+stress,the sei,47.401363372802734,term-term,related_to (25),inter_category,25.0
+stress,cell,79.73375701904297,term-term,related_to (42),inter_category,42.0
+stress,cycles,77.92219543457031,term-term,co-occurs_with (39),intra_category,39.0
+stress,case,66.56462097167969,term-term,related_to (36),inter_category,36.0
+stress,journal,46.50712966918945,term-term,related_to (25),inter_category,25.0
+stress,figure,74.74916076660156,term-term,related_to (40),inter_category,40.0
+stress,solid,82.85308837890625,term-term,related_to (43),inter_category,43.0
+stress,lithium,86.76681518554688,term-term,related_to (45),inter_category,45.0
+stress,particle,65.8843002319336,term-term,related_to (34),inter_category,34.0
+stress,charge,82.14497375488281,term-term,related_to (43),inter_category,43.0
+stress,batteries,86.4255142211914,term-term,related_to (45),inter_category,45.0
+stress,table,63.1008186340332,term-term,related_to (35),inter_category,35.0
+stress,metal,75.3314437866211,term-term,related_to (39),inter_category,39.0
+stress,wang,79.48413848876953,term-term,co-occurs_with (43),intra_category,43.0
+stress,corresponding,71.67754364013672,term-term,co-occurs_with (39),intra_category,39.0
+stress,mechanical,75.18194580078125,term-term,co-occurs_with (39),intra_category,39.0
+stress,section,62.728904724121094,term-term,related_to (34),inter_category,34.0
+stress,electrochemical,84.2950439453125,term-term,related_to (44),inter_category,44.0
+stress,study,80.18294525146484,term-term,related_to (44),inter_category,44.0
+stress,state,84.66887664794922,term-term,related_to (44),inter_category,44.0
+stress,chem,65.0167007446289,term-term,co-occurs_with (36),intra_category,36.0
+stress,cycle,75.03108215332031,term-term,co-occurs_with (38),intra_category,38.0
+stress,cycling,85.91636657714844,term-term,co-occurs_with (43),intra_category,43.0
+stress,voltage,70.7936782836914,term-term,related_to (37),inter_category,37.0
+stress,li metal,34.08877182006836,term-term,co-occurs_with (18),intra_category,18.0
+cycling,crack,57.94755554199219,term-term,related_to (29),inter_category,29.0
+cycling,sources,141.05213928222656,term-term,related_to (77),inter_category,77.0
+cycling,fracture,73.9228286743164,term-term,related_to (37),inter_category,37.0
+cycling,the sei,81.52639770507812,term-term,related_to (43),inter_category,43.0
+cycling,cell,149.9681396484375,term-term,related_to (79),inter_category,79.0
+cycling,cycles,145.84765625,term-term,co-occurs_with (73),intra_category,73.0
+cycling,case,118.33121490478516,term-term,related_to (64),inter_category,64.0
+cycling,journal,81.84850311279297,term-term,related_to (44),inter_category,44.0
+cycling,figure,132.67323303222656,term-term,related_to (71),inter_category,71.0
+cycling,solid,156.06466674804688,term-term,related_to (81),inter_category,81.0
+cycling,lithium,158.10089111328125,term-term,related_to (82),inter_category,82.0
+cycling,particle,114.3232192993164,term-term,related_to (59),inter_category,59.0
+cycling,charge,152.8205108642578,term-term,related_to (80),inter_category,80.0
+cycling,batteries,157.47897338867188,term-term,related_to (82),inter_category,82.0
+cycling,table,109.9701156616211,term-term,related_to (61),inter_category,61.0
+cycling,metal,142.92979431152344,term-term,related_to (74),inter_category,74.0
+cycling,wang,147.8701171875,term-term,co-occurs_with (80),intra_category,80.0
+cycling,corresponding,130.48336791992188,term-term,co-occurs_with (71),intra_category,71.0
+cycling,mechanical,117.58666229248047,term-term,co-occurs_with (61),intra_category,61.0
+cycling,section,118.07205963134766,term-term,related_to (64),inter_category,64.0
+cycling,electrochemical,157.0877685546875,term-term,related_to (82),inter_category,82.0
+cycling,study,145.77981567382812,term-term,related_to (80),inter_category,80.0
+cycling,state,155.86026000976562,term-term,related_to (81),inter_category,81.0
+cycling,chem,126.41492462158203,term-term,co-occurs_with (70),intra_category,70.0
+cycling,cycle,152.0295867919922,term-term,co-occurs_with (77),intra_category,77.0
+cycling,voltage,139.6673126220703,term-term,related_to (73),inter_category,73.0
+cycling,li metal,66.28050231933594,term-term,co-occurs_with (35),intra_category,35.0
+cycle,crack,49.365970611572266,term-term,related_to (25),inter_category,25.0
+cycle,sources,130.1970977783203,term-term,related_to (72),inter_category,72.0
+cycle,fracture,63.17957305908203,term-term,related_to (32),inter_category,32.0
+cycle,the sei,78.64122009277344,term-term,related_to (42),inter_category,42.0
+cycle,cell,138.7335968017578,term-term,related_to (74),inter_category,74.0
+cycle,cycles,2.0,hierarchical,is_part_of,intra_category,2.0
+cycle,case,107.69697570800781,term-term,related_to (59),inter_category,59.0
+cycle,journal,77.13890838623047,term-term,related_to (42),inter_category,42.0
+cycle,figure,121.77557373046875,term-term,related_to (66),inter_category,66.0
+cycle,solid,144.6410369873047,term-term,related_to (76),inter_category,76.0
+cycle,lithium,146.6470184326172,term-term,related_to (77),inter_category,77.0
+cycle,particle,103.36296844482422,term-term,related_to (54),inter_category,54.0
+cycle,charge,145.27618408203125,term-term,related_to (77),inter_category,77.0
+cycle,batteries,146.0630340576172,term-term,related_to (77),inter_category,77.0
+cycle,table,103.19569396972656,term-term,related_to (58),inter_category,58.0
+cycle,metal,131.64723205566406,term-term,related_to (69),inter_category,69.0
+cycle,wang,136.86178588867188,term-term,co-occurs_with (75),intra_category,75.0
+cycle,corresponding,121.55416107177734,term-term,co-occurs_with (67),intra_category,67.0
+cycle,mechanical,106.62946319580078,term-term,co-occurs_with (56),intra_category,56.0
+cycle,section,111.10071563720703,term-term,related_to (61),inter_category,61.0
+cycle,electrochemical,145.69569396972656,term-term,related_to (77),inter_category,77.0
+cycle,study,134.90213012695312,term-term,related_to (75),inter_category,75.0
+cycle,state,144.44924926757812,term-term,related_to (76),inter_category,76.0
+cycle,chem,115.85436248779297,term-term,co-occurs_with (65),intra_category,65.0
+cycle,voltage,130.38916015625,term-term,related_to (69),inter_category,69.0
+cycle,li metal,63.58598709106445,term-term,co-occurs_with (34),intra_category,34.0
+cycles,crack,53.94982147216797,term-term,related_to (27),inter_category,27.0
+cycles,sources,130.05751037597656,term-term,related_to (71),inter_category,71.0
+cycles,fracture,63.931663513183594,term-term,related_to (32),inter_category,32.0
+cycles,the sei,75.83650207519531,term-term,related_to (40),inter_category,40.0
+cycles,cell,136.6762237548828,term-term,related_to (72),inter_category,72.0
+cycles,case,112.7813949584961,term-term,related_to (61),inter_category,61.0
+cycles,journal,76.26587677001953,term-term,related_to (41),inter_category,41.0
+cycles,figure,123.3267593383789,term-term,related_to (66),inter_category,66.0
+cycles,solid,142.5738983154297,term-term,related_to (74),inter_category,74.0
+cycles,lithium,146.52871704101562,term-term,related_to (76),inter_category,76.0
+cycles,particle,108.50737762451172,term-term,related_to (56),inter_category,56.0
+cycles,charge,145.17568969726562,term-term,related_to (76),inter_category,76.0
+cycles,batteries,145.9523162841797,term-term,related_to (76),inter_category,76.0
+cycles,table,108.1643295288086,term-term,related_to (60),inter_category,60.0
+cycles,metal,127.47462463378906,term-term,related_to (66),inter_category,66.0
+cycles,wang,133.07952880859375,term-term,co-occurs_with (72),intra_category,72.0
+cycles,corresponding,121.29110717773438,term-term,co-occurs_with (66),intra_category,66.0
+cycles,mechanical,107.94561767578125,term-term,co-occurs_with (56),intra_category,56.0
+cycles,section,106.99990844726562,term-term,related_to (58),inter_category,58.0
+cycles,electrochemical,143.67410278320312,term-term,related_to (75),inter_category,75.0
+cycles,study,134.8426513671875,term-term,related_to (74),inter_category,74.0
+cycles,state,142.3871612548828,term-term,related_to (74),inter_category,74.0
+cycles,chem,115.576171875,term-term,co-occurs_with (64),intra_category,64.0
+cycles,voltage,128.18446350097656,term-term,related_to (67),inter_category,67.0
+cycles,li metal,58.704044342041016,term-term,co-occurs_with (31),intra_category,31.0
+mechanical,crack,53.98060607910156,term-term,related_to (28),inter_category,28.0
+mechanical,sources,103.93045043945312,term-term,related_to (59),inter_category,59.0
+mechanical,fracture,71.32125854492188,term-term,related_to (37),inter_category,37.0
+mechanical,the sei,58.42079544067383,term-term,related_to (32),inter_category,32.0
+mechanical,cell,107.85307312011719,term-term,related_to (59),inter_category,59.0
+mechanical,case,94.2664566040039,term-term,related_to (53),inter_category,53.0
+mechanical,journal,64.43569946289062,term-term,related_to (36),inter_category,36.0
+mechanical,figure,95.31118774414062,term-term,related_to (53),inter_category,53.0
+mechanical,solid,111.38468933105469,term-term,related_to (60),inter_category,60.0
+mechanical,lithium,115.1802978515625,term-term,related_to (62),inter_category,62.0
+mechanical,particle,89.63371276855469,term-term,related_to (48),inter_category,48.0
+mechanical,charge,110.39662170410156,term-term,related_to (60),inter_category,60.0
+mechanical,batteries,114.71007537841797,term-term,related_to (62),inter_category,62.0
+mechanical,table,77.96141815185547,term-term,related_to (45),inter_category,45.0
+mechanical,metal,100.50322723388672,term-term,related_to (54),inter_category,54.0
+mechanical,wang,106.68382263183594,term-term,co-occurs_with (60),intra_category,60.0
+mechanical,corresponding,93.67649841308594,term-term,co-occurs_with (53),intra_category,53.0
+mechanical,section,85.17903137207031,term-term,related_to (48),inter_category,48.0
+mechanical,electrochemical,112.56889343261719,term-term,related_to (61),inter_category,61.0
+mechanical,study,105.11610412597656,term-term,related_to (60),inter_category,60.0
+mechanical,state,114.94105529785156,term-term,related_to (62),inter_category,62.0
+mechanical,chem,88.516357421875,term-term,co-occurs_with (51),intra_category,51.0
+mechanical,voltage,99.51864624023438,term-term,related_to (54),inter_category,54.0
+mechanical,li metal,49.23223114013672,term-term,co-occurs_with (27),intra_category,27.0
+chem,crack,45.153900146484375,term-term,related_to (25),inter_category,25.0
+chem,sources,111.5071029663086,term-term,related_to (68),inter_category,68.0
+chem,fracture,54.17636489868164,term-term,related_to (30),inter_category,30.0
+chem,the sei,66.45315551757812,term-term,related_to (39),inter_category,39.0
+chem,cell,117.73439025878906,term-term,related_to (69),inter_category,69.0
+chem,case,92.78582000732422,term-term,related_to (56),inter_category,56.0
+chem,journal,56.71736526489258,term-term,related_to (34),inter_category,34.0
+chem,figure,108.97911071777344,term-term,related_to (65),inter_category,65.0
+chem,solid,124.89759063720703,term-term,related_to (72),inter_category,72.0
+chem,lithium,126.72975158691406,term-term,related_to (73),inter_category,73.0
+chem,particle,87.28231048583984,term-term,related_to (50),inter_category,50.0
+chem,charge,121.99369049072266,term-term,related_to (71),inter_category,71.0
+chem,batteries,126.17610931396484,term-term,related_to (73),inter_category,73.0
+chem,table,88.5914306640625,term-term,related_to (55),inter_category,55.0
+chem,metal,116.54302978515625,term-term,related_to (67),inter_category,67.0
+chem,wang,114.28753662109375,term-term,co-occurs_with (69),intra_category,69.0
+chem,corresponding,108.62005615234375,term-term,co-occurs_with (66),intra_category,66.0
+chem,section,97.51758575439453,term-term,related_to (59),inter_category,59.0
+chem,electrochemical,2.0,hierarchical,is_part_of,inter_category,2.0
+chem,study,115.74507141113281,term-term,related_to (71),inter_category,71.0
+chem,state,122.9837417602539,term-term,related_to (71),inter_category,71.0
+chem,voltage,110.15777587890625,term-term,related_to (64),inter_category,64.0
+chem,li metal,52.75249099731445,term-term,co-occurs_with (31),intra_category,31.0
+wang,crack,51.76094055175781,term-term,related_to (28),inter_category,28.0
+wang,sources,129.53396606445312,term-term,related_to (77),inter_category,77.0
+wang,fracture,66.53980255126953,term-term,related_to (36),inter_category,36.0
+wang,the sei,76.8405532836914,term-term,related_to (44),inter_category,44.0
+wang,cell,136.40206909179688,term-term,related_to (78),inter_category,78.0
+wang,case,107.05833435058594,term-term,related_to (63),inter_category,63.0
+wang,journal,73.55609130859375,term-term,related_to (43),inter_category,43.0
+wang,figure,120.33354187011719,term-term,related_to (70),inter_category,70.0
+wang,solid,142.1710205078125,term-term,related_to (80),inter_category,80.0
+wang,lithium,144.0563201904297,term-term,related_to (81),inter_category,81.0
+wang,particle,103.70952606201172,term-term,related_to (58),inter_category,58.0
+wang,charge,139.09292602539062,term-term,related_to (79),inter_category,79.0
+wang,batteries,143.44198608398438,term-term,related_to (81),inter_category,81.0
+wang,table,102.49854278564453,term-term,related_to (62),inter_category,62.0
+wang,metal,130.0784912109375,term-term,related_to (73),inter_category,73.0
+wang,corresponding,118.17451477050781,term-term,co-occurs_with (70),intra_category,70.0
+wang,section,106.80323028564453,term-term,related_to (63),inter_category,63.0
+wang,electrochemical,143.05555725097656,term-term,related_to (81),inter_category,81.0
+wang,study,132.14024353027344,term-term,related_to (79),inter_category,79.0
+wang,state,141.96914672851562,term-term,related_to (80),inter_category,80.0
+wang,voltage,126.98382568359375,term-term,related_to (72),inter_category,72.0
+wang,li metal,59.300838470458984,term-term,co-occurs_with (34),intra_category,34.0
+corresponding,crack,49.62660217285156,term-term,related_to (27),inter_category,27.0
+corresponding,sources,115.34568786621094,term-term,related_to (69),inter_category,69.0
+corresponding,fracture,62.48333740234375,term-term,related_to (34),inter_category,34.0
+corresponding,the sei,65.96015167236328,term-term,related_to (38),inter_category,38.0
+corresponding,cell,123.40948486328125,term-term,related_to (71),inter_category,71.0
+corresponding,case,99.63660430908203,term-term,related_to (59),inter_category,59.0
+corresponding,journal,64.60091400146484,term-term,related_to (38),inter_category,38.0
+corresponding,figure,114.46735382080078,term-term,related_to (67),inter_category,67.0
+corresponding,solid,127.19196319580078,term-term,related_to (72),inter_category,72.0
+corresponding,lithium,130.82388305664062,term-term,related_to (74),inter_category,74.0
+corresponding,particle,94.20816802978516,term-term,related_to (53),inter_category,53.0
+corresponding,charge,127.7563705444336,term-term,related_to (73),inter_category,73.0
+corresponding,batteries,130.2626495361328,term-term,related_to (74),inter_category,74.0
+corresponding,table,90.34407806396484,term-term,related_to (55),inter_category,55.0
+corresponding,metal,116.90675354003906,term-term,related_to (66),inter_category,66.0
+corresponding,section,96.02828216552734,term-term,related_to (57),inter_category,57.0
+corresponding,electrochemical,128.15408325195312,term-term,related_to (73),inter_category,73.0
+corresponding,study,119.66966247558594,term-term,related_to (72),inter_category,72.0
+corresponding,state,127.0102767944336,term-term,related_to (72),inter_category,72.0
+corresponding,voltage,113.95030212402344,term-term,related_to (65),inter_category,65.0
+corresponding,li metal,53.74034881591797,term-term,co-occurs_with (31),intra_category,31.0
+li metal,crack,20.83353042602539,term-term,related_to (11),inter_category,11.0
+li metal,sources,57.01118087768555,term-term,related_to (33),inter_category,33.0
+li metal,fracture,24.617841720581055,term-term,related_to (13),inter_category,13.0
+li metal,the sei,39.418025970458984,term-term,related_to (22),inter_category,22.0
+li metal,cell,62.79338455200195,term-term,related_to (35),inter_category,35.0
+li metal,case,43.617271423339844,term-term,related_to (25),inter_category,25.0
+li metal,journal,28.09534454345703,term-term,related_to (16),inter_category,16.0
+li metal,figure,56.46089172363281,term-term,related_to (32),inter_category,32.0
+li metal,solid,61.96466064453125,term-term,related_to (34),inter_category,34.0
+li metal,lithium,63.833885192871094,term-term,related_to (35),inter_category,35.0
+li metal,particle,38.50239562988281,term-term,related_to (21),inter_category,21.0
+li metal,charge,61.404754638671875,term-term,related_to (34),inter_category,34.0
+li metal,batteries,63.56843566894531,term-term,related_to (35),inter_category,35.0
+li metal,table,40.76530838012695,term-term,related_to (24),inter_category,24.0
+li metal,metal,2.0,hierarchical,is_part_of,inter_category,2.0
+li metal,section,43.51604080200195,term-term,related_to (25),inter_category,25.0
+li metal,electrochemical,63.401458740234375,term-term,related_to (35),inter_category,35.0
+li metal,study,56.6944465637207,term-term,related_to (33),inter_category,33.0
+li metal,state,63.698829650878906,term-term,related_to (35),inter_category,35.0
+li metal,voltage,56.07950973510742,term-term,related_to (31),inter_category,31.0
+figure,crack,52.3282356262207,term-term,co-occurs_with (28),intra_category,28.0
+figure,sources,117.47386932373047,term-term,co-occurs_with (69),intra_category,69.0
+figure,fracture,63.532005310058594,term-term,co-occurs_with (34),intra_category,34.0
+figure,the sei,68.89883422851562,term-term,co-occurs_with (39),intra_category,39.0
+figure,cell,123.83035278320312,term-term,related_to (70),inter_category,70.0
+figure,case,101.45635223388672,term-term,co-occurs_with (59),intra_category,59.0
+figure,journal,69.23469543457031,term-term,co-occurs_with (40),intra_category,40.0
+figure,solid,129.4126739501953,term-term,related_to (72),inter_category,72.0
+figure,lithium,133.10629272460938,term-term,related_to (74),inter_category,74.0
+figure,particle,99.4595718383789,term-term,related_to (55),inter_category,55.0
+figure,charge,128.22698974609375,term-term,related_to (72),inter_category,72.0
+figure,batteries,132.54505920410156,term-term,related_to (74),inter_category,74.0
+figure,table,92.04045867919922,term-term,co-occurs_with (55),intra_category,55.0
+figure,metal,117.14025115966797,term-term,related_to (65),inter_category,65.0
+figure,section,97.78634643554688,term-term,co-occurs_with (57),intra_category,57.0
+figure,electrochemical,130.4056396484375,term-term,related_to (73),inter_category,73.0
+figure,study,123.58329772949219,term-term,co-occurs_with (73),intra_category,73.0
+figure,state,129.23098754882812,term-term,related_to (72),inter_category,72.0
+figure,voltage,114.17118835449219,term-term,related_to (64),inter_category,64.0
+journal,crack,31.62717056274414,term-term,co-occurs_with (17),intra_category,17.0
+journal,sources,74.53934478759766,term-term,co-occurs_with (44),intra_category,44.0
+journal,fracture,44.643470764160156,term-term,co-occurs_with (24),intra_category,24.0
+journal,the sei,38.68024444580078,term-term,co-occurs_with (22),intra_category,22.0
+journal,cell,75.70413208007812,term-term,related_to (43),inter_category,43.0
+journal,case,70.1573715209961,term-term,co-occurs_with (41),intra_category,41.0
+journal,solid,78.71399688720703,term-term,related_to (44),inter_category,44.0
+journal,lithium,82.35333251953125,term-term,related_to (46),inter_category,46.0
+journal,particle,64.79682922363281,term-term,related_to (36),inter_category,36.0
+journal,charge,79.76190185546875,term-term,related_to (45),inter_category,45.0
+journal,batteries,82.00445556640625,term-term,related_to (46),inter_category,46.0
+journal,table,58.275665283203125,term-term,co-occurs_with (35),intra_category,35.0
+journal,metal,68.1611328125,term-term,related_to (38),inter_category,38.0
+journal,section,66.57714080810547,term-term,co-occurs_with (39),intra_category,39.0
+journal,electrochemical,80.00706481933594,term-term,related_to (45),inter_category,45.0
+journal,study,75.801513671875,term-term,co-occurs_with (45),intra_category,45.0
+journal,state,78.60296630859375,term-term,related_to (44),inter_category,44.0
+journal,voltage,71.01924133300781,term-term,related_to (40),inter_category,40.0
+fracture,crack,49.95357131958008,term-term,co-occurs_with (25),intra_category,25.0
+fracture,sources,67.77649688720703,term-term,co-occurs_with (37),intra_category,37.0
+fracture,the sei,32.23053741455078,term-term,co-occurs_with (17),intra_category,17.0
+fracture,cell,68.33816528320312,term-term,related_to (36),inter_category,36.0
+fracture,case,62.86180114746094,term-term,co-occurs_with (34),intra_category,34.0
+fracture,solid,71.28699493408203,term-term,related_to (37),inter_category,37.0
+fracture,lithium,73.26441192626953,term-term,related_to (38),inter_category,38.0
+fracture,particle,60.06662368774414,term-term,related_to (31),inter_category,31.0
+fracture,charge,68.7674789428711,term-term,related_to (36),inter_category,36.0
+fracture,batteries,72.97621154785156,term-term,related_to (38),inter_category,38.0
+fracture,table,54.08220291137695,term-term,co-occurs_with (30),intra_category,30.0
+fracture,metal,61.8059196472168,term-term,related_to (32),inter_category,32.0
+fracture,section,55.34481430053711,term-term,co-occurs_with (30),intra_category,30.0
+fracture,electrochemical,70.87926483154297,term-term,related_to (37),inter_category,37.0
+fracture,study,65.59916687011719,term-term,co-occurs_with (36),intra_category,36.0
+fracture,state,73.11778259277344,term-term,related_to (38),inter_category,38.0
+fracture,voltage,59.30926513671875,term-term,related_to (31),inter_category,31.0
+study,crack,52.851810455322266,term-term,co-occurs_with (29),intra_category,29.0
+study,sources,129.1781768798828,term-term,co-occurs_with (78),intra_category,78.0
+study,the sei,77.4111328125,term-term,co-occurs_with (45),intra_category,45.0
+study,cell,136.08663940429688,term-term,related_to (79),inter_category,79.0
+study,case,110.43185424804688,term-term,co-occurs_with (66),intra_category,66.0
+study,solid,141.83172607421875,term-term,related_to (81),inter_category,81.0
+study,lithium,145.444580078125,term-term,related_to (83),inter_category,83.0
+study,particle,107.4799575805664,term-term,related_to (61),inter_category,61.0
+study,charge,140.49783325195312,term-term,related_to (81),inter_category,81.0
+study,batteries,144.81507873535156,term-term,related_to (83),inter_category,83.0
+study,table,102.50563049316406,term-term,co-occurs_with (63),intra_category,63.0
+study,metal,128.1710968017578,term-term,related_to (73),inter_category,73.0
+study,section,108.49543762207031,term-term,co-occurs_with (65),intra_category,65.0
+study,electrochemical,142.6791229248047,term-term,related_to (82),inter_category,82.0
+study,state,141.62733459472656,term-term,related_to (81),inter_category,81.0
+study,voltage,128.57762145996094,term-term,related_to (74),inter_category,74.0
+sources,crack,49.466007232666016,term-term,co-occurs_with (27),intra_category,27.0
+sources,the sei,76.11320495605469,term-term,co-occurs_with (44),intra_category,44.0
+sources,cell,133.38046264648438,term-term,related_to (77),inter_category,77.0
+sources,case,104.33409881591797,term-term,co-occurs_with (62),intra_category,62.0
+sources,solid,137.3273468017578,term-term,related_to (78),inter_category,78.0
+sources,lithium,140.95538330078125,term-term,related_to (80),inter_category,80.0
+sources,particle,100.97917175292969,term-term,related_to (57),inter_category,57.0
+sources,charge,136.04286193847656,term-term,related_to (78),inter_category,78.0
+sources,batteries,140.34864807128906,term-term,related_to (80),inter_category,80.0
+sources,table,101.4736328125,term-term,co-occurs_with (62),intra_category,62.0
+sources,metal,123.57565307617188,term-term,related_to (70),inter_category,70.0
+sources,section,104.08303833007812,term-term,co-occurs_with (62),intra_category,62.0
+sources,electrochemical,138.21739196777344,term-term,related_to (79),inter_category,79.0
+sources,state,138.8885955810547,term-term,related_to (79),inter_category,79.0
+sources,voltage,122.29935455322266,term-term,related_to (70),inter_category,70.0
+crack,the sei,20.858102798461914,term-term,co-occurs_with (11),intra_category,11.0
+crack,cell,49.36254119873047,term-term,related_to (26),inter_category,26.0
+crack,case,46.228843688964844,term-term,co-occurs_with (25),intra_category,25.0
+crack,solid,55.88162612915039,term-term,related_to (29),inter_category,29.0
+crack,lithium,57.84864044189453,term-term,related_to (30),inter_category,30.0
+crack,particle,48.44775390625,term-term,related_to (25),inter_category,25.0
+crack,charge,55.4040641784668,term-term,related_to (29),inter_category,29.0
+crack,batteries,57.62110900878906,term-term,related_to (30),inter_category,30.0
+crack,table,39.666378021240234,term-term,co-occurs_with (22),intra_category,22.0
+crack,metal,54.08794021606445,term-term,related_to (28),inter_category,28.0
+crack,section,40.5922966003418,term-term,co-occurs_with (22),intra_category,22.0
+crack,electrochemical,55.56205749511719,term-term,related_to (29),inter_category,29.0
+crack,state,57.732879638671875,term-term,related_to (30),inter_category,30.0
+crack,voltage,44.01002502441406,term-term,related_to (23),inter_category,23.0
+section,the sei,59.25777053833008,term-term,co-occurs_with (34),intra_category,34.0
+section,cell,109.95035552978516,term-term,related_to (63),inter_category,63.0
+section,case,88.18357849121094,term-term,co-occurs_with (52),intra_category,52.0
+section,solid,115.28640747070312,term-term,related_to (65),inter_category,65.0
+section,lithium,117.14817810058594,term-term,related_to (66),inter_category,66.0
+section,particle,89.22972869873047,term-term,related_to (50),inter_category,50.0
+section,charge,112.45883178710938,term-term,related_to (64),inter_category,64.0
+section,batteries,116.64761352539062,term-term,related_to (66),inter_category,66.0
+section,table,84.13478088378906,term-term,co-occurs_with (51),intra_category,51.0
+section,metal,106.70378875732422,term-term,related_to (60),inter_category,60.0
+section,electrochemical,114.57012939453125,term-term,related_to (65),inter_category,65.0
+section,state,115.12238311767578,term-term,related_to (65),inter_category,65.0
+section,voltage,105.60981750488281,term-term,related_to (60),inter_category,60.0
+the sei,cell,79.03854370117188,term-term,related_to (44),inter_category,44.0
+the sei,case,57.648521423339844,term-term,co-occurs_with (33),intra_category,33.0
+the sei,solid,80.287841796875,term-term,related_to (44),inter_category,44.0
+the sei,lithium,82.17266082763672,term-term,related_to (45),inter_category,45.0
+the sei,particle,55.0704345703125,term-term,related_to (30),inter_category,30.0
+the sei,charge,79.56326293945312,term-term,related_to (44),inter_category,44.0
+the sei,batteries,81.83136749267578,term-term,related_to (45),inter_category,45.0
+the sei,table,57.82680130004883,term-term,co-occurs_with (34),intra_category,34.0
+the sei,metal,75.0088119506836,term-term,related_to (41),inter_category,41.0
+the sei,electrochemical,81.61668395996094,term-term,related_to (45),inter_category,45.0
+the sei,state,80.17681884765625,term-term,related_to (44),inter_category,44.0
+the sei,voltage,70.6387710571289,term-term,related_to (39),inter_category,39.0
+case,cell,111.95475769042969,term-term,related_to (64),inter_category,64.0
+case,solid,115.54961395263672,term-term,related_to (65),inter_category,65.0
+case,lithium,119.1944580078125,term-term,related_to (67),inter_category,67.0
+case,particle,93.00947570800781,term-term,related_to (52),inter_category,52.0
+case,charge,114.47920227050781,term-term,related_to (65),inter_category,65.0
+case,batteries,118.68630981445312,term-term,related_to (67),inter_category,67.0
+case,table,82.68754577636719,term-term,co-occurs_with (50),intra_category,50.0
+case,metal,103.3818588256836,term-term,related_to (58),inter_category,58.0
+case,electrochemical,116.5999984741211,term-term,related_to (66),inter_category,66.0
+case,state,115.38558959960938,term-term,related_to (65),inter_category,65.0
+case,voltage,104.08856201171875,term-term,related_to (59),inter_category,59.0
+table,cell,103.8925552368164,term-term,related_to (61),inter_category,61.0
+table,solid,109.08763885498047,term-term,related_to (63),inter_category,63.0
+table,lithium,110.90464782714844,term-term,related_to (64),inter_category,64.0
+table,particle,78.41282653808594,term-term,related_to (45),inter_category,45.0
+table,charge,108.0501708984375,term-term,related_to (63),inter_category,63.0
+table,batteries,110.41925811767578,term-term,related_to (64),inter_category,64.0
+table,metal,93.76070404052734,term-term,related_to (54),inter_category,54.0
+table,electrochemical,108.3934097290039,term-term,related_to (63),inter_category,63.0
+table,state,107.19963836669922,term-term,related_to (62),inter_category,62.0
+table,voltage,97.93035888671875,term-term,related_to (57),inter_category,57.0
+lithium,cell,148.1026153564453,term-term,co-occurs_with (81),intra_category,81.0
+lithium,solid,154.11610412597656,term-term,co-occurs_with (83),intra_category,83.0
+lithium,particle,113.93446350097656,term-term,co-occurs_with (61),intra_category,61.0
+lithium,charge,152.74928283691406,term-term,co-occurs_with (83),intra_category,83.0
+lithium,batteries,157.298583984375,term-term,co-occurs_with (85),intra_category,85.0
+lithium,metal,139.61851501464844,term-term,co-occurs_with (75),intra_category,75.0
+lithium,electrochemical,155.0472869873047,term-term,co-occurs_with (84),intra_category,84.0
+lithium,state,153.90667724609375,term-term,co-occurs_with (83),intra_category,83.0
+lithium,voltage,138.2510528564453,term-term,co-occurs_with (75),intra_category,75.0
+solid,cell,146.1673583984375,term-term,co-occurs_with (80),intra_category,80.0
+solid,particle,110.12012481689453,term-term,co-occurs_with (59),intra_category,59.0
+solid,charge,148.96041870117188,term-term,co-occurs_with (81),intra_category,81.0
+solid,batteries,153.4866180419922,term-term,co-occurs_with (83),intra_category,83.0
+solid,metal,137.65811157226562,term-term,co-occurs_with (74),intra_category,74.0
+solid,electrochemical,153.0906524658203,term-term,co-occurs_with (83),intra_category,83.0
+solid,state,150.0899200439453,term-term,co-occurs_with (81),intra_category,81.0
+solid,voltage,136.3088836669922,term-term,co-occurs_with (74),intra_category,74.0
+cell,particle,104.7688217163086,term-term,co-occurs_with (57),intra_category,57.0
+cell,charge,143.03932189941406,term-term,co-occurs_with (79),intra_category,79.0
+cell,batteries,147.48829650878906,term-term,co-occurs_with (81),intra_category,81.0
+cell,metal,131.893310546875,term-term,co-occurs_with (72),intra_category,72.0
+cell,electrochemical,147.10186767578125,term-term,co-occurs_with (81),intra_category,81.0
+cell,state,144.1409149169922,term-term,co-occurs_with (79),intra_category,79.0
+cell,voltage,130.58053588867188,term-term,co-occurs_with (72),intra_category,72.0
+batteries,particle,113.4718246459961,term-term,co-occurs_with (61),intra_category,61.0
+batteries,charge,152.1197967529297,term-term,co-occurs_with (83),intra_category,83.0
+batteries,metal,139.0496826171875,term-term,co-occurs_with (75),intra_category,75.0
+batteries,electrochemical,154.41021728515625,term-term,co-occurs_with (84),intra_category,84.0
+batteries,state,153.2771759033203,term-term,co-occurs_with (83),intra_category,83.0
+batteries,voltage,137.68222045898438,term-term,co-occurs_with (75),intra_category,75.0
+electrochemical,particle,111.32539367675781,term-term,co-occurs_with (60),intra_category,60.0
+electrochemical,charge,149.8958282470703,term-term,co-occurs_with (82),intra_category,82.0
+electrochemical,metal,138.69189453125,term-term,co-occurs_with (75),intra_category,75.0
+electrochemical,state,151.03927612304688,term-term,co-occurs_with (82),intra_category,82.0
+electrochemical,voltage,137.3244171142578,term-term,co-occurs_with (75),intra_category,75.0
+state,particle,111.83515930175781,term-term,co-occurs_with (60),intra_category,60.0
+state,charge,148.7560272216797,term-term,co-occurs_with (81),intra_category,81.0
+state,metal,137.47137451171875,term-term,co-occurs_with (74),intra_category,74.0
+state,voltage,134.28265380859375,term-term,co-occurs_with (73),intra_category,73.0
+voltage,particle,100.06034851074219,term-term,co-occurs_with (54),intra_category,54.0
+voltage,charge,133.2647247314453,term-term,co-occurs_with (73),intra_category,73.0
+voltage,metal,123.73368072509766,term-term,co-occurs_with (67),intra_category,67.0
+charge,particle,109.14852142333984,term-term,co-occurs_with (59),intra_category,59.0
+charge,metal,134.59571838378906,term-term,co-occurs_with (73),intra_category,73.0
+particle,metal,101.044921875,term-term,co-occurs_with (54),intra_category,54.0
