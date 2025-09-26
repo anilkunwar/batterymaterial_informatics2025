@@ -52,4 +52,10 @@ PREKnoweldge graph visualization
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradationr2-streamlit-red)](https://batterysolid-priorityenhancedkgvisualr2.streamlit.app/)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradationr3-streamlit-red)](https://batterysolid-priorityenhancedkgvisualr3.streamlit.app/)
+
+## Term categories by integrating regex, scibert embeddings and mlpclassifiers
+
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/integratedknowledgegraphbatterydegradationr1-streamlit-red)](https://knowledge-graph-integrated-categories.streamlit.app/)
 
