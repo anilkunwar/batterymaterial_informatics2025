@@ -487,38 +487,39 @@ try:
     edge_width_factor = st.sidebar.slider("Edge Width Factor", 0.1, 2.0, 0.5)
 
     # Filter the graph with user-based nodes and exclusions
-    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
-        G_filtered = nx.Graph()
-        
-        # Determine nodes to include
-        valid_nodes = set()
-        if selected_nodes:
-            for node in selected_nodes:
-                if node in G.nodes() and G.nodes[node].get('priority_score', 0) >= min_priority_score:
-                    valid_nodes.add(node)
-                    valid_nodes.update(G.neighbors(node))
-        else:
-            for n, d in G.nodes(data=True):
-                if (d.get("frequency", 0) >= min_freq and 
-                    d.get("category", "") in selected_categories and
-                    d.get("type", "") in selected_types and
-                    (not suppress_low_priority or d.get("priority_score', 0) >= min_priority_score)):
-                    valid_nodes.add(n)
-        
-        # Remove excluded terms
-        valid_nodes = {n for n in valid_nodes if not any(ex in n.lower() for ex in excluded_terms)}
-        
-        # Add nodes
-        for n in valid_nodes:
-            G_filtered.add_node(n, **G.nodes[n])
-        
-        # Add edges
-        for u, v, d in G.edges(data=True):
-            if (u in G_filtered.nodes and v in G_filtered.nodes and 
-                d.get("weight", 0) >= min_weight):
-                G_filtered.add_edge(u, v, **d)
-        
-        return G_filtered
+    def filter_graph(G, min_weight, min_freq, selected_categories, selected_types,
+                 selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
+    G_filtered = nx.Graph()
+    
+    # Determine nodes to include
+    valid_nodes = set()
+    if selected_nodes:
+        for node in selected_nodes:
+            if node in G.nodes() and G.nodes[node].get('priority_score', 0) >= min_priority_score:
+                valid_nodes.add(node)
+                valid_nodes.update(G.neighbors(node))
+    else:
+        for n, d in G.nodes(data=True):
+            if (d.get("frequency", 0) >= min_freq and 
+                d.get("category", "") in selected_categories and
+                d.get("type", "") in selected_types and
+                (not suppress_low_priority or d.get("priority_score", 0) >= min_priority_score)):
+                valid_nodes.add(n)
+    
+    # Remove excluded terms
+    valid_nodes = {n for n in valid_nodes if not any(ex in n.lower() for ex in excluded_terms)}
+    
+    # Add nodes
+    for n in valid_nodes:
+        G_filtered.add_node(n, **G.nodes[n])
+    
+    # Add edges
+    for u, v, d in G.edges(data=True):
+        if (u in G_filtered.nodes and v in G_filtered.nodes and 
+            d.get("weight", 0) >= min_weight):
+            G_filtered.add_edge(u, v, **d)
+    
+    return G_filtered
 
     G_filtered = filter_graph(G, min_weight, min_node_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority)
 
