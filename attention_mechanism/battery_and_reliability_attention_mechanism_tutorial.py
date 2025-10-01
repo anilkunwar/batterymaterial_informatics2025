@@ -115,7 +115,7 @@ st.markdown(
     """
     <style>
     textarea {
-        font-size: 20px !important;  /* Increase font size */
+        font-size: 40px !important;  /* Increase font size */
         line-height: 1.6 !important; /* Improve readability */
     }
     </style>
