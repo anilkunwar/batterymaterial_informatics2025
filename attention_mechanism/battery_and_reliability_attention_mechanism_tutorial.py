@@ -110,10 +110,23 @@ def plot_matplotlib_heatmap(attn_matrix, token_strs, cmap, fontsize, show_target
 # Streamlit UI
 st.title("🔬 SciBERT Relevance Scorer")
 
+# Custom CSS for larger font in text area
+st.markdown(
+    """
+    <style>
+    textarea {
+        font-size: 20px !important;  /* Increase font size */
+        line-height: 1.6 !important; /* Improve readability */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 col1, col2 = st.columns([3, 1])
 with col1:
     text = st.text_area("Enter Abstract, Sentence, or Phrase",
-                        "Battery degradation from crack growth and fatigue leads to failure.")
+                        "Battery degradation from crack growth and fatigue leads to failure.", height=200)
 with col2:
     max_tokens = st.slider("Max Tokens to Display", 5, 50, 20)
     show_target_annotations = st.checkbox("Highlight Target Tokens in Matplotlib", value=True)
