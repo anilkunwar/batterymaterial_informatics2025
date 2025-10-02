@@ -14,20 +14,20 @@ st.markdown(
     <style>
     /* Bigger font for the text area label */
     div[data-baseweb="textarea"] > label {
-        font-size: 26px !important;
+        font-size: 70px !important;
         font-weight: 600 !important;
         color: black !important;
     }
 
     /* Bigger font inside the text area itself */
     div[data-baseweb="textarea"] textarea {
-        font-size: 24px !important;
+        font-size: 34px !important;
         line-height: 1.6 !important;
     }
 
     /* Bigger font for the button */
     div.stButton > button {
-        font-size: 22px !important;
+        font-size: 32px !important;
         font-weight: 600 !important;
         padding: 0.6em 1.2em !important;
     }
