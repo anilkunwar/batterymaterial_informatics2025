@@ -11,8 +11,8 @@ st.set_page_config(page_title="SciBERT Relevance Scorer", layout="wide")
 st.markdown(
     """
     <style>
-    /* Bigger font for the text area label */
-    div.stTextArea label {
+    /* Make text input label (above textarea) larger */
+    div.stTextArea > label, div.stTextArea > div > p {
         font-size: 50px !important;
         font-weight: 700 !important;
         color: black !important;
@@ -20,19 +20,20 @@ st.markdown(
 
     /* Bigger font for the user input text inside textarea */
     div.stTextArea textarea {
-        font-size: 70px !important;
+        font-size: 32px !important;
         line-height: 1.6 !important;
     }
 
     /* Bigger font for the button text */
     div.stButton > button p {
-        font-size: 24px !important;
+        font-size: 28px !important;
         font-weight: 700 !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 
 
