@@ -27,7 +27,7 @@ st.markdown(
 
     /* Bigger font for the button */
     div.stButton > button {
-        font-size: 32px !important;
+        font-size: 60px !important;
         font-weight: 600 !important;
         padding: 0.6em 1.2em !important;
     }
