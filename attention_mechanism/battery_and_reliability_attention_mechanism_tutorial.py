@@ -13,13 +13,13 @@ st.markdown(
     <style>
     /* Increase font size of labels (like text_area label) */
     label, .stTextArea label {
-        font-size: 22px !important;
+        font-size: 30px !important;
         font-weight: 600 !important; /* optional: bold */
     }
 
     /* Increase font size of buttons */
     div.stButton > button {
-        font-size: 20px !important;
+        font-size: 30px !important;
         font-weight: 600 !important; /* optional: bold */
         padding: 0.6em 1.2em;
     }
