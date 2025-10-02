@@ -140,8 +140,11 @@ st.markdown(
 
 col1, col2 = st.columns([3, 1])
 with col1:
-    text = st.text_area("Enter Abstract, Sentence, or Phrase",
+    st.markdown('<div class="custom-textarea-label">Enter Abstract, Sentence, or Phrase</div>', unsafe_allow_html=True)
+    text = st.text_area("",
                         "Battery degradation from crack growth and fatigue leads to failure.", height=250)
+    #text = st.text_area("Enter Abstract, Sentence, or Phrase",
+                        #"Battery degradation from crack growth and fatigue leads to failure.", height=250)
 with col2:
     max_tokens = st.slider("Max Tokens to Display", 5, 50, 20)
     show_target_annotations = st.checkbox("Highlight Target Tokens in Matplotlib", value=True)
