@@ -16,6 +16,19 @@ st.markdown(
         font-size: 58px !important;
         font-weight: 700 !important;
     }
+    
+    /* Optional: hide the default (empty) label that may remain when using "" as label */
+    div.stTextArea > label {
+        display: none !important;
+    }
+
+    /* Optional: small layout tweak so the custom label sits neatly above the textarea */
+    .custom-textarea-label {
+        font-size: 42px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #000;
+    }
     </style>
     """,
     unsafe_allow_html=True
