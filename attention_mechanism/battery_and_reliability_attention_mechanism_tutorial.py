@@ -21,7 +21,7 @@ st.markdown(
 
     /* Bigger font inside the text area itself */
     div[data-baseweb="textarea"] textarea {
-        font-size: 34px !important;
+        font-size: 70px !important;
         line-height: 1.6 !important;
     }
 
