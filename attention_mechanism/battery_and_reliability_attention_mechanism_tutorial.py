@@ -13,7 +13,7 @@ st.markdown(
     <style>
     /* Bigger font for the text area label */
     div.stTextArea label {
-        font-size: 28px !important;
+        font-size: 50px !important;
         font-weight: 700 !important;
         color: black !important;
     }
