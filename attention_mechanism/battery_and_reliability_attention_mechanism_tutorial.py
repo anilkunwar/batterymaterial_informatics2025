@@ -8,33 +8,32 @@ import plotly.graph_objects as go
 from io import BytesIO
 
 st.set_page_config(page_title="SciBERT Relevance Scorer", layout="wide")
-# Add this right after st.set_page_config
 st.markdown(
     """
     <style>
     /* Bigger font for the text area label */
-    div[data-baseweb="textarea"] > label {
-        font-size: 70px !important;
-        font-weight: 600 !important;
+    div.stTextArea label {
+        font-size: 28px !important;
+        font-weight: 700 !important;
         color: black !important;
     }
 
-    /* Bigger font inside the text area itself */
-    div[data-baseweb="textarea"] textarea {
+    /* Bigger font for the user input text inside textarea */
+    div.stTextArea textarea {
         font-size: 70px !important;
         line-height: 1.6 !important;
     }
 
-    /* Bigger font for the button */
-    div.stButton > button {
-        font-size: 60px !important;
-        font-weight: 600 !important;
-        padding: 0.6em 1.2em !important;
+    /* Bigger font for the button text */
+    div.stButton > button p {
+        font-size: 24px !important;
+        font-weight: 700 !important;
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
+
 
 
 @st.cache_resource
