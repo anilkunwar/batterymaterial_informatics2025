@@ -13,20 +13,20 @@ st.markdown(
     <style>
     /* Make text input label (above textarea) larger */
     div.stTextArea > label, div.stTextArea > div > p {
-        font-size: 50px !important;
+        font-size: 100px !important;
         font-weight: 700 !important;
         color: black !important;
     }
 
     /* Bigger font for the user input text inside textarea */
     div.stTextArea textarea {
-        font-size: 32px !important;
+        font-size: 70px !important;
         line-height: 1.6 !important;
     }
 
     /* Bigger font for the button text */
     div.stButton > button p {
-        font-size: 28px !important;
+        font-size: 58px !important;
         font-weight: 700 !important;
     }
     </style>
