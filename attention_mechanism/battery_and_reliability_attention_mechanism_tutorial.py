@@ -8,6 +8,25 @@ import plotly.graph_objects as go
 from io import BytesIO
 
 st.set_page_config(page_title="SciBERT Relevance Scorer", layout="wide")
+st.markdown(
+    """
+    <style>
+    /* Increase font size of labels (like text_area label) */
+    label, .stTextArea label {
+        font-size: 22px !important;
+        font-weight: 600 !important; /* optional: bold */
+    }
+
+    /* Increase font size of buttons */
+    div.stButton > button {
+        font-size: 20px !important;
+        font-weight: 600 !important; /* optional: bold */
+        padding: 0.6em 1.2em;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 @st.cache_resource
 def load_scibert():
