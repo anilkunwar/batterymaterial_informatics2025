@@ -64,5 +64,9 @@ PREKnoweldge graph visualization
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/integratedknowledgegraphbatterydegradation2-streamlit-red)](https://knowledge-graph-integrated-categories2.streamlit.app/)
 
 
+## Battery Reliability LLM
+A chat engine for interactive understanding of battery damage and reliability
+
+
 
 
