@@ -25,3 +25,17 @@ torch==2.8.0
 python-louvain
 scikit-learn
 pyvis==0.3.2
+##############
+scikit-image
+pandas
+xgboost
+s3fs
+cmasher
+einops
+sentence-transformers
+accelerate
+#opencv-python>=4.8.0
+opencv-python-headless
+pillow
+numpy
+pytesseract
