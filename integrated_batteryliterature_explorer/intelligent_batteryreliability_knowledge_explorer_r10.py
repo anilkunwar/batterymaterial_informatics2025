@@ -20,8 +20,6 @@ import traceback
 import base64
 from io import BytesIO
 import matplotlib.pyplot as plt
-from transformers import AutoModel, AutoTokenizer, GPT2Tokenizer, GPT2LMHeadModel, AutoModelForCausalLM
-import torch
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 import re
@@ -33,6 +31,19 @@ import math
 from typing import Dict, List, Tuple, Optional, Any, Union
 from dataclasses import dataclass, field, asdict
 import logging
+
+# ----------------------------------------------------------------------------
+# Determine if transformers are available (set TRANSFORMERS_AVAILABLE)
+# ----------------------------------------------------------------------------
+try:
+    from transformers import AutoModel, AutoTokenizer, GPT2Tokenizer, GPT2LMHeadModel, AutoModelForCausalLM
+    import torch
+    TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    TRANSFORMERS_AVAILABLE = False
+    # Create dummy objects so the code can still run without transformers
+    AutoModel = AutoTokenizer = GPT2Tokenizer = GPT2LMHeadModel = AutoModelForCausalLM = None
+    torch = None
 
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
@@ -233,6 +244,8 @@ class ParsedParameters:
 # ============================================================================
 @st.cache_resource
 def load_scibert():
+    if not TRANSFORMERS_AVAILABLE:
+        return None, None
     try:
         tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased")
         model = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
@@ -951,6 +964,55 @@ class RelevanceScorer:
             return min(1.0, matches / 50.0)
 
 # ============================================================================
+# DATA LOADING FUNCTION (added to fix missing definition)
+# ============================================================================
+@st.cache_data
+def load_data():
+    """
+    Loads nodes and edges DataFrames from CSV files.
+    If files are not found, creates small sample data for demonstration.
+    """
+    nodes_file = os.path.join(DB_DIR, 'nodes.csv')
+    edges_file = os.path.join(DB_DIR, 'edges.csv')
+
+    if os.path.exists(nodes_file) and os.path.exists(edges_file):
+        nodes_df = pd.read_csv(nodes_file)
+        edges_df = pd.read_csv(edges_file)
+    else:
+        # Create sample data to allow the app to run
+        st.warning("Data files not found. Using sample data.")
+        sample_nodes = [
+            {"node": "electrode cracking", "type": "term", "category": "Crack and Fracture", "frequency": 120, "unit": "μm", "similarity_score": 0.85, "year": 2020},
+            {"node": "SEI formation", "type": "term", "category": "Degradation", "frequency": 200, "unit": "nm", "similarity_score": 0.75, "year": 2021},
+            {"node": "capacity fade", "type": "term", "category": "Degradation", "frequency": 180, "unit": "%", "similarity_score": 0.8, "year": 2022},
+            {"node": "lithium plating", "type": "term", "category": "Degradation", "frequency": 90, "unit": "V", "similarity_score": 0.7, "year": 2021},
+            {"node": "diffusion-induced stress", "type": "term", "category": "Deformation", "frequency": 60, "unit": "MPa", "similarity_score": 0.9, "year": 2020},
+            {"node": "thermal runaway", "type": "term", "category": "Degradation", "frequency": 150, "unit": "°C", "similarity_score": 0.95, "year": 2022},
+        ]
+        sample_edges = [
+            {"source": "electrode cracking", "target": "capacity fade", "weight": 25, "type": "leads_to", "label": "causes", "relationship": "causal", "strength": 0.8},
+            {"source": "SEI formation", "target": "capacity fade", "weight": 30, "type": "leads_to", "label": "contributes_to", "relationship": "causal", "strength": 0.7},
+            {"source": "lithium plating", "target": "capacity fade", "weight": 15, "type": "leads_to", "label": "accelerates", "relationship": "causal", "strength": 0.6},
+            {"source": "diffusion-induced stress", "target": "electrode cracking", "weight": 20, "type": "leads_to", "label": "induces", "relationship": "causal", "strength": 0.9},
+            {"source": "thermal runaway", "target": "capacity fade", "weight": 10, "type": "leads_to", "label": "causes", "relationship": "causal", "strength": 0.5},
+        ]
+        nodes_df = pd.DataFrame(sample_nodes)
+        edges_df = pd.DataFrame(sample_edges)
+
+    # Ensure required columns exist
+    required_node_cols = ['node', 'type', 'category', 'frequency']
+    for col in required_node_cols:
+        if col not in nodes_df.columns:
+            nodes_df[col] = '' if col != 'frequency' else 0
+
+    required_edge_cols = ['source', 'target', 'weight']
+    for col in required_edge_cols:
+        if col not in edges_df.columns:
+            edges_df[col] = '' if col != 'weight' else 0
+
+    return edges_df, nodes_df
+
+# ============================================================================
 # MAIN APPLICATION
 # ============================================================================
 def main():
@@ -1109,8 +1171,9 @@ def main():
                     st.metric(k.replace('_',' ').title(), str(v)[:50])
 
             analysis_type = params.get('analysis_type', 'Centrality Analysis')
-        else:
-            analysis_type = "Centrality Analysis"
+    else:
+        # If no query or button not pressed, still set a default analysis type
+        analysis_type = "Centrality Analysis"
 
     # Always run analysis with current filter settings (if graph nonempty)
     if G_filtered.number_of_nodes() > 0:
