@@ -1324,6 +1324,14 @@ try:
             if physics_detected:
                 st.markdown("**🔬 Physics Terms Detected:** " + ", ".join(physics_detected))
             
+            # Confidence check: if too few parameters deviate from defaults, show a warning
+            default_params = parser.defaults
+            changed_params = sum(1 for k in params if k in default_params and params[k] != default_params[k])
+            total_params = len(default_params)
+            confidence = changed_params / total_params if total_params > 0 else 0
+            if confidence < 0.3:
+                st.warning("⚠️ Low confidence in parsing your query. The system may not have understood all details. You can manually adjust the sidebar filters.")
+            
             # Relevance
             all_nodes = list(G.nodes())
             relevance = st.session_state.relevance_scorer.score_query_to_nodes(user_query, all_nodes[:100])
@@ -1524,7 +1532,7 @@ try:
 
     # Visualization
     if G_filtered.number_of_nodes() > 0:
-        # FIX: Define analysis_type with a default value for the visualization title
+        # FIX: Define analysis_type_display with a default value for the visualization title
         if st.session_state.last_params:
             analysis_type_display = st.session_state.last_params.get('analysis_type', 'General View')
         else:
