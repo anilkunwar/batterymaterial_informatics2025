@@ -69,4 +69,8 @@ A chat engine for interactive understanding of battery damage and reliability
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt1-streamlit-red)](https://batteryreliabilitygpt1.streamlit.app/) (gpt interface to knowledge graph r2)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt2-streamlit-red)](https://batteryreliabilitygpt2.streamlit.app/) (automated gpt interface to knowledge graph r2)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt3-streamlit-red)](https://batteryreliabilitygpt3.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis)
+
 
