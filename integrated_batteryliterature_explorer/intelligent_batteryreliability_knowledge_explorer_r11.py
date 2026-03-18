@@ -1,14 +1,3 @@
-The issue is that the code looks for `nodes.csv` and `edges.csv` in a specific directory defined by `DB_DIR`. If your files are in a subfolder (e.g., `data/`), the parent directory, or the Streamlit Cloud root, the static path fails.
-
-Additionally, the code snippet you provided has **re-introduced** the global SciBERT loading at the top of the file. This will cause the `StreamlitSetPageConfigMustBeFirstCommandError` again because `load_scibert()` contains `st.warning()`, which renders before `st.set_page_config()`.
-
-Here is the complete, fixed solution. It does two things:
-1.  **Robust Data Loading:** It "learns" where your files are by searching multiple common locations (current folder, parent folder, `data/` subfolder, and Streamlit root).
-2.  **Streamlit Config Fix:** It keeps the model loading inside `main()` so the page config runs first.
-
-Replace your entire file with this:
-
-```python
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
@@ -1303,4 +1292,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
+
