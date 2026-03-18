@@ -4,6 +4,7 @@
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
 HOLISTIC ARCHITECTURE WITH PHYSICS-GROUNDED LLM REASONING
+Now with full CoreShellGPT parsing & widget auto-update (merged from CODE 2)
 
 Core Innovations:
 1. Natural language query → FULL sidebar auto-update (CoreShellGPT pattern)
@@ -536,12 +537,12 @@ def load_llm(backend):
         return None, None, backend
 
 # -----------------------
-# 8. INTELLIGENT NLP PARSER (Physics-aware)
+# 8. INTELLIGENT NLP PARSER (Merged from CODE 2 – robust regex + confidence merging)
 # -----------------------
 class BatteryNLParser:
     """
     Extract knowledge graph parameters from natural language
-    Now with physics term recognition and advanced confidence merging
+    Now with full CoreShellGPT-style parsing: regex + LLM + confidence merging + ensemble
     """
     def __init__(self):
         self.defaults = {
@@ -565,9 +566,9 @@ class BatteryNLParser:
             'target_terms': ['capacity fade'],
             'central_nodes': ['electrode cracking', 'SEI formation', 'capacity fade'],
             'time_column': 'year',
-            'physics_boost_weight': 0.15,  # NEW: physics term weight
-            'require_physics_in_pathways': False,  # NEW: filter pathways
-            'min_physics_similarity': 0.5  # NEW: threshold for physics relevance
+            'physics_boost_weight': 0.15,
+            'require_physics_in_pathways': False,
+            'min_physics_similarity': 0.5
         }
         
         # Physics term dictionary for recognition
@@ -582,7 +583,7 @@ class BatteryNLParser:
             'degradation': ['degradation', 'fade', 'aging', 'deterioration']
         }
         
-        # Regex patterns (same as before)
+        # Comprehensive regex patterns (from CODE 2)
         self.patterns = {
             'min_weight': [
                 r'min(?:imum)?\s*edge\s*weight\s*(?:of|>=|>|=)?\s*(\d+)',
@@ -595,6 +596,25 @@ class BatteryNLParser:
             'min_priority_score': [
                 r'priority\s*score\s*(?:of|>=|>|=)?\s*(\d*\.?\d+)',
                 r'min(?:imum)?\s*priority\s*(\d*\.?\d+)'
+            ],
+            'priority_threshold': [
+                r'highlight\s*threshold\s*(?:of|>=|>|=)?\s*(\d*\.?\d+)',
+                r'threshold\s*(\d*\.?\d+)'
+            ],
+            'excluded_terms': [
+                r'exclude\s*(?:terms?)?\s*:?\s*([a-zA-Z,\s]+)',
+                r'ignore\s*([a-zA-Z,\s]+)',
+                r'without\s*([a-zA-Z,\s]+)'
+            ],
+            'suppress_low_priority': [
+                r'suppress\s*low\s*priority',
+                r'hide\s*low\s*priority',
+                r'only\s*high\s*priority'
+            ],
+            'highlight_priority': [
+                r'highlight\s*high\s*priority',
+                r'show\s*priority',
+                r'mark\s*important'
             ],
             'physics_boost_weight': [
                 r'physics\s*boost\s*(?:of|>=|>|=)?\s*(\d*\.?\d+)',
@@ -642,7 +662,7 @@ class BatteryNLParser:
                 match = re.search(pattern, text_lower)
                 if match:
                     try:
-                        if param == 'require_physics_in_pathways':
+                        if param in ['suppress_low_priority', 'highlight_priority', 'require_physics_in_pathways']:
                             params[param] = True
                         elif param == 'excluded_terms':
                             terms = [t.strip() for t in match.group(1).split(',')]
@@ -690,6 +710,15 @@ class BatteryNLParser:
                 params['focus_terms'] = [t.strip() for t in match.group(1).split(',')]
                 break
         
+        # Extract categories
+        categories = ["Crack and Fracture", "Deformation", "Degradation", "Fatigue", "Mechanical", "Chemical"]
+        found_cats = []
+        for cat in categories:
+            if cat.lower() in text_lower:
+                found_cats.append(cat)
+        if found_cats:
+            params['selected_categories'] = found_cats
+        
         return params
 
     def _extract_json_robust(self, generated):
@@ -726,26 +755,35 @@ Recognize and prioritize physics terms (stress, diffusion, SEI, plating, etc.)."
 
         examples = """
 Examples with physics context:
-1. "Show me pathways from electrode cracking to capacity fade that involve diffusion-induced stress"
-   → {"analysis_type": "Pathway Analysis", "source_terms": ["electrode cracking"], "target_terms": ["capacity fade"], "focus_terms": ["diffusion-induced stress"], "require_physics_in_pathways": true}
+1. "Show me pathways from electrode cracking to capacity fade with min edge weight 20 and high priority nodes only"
+→ {"analysis_type": "Pathway Analysis", "source_terms": ["electrode cracking"], "target_terms": ["capacity fade"], "min_weight": 20, "min_priority_score": 0.7, "highlight_priority": true}
 
-2. "Analyze communities related to chemo-mechanical degradation, boost physics terms to 0.2 weight"
-   → {"analysis_type": "Community Detection", "focus_terms": ["chemo-mechanical", "degradation"], "physics_boost_weight": 0.2, "selected_categories": ["Crack and Fracture", "Degradation"]}
+2. "Analyze communities related to mechanical degradation, include nodes with frequency > 10"
+→ {"analysis_type": "Community Detection", "focus_terms": ["mechanical", "degradation"], "min_freq": 10, "selected_categories": ["Crack and Fracture", "Degradation"]}
 
-3. "Show ego network around stress concentration and fracture, min physics similarity 0.6"
-   → {"analysis_type": "Ego Network Analysis", "central_nodes": ["stress concentration", "fracture"], "min_physics_similarity": 0.6}
+3. "Show ego network around SEI formation and lithium plating, suppress low priority nodes"
+→ {"analysis_type": "Ego Network Analysis", "central_nodes": ["SEI formation", "lithium plating"], "suppress_low_priority": true, "min_priority_score": 0.5}
 
-4. "Find correlations between thermal runaway and mechanical degradation, require physics terms"
-   → {"analysis_type": "Correlation Analysis", "focus_terms": ["thermal runaway", "mechanical degradation"], "require_physics_in_pathways": true}
+4. "How have failure concepts evolved over time? Highlight high-priority nodes above 0.6"
+→ {"analysis_type": "Temporal Analysis", "highlight_priority": true, "priority_threshold": 0.6, "time_column": "year"}
 
-5. "How have SEI formation and lithium plating concepts evolved? Focus on physics terms"
-   → {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "lithium plating"], "time_column": "year"}
+5. "Find correlations between cracking and degradation mechanisms, exclude generic terms like 'battery'"
+→ {"analysis_type": "Correlation Analysis", "focus_terms": ["cracking", "degradation"], "excluded_terms": ["battery"]}
 
-Battery physics equations for context:
-• Diffusion stress: σ = E·Ω·Δc/(1-ν)
-• SEI growth: δ_SEI ∝ √t
-• Chemo-mechanical: LAM ∝ ∫σ dN
-• Plating risk: ↑ when V < V_plate or T < 0°C
+6. "Show me the most important degradation mechanisms with min edge weight 15, min frequency 8, and priority score above 0.3"
+→ {"analysis_type": "Centrality Analysis", "min_weight": 15, "min_freq": 8, "min_priority_score": 0.3, "focus_terms": ["degradation"]}
+
+7. "Focus only on crack and fracture categories, with edge width factor 0.8 and larger labels"
+→ {"selected_categories": ["Crack and Fracture"], "edge_width_factor": 0.8, "label_font_size": 18, "show_labels": true}
+
+8. "Find pathways from micro-cracking to thermal runaway, exclude 'electrolyte' from analysis"
+→ {"analysis_type": "Pathway Analysis", "source_terms": ["micro-cracking"], "target_terms": ["thermal runaway"], "excluded_terms": ["electrolyte"]}
+
+9. "Show me the ego network around cyclic mechanical damage with neighbors up to radius 2, highlight important nodes"
+→ {"analysis_type": "Ego Network Analysis", "central_nodes": ["cyclic mechanical damage"], "highlight_priority": true, "priority_threshold": 0.7}
+
+10. "Analyze temporal patterns of SEI formation and electrode cracking, include all categories"
+→ {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "electrode cracking"], "selected_categories": ["Crack and Fracture", "Deformation", "Degradation", "Fatigue"]}
 """
         
         user = f"""{examples}
@@ -799,8 +837,51 @@ JSON:"""
         except Exception as e:
             return regex_params if regex_params else self.defaults.copy()
 
+    def parse_with_ensemble(self, text, tokenizer, model, n_runs=3, temperature=0.2):
+        """Run multiple LLM parses and combine with voting - from CODE 2"""
+        regex_params = self.parse_regex(text)
+        all_params = []
+        
+        for i in range(n_runs):
+            params = self.parse_with_llm(text, tokenizer, model, regex_params, temperature)
+            all_params.append(params)
+        
+        # Combine by voting/averaging
+        combined = {}
+        for key in self.defaults:
+            values = [p[key] for p in all_params]
+            
+            if isinstance(self.defaults[key], bool):
+                combined[key] = max(set(values), key=values.count)
+            elif isinstance(self.defaults[key], (int, float)):
+                numeric_vals = [v for v in values if isinstance(v, (int, float))]
+                if numeric_vals:
+                    combined[key] = float(np.mean(numeric_vals))
+                else:
+                    combined[key] = self.defaults[key]
+            elif isinstance(self.defaults[key], list):
+                flat_vals = []
+                for vlist in values:
+                    if isinstance(vlist, list):
+                        flat_vals.extend(vlist)
+                if flat_vals:
+                    from collections import Counter
+                    counter = Counter(flat_vals)
+                    top_items = [item for item, _ in counter.most_common(10)]
+                    combined[key] = top_items
+                else:
+                    combined[key] = self.defaults[key]
+            else:
+                str_vals = [str(v) for v in values if v is not None]
+                if str_vals:
+                    combined[key] = max(set(str_vals), key=str_vals.count)
+                else:
+                    combined[key] = self.defaults[key]
+        
+        return combined
+
     def hybrid_parse(self, text, tokenizer=None, model=None, use_ensemble=False, ensemble_runs=3):
-        """Combine regex and LLM with confidence-based merging"""
+        """Combine regex and LLM with confidence-based merging - from CODE 2"""
         regex_params = self.parse_regex(text)
         
         if tokenizer is None or model is None:
@@ -821,28 +902,7 @@ JSON:"""
         
         # Get LLM parameters
         if use_ensemble:
-            all_llm = []
-            for _ in range(ensemble_runs):
-                llm = self.parse_with_llm(text, tokenizer, model, regex_params, temperature=0.2)
-                all_llm.append(llm)
-            
-            # Ensemble voting
-            llm_params = {}
-            for key in self.defaults:
-                values = [p[key] for p in all_llm]
-                if isinstance(self.defaults[key], bool):
-                    llm_params[key] = max(set(values), key=values.count)
-                elif isinstance(self.defaults[key], (int, float)):
-                    numeric = [v for v in values if isinstance(v, (int, float))]
-                    llm_params[key] = float(np.mean(numeric)) if numeric else self.defaults[key]
-                elif isinstance(self.defaults[key], list):
-                    flat = []
-                    for vlist in values:
-                        if isinstance(vlist, list):
-                            flat.extend(vlist)
-                    llm_params[key] = list(set(flat))[:10] if flat else self.defaults[key]
-                else:
-                    llm_params[key] = max(set(values), key=values.count)
+            llm_params = self.parse_with_ensemble(text, tokenizer, model, n_runs=ensemble_runs)
         else:
             llm_params = self.parse_with_llm(text, tokenizer, model, regex_params)
         
@@ -869,8 +929,36 @@ JSON:"""
         
         return final_params
 
+    def get_explanation(self, params, original_text):
+        """Generate explanation of parsed parameters"""
+        lines = ["### 📋 Parsed Parameters from Query", ""]
+        lines.append(f"**Query:** _{original_text}_")
+        lines.append("")
+        lines.append("| Parameter | Value | Status |")
+        lines.append("|-----------|-------|--------|")
+        for key, val in params.items():
+            if key in ['selected_categories', 'selected_types', 'selected_nodes', 'excluded_terms', 'focus_terms', 'source_terms', 'target_terms', 'central_nodes']:
+                if isinstance(val, list):
+                    val_str = ', '.join(str(v) for v in val[:5])
+                    if len(val) > 5:
+                        val_str += f"... (+{len(val)-5})"
+                else:
+                    val_str = str(val)
+            else:
+                if isinstance(val, float):
+                    val_str = f"{val:.3f}"
+                elif isinstance(val, bool):
+                    val_str = "✓" if val else "✗"
+                else:
+                    val_str = str(val)
+            
+            status = "📌 Extracted" if val != self.defaults.get(key) else "⚪ Default"
+            lines.append(f"| {key} | {val_str} | {status} |")
+        
+        return "\n".join(lines)
+
 # -----------------------
-# 9. PHYSICS-GROUNDED INSIGHT GENERATOR
+# 9. PHYSICS-GROUNDED INSIGHT GENERATOR (Enhanced with equations)
 # -----------------------
 class DegradationInsightGenerator:
     """Generate intelligent insights using physics equations and graph metrics"""
@@ -1027,15 +1115,24 @@ Insights:"""
         return "\n".join(summary_lines)
 
 # -----------------------
-# 10. SIDEBAR UPDATE UTILITY
+# 10. SIDEBAR UPDATE UTILITY (Type-safe from CODE 2)
 # -----------------------
 def apply_params_to_sidebar(params):
-    """Update session state with parsed parameters and force rerun"""
+    """Update session state with parsed parameters and force rerun - with type safety"""
     for key, val in params.items():
-        if key in ['min_weight', 'min_freq', 'min_priority_score', 'priority_threshold', 
-                   'edge_width_factor', 'label_font_size', 'label_max_chars',
-                   'physics_boost_weight', 'min_physics_similarity']:
-            st.session_state[f'auto_{key}'] = val
+        if key in ['min_weight', 'min_freq']:
+            if isinstance(val, list):
+                val = val[0] if val else 10
+            st.session_state[f'auto_{key}'] = int(val)
+        elif key in ['min_priority_score', 'priority_threshold', 'edge_width_factor',
+                     'physics_boost_weight', 'min_physics_similarity']:
+            if isinstance(val, list):
+                val = val[0] if val else 0.5
+            st.session_state[f'auto_{key}'] = float(val)
+        elif key in ['label_font_size', 'label_max_chars']:
+            if isinstance(val, list):
+                val = val[0] if val else 16
+            st.session_state[f'auto_{key}'] = int(val)
         elif key == 'excluded_terms':
             if isinstance(val, list):
                 st.session_state['auto_excluded'] = ', '.join(val)
@@ -1048,7 +1145,7 @@ def apply_params_to_sidebar(params):
         elif key == 'selected_types':
             st.session_state['auto_selected_types'] = val if isinstance(val, list) else [val]
         elif key in ['suppress_low_priority', 'highlight_priority', 'show_labels', 'require_physics_in_pathways']:
-            st.session_state[f'auto_{key}'] = val
+            st.session_state[f'auto_{key}'] = bool(val)
         elif key == 'analysis_type':
             st.session_state['auto_analysis_type'] = val
     
@@ -1305,24 +1402,8 @@ try:
             st.session_state.last_params = params
             st.session_state.last_query = user_query
             
-            # Show parsed parameters
-            st.markdown("### 📋 Parsed Parameters")
-            param_cols = st.columns(3)
-            physics_detected = []
-            for i, (key, val) in enumerate(params.items()):
-                if key in ['physics_boost_weight', 'require_physics_in_pathways', 'min_physics_similarity']:
-                    physics_detected.append(f"{key}: {val}")
-                with param_cols[i % 3]:
-                    if isinstance(val, list):
-                        val_str = ', '.join(str(v) for v in val[:3])
-                        if len(val) > 3:
-                            val_str += f"... (+{len(val)-3})"
-                    else:
-                        val_str = str(val)
-                    st.metric(key.replace('_', ' ').title(), val_str)
-            
-            if physics_detected:
-                st.markdown("**🔬 Physics Terms Detected:** " + ", ".join(physics_detected))
+            # Show parsed parameters in a nice table
+            st.markdown(parser.get_explanation(params, user_query))
             
             # Confidence check: if too few parameters deviate from defaults, show a warning
             default_params = parser.defaults
@@ -1340,7 +1421,7 @@ try:
                        f"<span style='color:{conf_color};font-weight:bold;'>{conf_text}</span>",
                        unsafe_allow_html=True)
             
-            # Apply to sidebar
+            # Apply to sidebar (type-safe)
             apply_params_to_sidebar(params)
 
     # Sidebar Filters (all reading from session_state)
@@ -1349,20 +1430,29 @@ try:
         
         col1, col2 = st.columns(2)
         with col1:
+            # Type-safe value extraction
+            auto_min_weight = st.session_state.get('auto_min_weight', 10)
+            if isinstance(auto_min_weight, list):
+                auto_min_weight = auto_min_weight[0] if auto_min_weight else 10
+            
             min_weight = st.slider(
                 "Min edge weight", 
                 min_value=int(edges_df["weight"].min()), 
                 max_value=int(edges_df["weight"].max()), 
-                value=st.session_state.get('auto_min_weight', 10), 
+                value=int(auto_min_weight), 
                 step=1,
                 key="min_weight_slider"
             )
         with col2:
+            auto_min_freq = st.session_state.get('auto_min_freq', 5)
+            if isinstance(auto_min_freq, list):
+                auto_min_freq = auto_min_freq[0] if auto_min_freq else 5
+            
             min_node_freq = st.slider(
                 "Min node frequency", 
                 min_value=int(nodes_df["frequency"].min()), 
                 max_value=int(nodes_df["frequency"].max()), 
-                value=st.session_state.get('auto_min_freq', 5), 
+                value=int(auto_min_freq), 
                 step=1,
                 key="min_freq_slider"
             )
@@ -1370,6 +1460,8 @@ try:
         # Categories
         categories = sorted(nodes_df["category"].dropna().unique())
         default_cats = st.session_state.get('auto_selected_categories', categories)
+        if isinstance(default_cats, str):
+            default_cats = [default_cats]
         selected_categories = st.multiselect(
             "Filter by category", 
             categories, 
@@ -1380,6 +1472,8 @@ try:
         # Node types
         node_types = sorted(nodes_df["type"].dropna().unique())
         default_types = st.session_state.get('auto_selected_types', node_types)
+        if isinstance(default_types, str):
+            default_types = [default_types]
         selected_types = st.multiselect(
             "Filter by node type", 
             node_types, 
@@ -1388,10 +1482,14 @@ try:
         )
 
         # Priority
+        auto_min_priority = st.session_state.get('auto_min_priority_score', 0.2)
+        if isinstance(auto_min_priority, list):
+            auto_min_priority = auto_min_priority[0] if auto_min_priority else 0.2
+        
         min_priority = st.slider(
             "Min priority score", 
             0.0, 1.0, 
-            st.session_state.get('auto_min_priority_score', 0.2), 
+            float(auto_min_priority), 
             0.05,
             key="priority_slider"
         )
@@ -1400,6 +1498,8 @@ try:
         st.subheader("🔍 Node Inclusion/Exclusion")
         default_selected = st.session_state.get('auto_selected_nodes', 
                                                ["electrode cracking", "SEI formation", "capacity fade"])
+        if not isinstance(default_selected, list):
+            default_selected = [default_selected]
         default_selected = [n for n in default_selected if n in G.nodes()]
         selected_nodes = st.multiselect(
             "Include specific nodes", 
@@ -1418,65 +1518,93 @@ try:
 
         # Physics settings
         st.subheader("🔬 Physics Settings")
+        auto_physics_boost = st.session_state.get('auto_physics_boost_weight', 0.15)
+        if isinstance(auto_physics_boost, list):
+            auto_physics_boost = auto_physics_boost[0] if auto_physics_boost else 0.15
+        
         physics_boost = st.slider(
             "Physics boost weight", 
             0.0, 0.5, 
-            st.session_state.get('auto_physics_boost_weight', 0.15), 
+            float(auto_physics_boost), 
             0.05,
             key="physics_boost_slider",
             help="Higher values prioritize nodes matching battery physics terms"
         )
         
+        auto_require_physics = st.session_state.get('auto_require_physics_in_pathways', False)
         require_physics = st.checkbox(
             "Require physics terms in pathways", 
-            value=st.session_state.get('auto_require_physics_in_pathways', False),
+            value=auto_require_physics,
             key="physics_require_checkbox"
         )
 
         # Highlighting
         st.subheader("🎯 Highlighting")
+        auto_highlight = st.session_state.get('auto_highlight_priority', True)
         highlight = st.checkbox(
             "Highlight high-priority nodes", 
-            value=st.session_state.get('auto_highlight_priority', True),
+            value=auto_highlight,
             key="highlight_checkbox"
         )
+        
+        auto_threshold = st.session_state.get('auto_priority_threshold', 0.7)
+        if isinstance(auto_threshold, list):
+            auto_threshold = auto_threshold[0] if auto_threshold else 0.7
+        
         threshold = st.slider(
             "Highlight threshold", 
             0.5, 1.0, 
-            st.session_state.get('auto_priority_threshold', 0.7), 
+            float(auto_threshold), 
             0.05,
             key="threshold_slider"
         )
+        
+        auto_suppress = st.session_state.get('auto_suppress_low_priority', False)
         suppress = st.checkbox(
             "Suppress low-priority nodes", 
-            value=st.session_state.get('auto_suppress_low_priority', False),
+            value=auto_suppress,
             key="suppress_checkbox"
         )
 
         # Labels
         st.subheader("📝 Labels")
+        auto_show_labels = st.session_state.get('auto_show_labels', True)
         show_labels = st.checkbox(
             "Show labels", 
-            value=st.session_state.get('auto_show_labels', True),
+            value=auto_show_labels,
             key="labels_checkbox"
         )
+        
+        auto_label_size = st.session_state.get('auto_label_font_size', 16)
+        if isinstance(auto_label_size, list):
+            auto_label_size = auto_label_size[0] if auto_label_size else 16
+        
         label_size = st.slider(
             "Font size", 
             10, 100, 
-            st.session_state.get('auto_label_font_size', 16),
+            int(auto_label_size),
             key="font_slider"
         )
+        
+        auto_max_chars = st.session_state.get('auto_label_max_chars', 15)
+        if isinstance(auto_max_chars, list):
+            auto_max_chars = auto_max_chars[0] if auto_max_chars else 15
+        
         max_chars = st.slider(
             "Max chars", 
             10, 30, 
-            st.session_state.get('auto_label_max_chars', 15),
+            int(auto_max_chars),
             key="chars_slider"
         )
+        
+        auto_edge_width = st.session_state.get('auto_edge_width_factor', 0.5)
+        if isinstance(auto_edge_width, list):
+            auto_edge_width = auto_edge_width[0] if auto_edge_width else 0.5
         
         edge_width = st.slider(
             "Edge width factor", 
             0.1, 2.0, 
-            st.session_state.get('auto_edge_width_factor', 0.5),
+            float(auto_edge_width),
             key="edge_slider"
         )
 
@@ -1532,7 +1660,7 @@ try:
 
     # Visualization
     if G_filtered.number_of_nodes() > 0:
-        # FIX: Define analysis_type_display with a default value for the visualization title
+        # Determine analysis type for title
         if st.session_state.last_params:
             analysis_type_display = st.session_state.last_params.get('analysis_type', 'General View')
         else:
