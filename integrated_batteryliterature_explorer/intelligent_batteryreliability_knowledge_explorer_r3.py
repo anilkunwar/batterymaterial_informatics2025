@@ -58,12 +58,12 @@ DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() e
 
 # Battery degradation physics equations (for LLM grounding)
 PHYSICS_EQUATIONS = {
-    "diffusion_stress": r"σ = \\frac{E \\Omega \\Delta c}{1 - \\nu}  (E: modulus, Ω: partial molar volume, Δc: concentration gradient)",
+    "diffusion_stress": r"σ = \frac{E \Omega \Delta c}{1 - \nu}  (E: modulus, Ω: partial molar volume, Δc: concentration gradient)",
     "sei_growth": r"δ_SEI ∝ √t  (parabolic growth kinetics)",
-    "chemo_mechanical": r"LAM ∝ \\int \\sigma \\, dN  (stress-integrated over cycles)",
+    "chemo_mechanical": r"LAM ∝ \int \sigma \, dN  (stress-integrated over cycles)",
     "lithium_plating": r"Risk ↑ when V < V_plate or T < 0°C",
-    "capacity_fade": r"Q_loss = Q_0 - \\int I(t) dt  (integrated current loss)",
-    "crack_propagation": r"\\frac{da}{dN} = C(\\Delta K)^m  (Paris law for fatigue)"
+    "capacity_fade": r"Q_loss = Q_0 - \int I(t) dt  (integrated current loss)",
+    "crack_propagation": r"\frac{da}{dN} = C(\Delta K)^m  (Paris law for fatigue)"
 }
 
 # Key battery physics terms for semantic boosting
@@ -582,7 +582,7 @@ class BatteryNLParser:
             'degradation': ['degradation', 'fade', 'aging', 'deterioration']
         }
         
-        # Regex patterns
+        # Regex patterns (same as before)
         self.patterns = {
             'min_weight': [
                 r'min(?:imum)?\s*edge\s*weight\s*(?:of|>=|>|=)?\s*(\d+)',
@@ -615,7 +615,6 @@ class BatteryNLParser:
             'important': 'Centrality Analysis',
             'community': 'Community Detection',
             'cluster': 'Community Detection',
-            'group': 'Community Detection',
             'ego': 'Ego Network Analysis',
             'neighborhood': 'Ego Network Analysis',
             'pathway': 'Pathway Analysis',
@@ -1480,14 +1479,10 @@ try:
         )
         st.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
 
-    # Determine analysis type for visualization (FIXED: defined with fallback)
-    if st.session_state.last_params:
-        analysis_type = st.session_state.last_params.get('analysis_type', 'Centrality Analysis')
-    else:
-        analysis_type = "Knowledge Graph Explorer"
-
-    # Run analysis if we have a query and graph is non-empty
+    # Run analysis if we have a query
     if G_filtered.number_of_nodes() > 0 and st.session_state.last_params:
+        analysis_type = st.session_state.last_params.get('analysis_type', 'Centrality Analysis')
+        
         # Run analysis
         results = run_analysis(analysis_type, st.session_state.last_params, 
                               G_filtered, nodes_df, edges_df)
@@ -1529,6 +1524,12 @@ try:
 
     # Visualization
     if G_filtered.number_of_nodes() > 0:
+        # FIX: Define analysis_type with a default value for the visualization title
+        if st.session_state.last_params:
+            analysis_type_display = st.session_state.last_params.get('analysis_type', 'General View')
+        else:
+            analysis_type_display = 'General View'
+        
         # Node coloring by category
         cats = list(set([G_filtered.nodes[n].get('category', 'Unknown') for n in G_filtered.nodes()]))
         color_map = {c: px.colors.qualitative.Set3[i % len(px.colors.qualitative.Set3)] for i, c in enumerate(cats)}
@@ -1606,7 +1607,7 @@ try:
             ))
         
         fig.update_layout(
-            title=f"Battery Degradation Knowledge Graph - {analysis_type}",
+            title=f"Battery Degradation Knowledge Graph - {analysis_type_display}",
             showlegend=True,
             legend=dict(x=1.05, y=1),
             hovermode='closest',
@@ -1660,7 +1661,7 @@ try:
     st.sidebar.subheader("💾 Export")
     if st.sidebar.button("Export Filtered Graph"):
         nodes_exp = pd.DataFrame([
-            {'node': n, **{k: v for k, v in G_filtered.nodes[n].items() if k != 'node'}}
+            {'node': n, **{k: v for k, v in G_filtered.nodes[n].items()}}
             for n in G_filtered.nodes()
         ])
         edges_exp = pd.DataFrame([
@@ -1672,5 +1673,4 @@ try:
 
 except Exception as e:
     st.error(f"An error occurred: {str(e)}")
-    st.text("Detailed error information:")
     st.text(traceback.format_exc())
