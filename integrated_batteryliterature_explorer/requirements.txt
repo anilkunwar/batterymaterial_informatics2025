@@ -38,6 +38,6 @@ sentence-transformers
 accelerate
 #opencv-python>=4.8.0
 opencv-python-headless
-pillow
+pillow --no-deps
 numpy
 pytesseract
