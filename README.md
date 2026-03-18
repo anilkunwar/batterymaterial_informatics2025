@@ -92,3 +92,7 @@ Parameter extraction is within the Numerical Scope of Battery Reliability but In
 
 Both Parameter extraction and Insight Generation are within the Numerical Scope of Battery Reliability / the Database
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt9-streamlit-red)](https://batteryreliabilitygpt9.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used only for parameter extraction but not for insight generation, Numerical Scope focused code)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt10-streamlit-red)](https://batteryreliabilitygpt10.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used only for parameter extraction but not for insight generation, Numerical Scope focused code)
+
