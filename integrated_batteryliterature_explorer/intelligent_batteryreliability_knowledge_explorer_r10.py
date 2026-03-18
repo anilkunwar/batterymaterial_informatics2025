@@ -240,8 +240,14 @@ class ParsedParameters:
         return result
 
 # ============================================================================
-# SCIBERT LOADER & EMBEDDING UTILITIES (from original snippet)
+# SCIBERT LOADER & EMBEDDING UTILITIES (no Streamlit calls at global scope)
 # ============================================================================
+# These globals will be set inside main() after page config
+scibert_tokenizer = None
+scibert_model = None
+KEY_TERMS_EMBEDDINGS = []
+PHYSICS_TERMS_EMBEDDINGS = []
+
 @st.cache_resource
 def load_scibert():
     if not TRANSFORMERS_AVAILABLE:
@@ -255,8 +261,9 @@ def load_scibert():
         st.warning(f"Failed to load SciBERT: {str(e)}. Semantic similarity will be disabled.")
         return None, None
 
-@st.cache_data
 def get_scibert_embedding(texts):
+    """Uses the globally set scibert_tokenizer and scibert_model."""
+    global scibert_tokenizer, scibert_model
     if scibert_tokenizer is None or scibert_model is None:
         return [None] * len(texts) if isinstance(texts, list) else None
     try:
@@ -277,11 +284,10 @@ def get_scibert_embedding(texts):
         st.warning(f"SciBERT embedding failed: {str(e)}")
         return [None] * len(texts) if isinstance(texts, list) else None
 
-# Define globals to be initialized later
-scibert_tokenizer = None
-scibert_model = None
-KEY_TERMS_EMBEDDINGS = []
-PHYSICS_TERMS_EMBEDDINGS = []
+@st.cache_data
+def compute_embeddings(texts):
+    """Helper to compute and cache embeddings for a list of texts."""
+    return get_scibert_embedding(texts)
 
 # ============================================================================
 # UNIT-AWARE PARSING (simple version)
@@ -320,7 +326,9 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
       - Semantic relevance to KEY_TERMS (0.10)
       - Physics boost term (physics_boost_weight, default 0.15)
     Operational constraints (C-rate, voltage, temperature) further boost relevant nodes.
+    Uses global KEY_TERMS_EMBEDDINGS and PHYSICS_TERMS_EMBEDDINGS.
     """
+    global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
     max_freq = nodes_df['frequency'].max() if nodes_df['frequency'].max() > 0 else 1
     nodes_df['norm_frequency'] = nodes_df['frequency'] / max_freq
 
@@ -344,10 +352,10 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
             physics_scores[node] = 0
         else:
             # Semantic relevance to KEY_TERMS
-            sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS]
+            sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS if kt_emb is not None]
             semantic_scores[node] = max(sem_sims, default=0)
             # Physics relevance to PHYSICS_TERMS
-            phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS]
+            phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
             phys_score = max(phys_sims, default=0)
 
             # Operational constraint modifiers
@@ -466,7 +474,7 @@ def find_failure_pathways(G_filtered, source_terms, target_terms, require_physic
                         for node in path:
                             emb = get_scibert_embedding(node)
                             if emb is not None and PHYSICS_TERMS_EMBEDDINGS:
-                                sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS]
+                                sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
                                 physics_scores.append(max(sims, default=0))
                         avg_phys = np.mean(physics_scores) if physics_scores else 0
                         pathways[f"{src} -> {tgt}"] = {
@@ -745,7 +753,9 @@ class DegradationInsightGenerator:
         """
         Returns a fully numerical, countable JSON object.
         Every entry has a composite_weight (0–1) that can be sorted/ranked.
+        Uses global PHYSICS_TERMS_EMBEDDINGS and get_scibert_embedding.
         """
+        global PHYSICS_TERMS_EMBEDDINGS
         data = {
             "summary": {
                 "nodes": graph_stats["nodes"],
@@ -775,7 +785,7 @@ class DegradationInsightGenerator:
                 node_emb = get_scibert_embedding(row["node"])
                 phys_match = 0.0
                 if node_emb is not None and PHYSICS_TERMS_EMBEDDINGS:
-                    sims = [cosine_similarity([node_emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS]
+                    sims = [cosine_similarity([node_emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
                     phys_match = max(sims, default=0.0)
 
                 # Operational boost
@@ -939,6 +949,7 @@ Answer:"""
 # ============================================================================
 class RelevanceScorer:
     def __init__(self, use_scibert=True):
+        global scibert_tokenizer, scibert_model
         self.use_scibert = use_scibert and scibert_tokenizer is not None and scibert_model is not None
     def score_query_to_nodes(self, query: str, nodes_list: List[str]) -> float:
         if not query or not nodes_list:
@@ -1013,25 +1024,24 @@ def load_data():
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    # Declare global variables so we can assign to them inside this function
-    global scibert_tokenizer, scibert_model
-    global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
-
-    # 1. Set Page Config (MUST BE THE FIRST STREAMLIT COMMAND)
+    # --- Page config must be the very first Streamlit command ---
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
 
-    # 2. Initialize Models and Embeddings (Safe to call st commands now)
-    with st.spinner("Loading Semantic Models..."):
-        scibert_tokenizer, scibert_model = load_scibert()
-        KEY_TERMS_EMBEDDINGS = get_scibert_embedding(KEY_TERMS)
-        KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
-
-        PHYSICS_TERMS_EMBEDDINGS = get_scibert_embedding(PHYSICS_TERMS)
-        PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
-
-    # 3. UI Setup
+    # Now it's safe to call other Streamlit functions
     st.markdown(f"<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center;'>Version {APP_VERSION} — LLM used ONLY for parsing and inference on structured JSON.</p>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------------------------
+    # Initialize models and embeddings (after page config)
+    # ------------------------------------------------------------------------
+    global scibert_tokenizer, scibert_model, KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+    scibert_tokenizer, scibert_model = load_scibert()
+    # Compute embeddings for key terms and physics terms (cached)
+    KEY_TERMS_EMBEDDINGS = compute_embeddings(KEY_TERMS)
+    PHYSICS_TERMS_EMBEDDINGS = compute_embeddings(PHYSICS_TERMS)
+    # Remove None entries
+    KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
+    PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
 
     # Load data
     try:
