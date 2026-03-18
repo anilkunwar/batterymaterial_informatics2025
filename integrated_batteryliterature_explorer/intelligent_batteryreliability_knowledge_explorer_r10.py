@@ -255,8 +255,6 @@ def load_scibert():
         st.warning(f"Failed to load SciBERT: {str(e)}. Semantic similarity will be disabled.")
         return None, None
 
-scibert_tokenizer, scibert_model = load_scibert()
-
 @st.cache_data
 def get_scibert_embedding(texts):
     if scibert_tokenizer is None or scibert_model is None:
@@ -279,12 +277,11 @@ def get_scibert_embedding(texts):
         st.warning(f"SciBERT embedding failed: {str(e)}")
         return [None] * len(texts) if isinstance(texts, list) else None
 
-# Precompute embeddings for key terms and physics terms
-KEY_TERMS_EMBEDDINGS = get_scibert_embedding(KEY_TERMS)
-KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
-
-PHYSICS_TERMS_EMBEDDINGS = get_scibert_embedding(PHYSICS_TERMS)
-PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
+# Define globals to be initialized later
+scibert_tokenizer = None
+scibert_model = None
+KEY_TERMS_EMBEDDINGS = []
+PHYSICS_TERMS_EMBEDDINGS = []
 
 # ============================================================================
 # UNIT-AWARE PARSING (simple version)
@@ -1016,7 +1013,23 @@ def load_data():
 # MAIN APPLICATION
 # ============================================================================
 def main():
+    # Declare global variables so we can assign to them inside this function
+    global scibert_tokenizer, scibert_model
+    global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+
+    # 1. Set Page Config (MUST BE THE FIRST STREAMLIT COMMAND)
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
+
+    # 2. Initialize Models and Embeddings (Safe to call st commands now)
+    with st.spinner("Loading Semantic Models..."):
+        scibert_tokenizer, scibert_model = load_scibert()
+        KEY_TERMS_EMBEDDINGS = get_scibert_embedding(KEY_TERMS)
+        KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
+
+        PHYSICS_TERMS_EMBEDDINGS = get_scibert_embedding(PHYSICS_TERMS)
+        PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
+
+    # 3. UI Setup
     st.markdown(f"<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center;'>Version {APP_VERSION} — LLM used ONLY for parsing and inference on structured JSON.</p>", unsafe_allow_html=True)
 
