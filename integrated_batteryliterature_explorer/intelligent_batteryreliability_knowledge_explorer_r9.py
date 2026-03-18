@@ -995,8 +995,8 @@ def main():
 
             # Use parsed analysis type
             analysis_type = params.get('analysis_type', 'Centrality Analysis')
-        else:
-            analysis_type = "Centrality Analysis"  # default
+    else:  # <--- FIX: Dedent this line to match the 'if'
+        analysis_type = "Centrality Analysis"  # default
 
     # Always run analysis with current filter settings (if graph nonempty)
     if G_filtered.number_of_nodes() > 0:
@@ -1105,8 +1105,8 @@ def main():
                     fig_corr = px.imshow(corr, x=terms, y=terms, color_continuous_scale='Reds')
                     fig_corr.update_layout(xaxis_tickangle=-45)
                     st.plotly_chart(fig_corr)
-        else:
-            st.warning("Graph is empty after filtering. Adjust filters.")
+    else:
+        st.warning("Graph is empty after filtering. Adjust filters.")
 
     # Export functionality (as original)
     with st.sidebar:
