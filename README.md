@@ -67,6 +67,8 @@ PREKnoweldge graph visualization
 ## Battery Reliability LLM
 A chat engine for interactive understanding of battery damage and reliability
 
+Parameter extraction is within the Numerical Scope of Battery Reliability but Insight Generation is not Constrained to the Database
+
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt1-streamlit-red)](https://batteryreliabilitygpt1.streamlit.app/) (gpt interface to knowledge graph r2)
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt2-streamlit-red)](https://batteryreliabilitygpt2.streamlit.app/) (automated gpt interface to knowledge graph r2)
@@ -80,4 +82,13 @@ A chat engine for interactive understanding of battery damage and reliability
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt5-streamlit-red)](https://batteryreliabilitygpt5.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis, LLM gives descriptive answer but cannot relate with graphs and database)
 
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt6-streamlit-red)](https://batteryreliabilitygpt6.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis, LLM gives descriptive answer but cannot relate with graphs and database, expansion of r4)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt7-streamlit-red)](https://batteryreliabilitygpt7.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis, LLM gives descriptive answer but cannot relate with graphs and database, expansion of r5)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt8-streamlit-red)](https://batteryreliabilitygpt8.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis, LLM gives descriptive answer but cannot relate with graphs and database, expansion of r5)
+
+
+
+Both Parameter extraction and Insight Generation are within the Numerical Scope of Battery Reliability / the Database
 
