@@ -4,17 +4,14 @@
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
 HOLISTIC ARCHITECTURE WITH PHYSICS-GROUNDED LLM REASONING
-
 Core Innovations:
 1. Natural language query → FULL sidebar auto-update (CoreShellGPT pattern)
 2. Physics-augmented priority scoring with battery equations
 3. LLM insights constrained by real graph metrics + physics formulas
 4. Perfect harmony between parsed intent and executed math
 5. All original visualizations preserved and enhanced
-
 Author: Advanced Energy Informatics Platform
 """
-
 import os
 import streamlit as st
 import pandas as pd
@@ -40,7 +37,6 @@ from datetime import datetime
 from collections import OrderedDict
 import warnings
 import time
-
 # NEW IMPORTS FOR GPT/QWEN INTEGRATION
 try:
     from transformers import GPT2Tokenizer, GPT2LMHeadModel, AutoModelForCausalLM
@@ -48,7 +44,6 @@ try:
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
     st.warning("transformers not installed. GPT/Qwen features will be disabled.")
-
 warnings.filterwarnings('ignore')
 
 # -----------------------
@@ -121,12 +116,12 @@ def get_scibert_embedding(texts):
         inputs = scibert_tokenizer(texts, return_tensors="pt", truncation=True, max_length=64, padding=True)
         with torch.no_grad():
             outputs = scibert_model(**inputs, output_hidden_states=True)
-        last_hidden_states = outputs.hidden_states[-1].mean(dim=1).numpy()
-        embeddings = []
-        for emb in last_hidden_states:
-            norm = np.linalg.norm(emb)
-            embeddings.append(emb / norm if norm != 0 else None)
-        return embeddings if len(texts) > 1 else embeddings[0]
+            last_hidden_states = outputs.hidden_states[-1].mean(dim=1).numpy()
+            embeddings = []
+            for emb in last_hidden_states:
+                norm = np.linalg.norm(emb)
+                embeddings.append(emb / norm if norm != 0 else None)
+            return embeddings if len(texts) > 1 else embeddings[0]
     except Exception as e:
         st.warning(f"SciBERT embedding failed: {str(e)}")
         return [None] * len(texts) if isinstance(texts, list) else None
@@ -146,11 +141,9 @@ PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is no
 def load_data():
     edges_path = os.path.join(DB_DIR, 'knowledge_graph_edges.csv')
     nodes_path = os.path.join(DB_DIR, 'knowledge_graph_nodes.csv')
-    
     if not os.path.exists(edges_path) or not os.path.exists(nodes_path):
         st.error("❌ One or both CSV files are missing. Please upload 'knowledge_graph_edges.csv' and 'knowledge_graph_nodes.csv'.")
         st.stop()
-    
     edges_df = pd.read_csv(edges_path)
     nodes_df = pd.read_csv(nodes_path)
     return edges_df, nodes_df
@@ -161,9 +154,7 @@ def load_data():
 def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15):
     """
     Calculate priority scores with physics-based augmentation.
-    
     P(u) = w_f * norm_freq + w_d * C_D(u) + w_b * C_B(u) + w_s * S(u) + w_p * B_p(u)
-    
     where:
     - w_f = 0.35 (frequency weight)
     - w_d = 0.25 (degree centrality weight)
@@ -188,7 +179,6 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15):
     node_terms = nodes_df['node'].tolist()
     term_embeddings = get_scibert_embedding(node_terms)
     term_embeddings_dict = dict(zip(node_terms, term_embeddings))
-    
     semantic_scores = {}
     for node in G.nodes():
         emb = term_embeddings_dict.get(node)
@@ -223,7 +213,6 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15):
             w_s * semantic_scores.get(node, 0) +
             w_p * physics_boost_scores.get(node, 0)
         )
-    
     return priority_scores
 
 # -----------------------
@@ -235,7 +224,7 @@ def analyze_failure_centrality(G_filtered, focus_terms=None):
     """
     if focus_terms is None:
         focus_terms = [
-            "crack", "fracture", "degradation", "fatigue", "damage", 
+            "crack", "fracture", "degradation", "fatigue", "damage",
             "failure", "mechanical", "cycling", "capacity fade", "SEI"
         ]
     
@@ -260,7 +249,6 @@ def analyze_failure_centrality(G_filtered, focus_terms=None):
                 'category': G_filtered.nodes[node].get('category', ''),
                 'type': G_filtered.nodes[node].get('type', '')
             })
-    
     return pd.DataFrame(centrality_results)
 
 def detect_failure_communities(G_filtered):
@@ -281,7 +269,6 @@ def detect_failure_communities(G_filtered):
                 'failure_keywords': Counter(),
                 'physics_terms': Counter()  # NEW: track physics term presence
             }
-        
         community_analysis[community_id]['nodes'].append(node)
         category = G_filtered.nodes[node].get('category', '')
         if category:
@@ -315,7 +302,6 @@ def analyze_ego_networks(G_filtered, central_nodes=None):
         if central_node in G_filtered.nodes():
             try:
                 ego_net = nx.ego_graph(G_filtered, central_node, radius=2)
-                
                 ego_results[central_node] = {
                     'node_count': ego_net.number_of_nodes(),
                     'edge_count': ego_net.number_of_edges(),
@@ -337,7 +323,6 @@ def analyze_ego_networks(G_filtered, central_nodes=None):
                     'subgraph_categories': Counter(),
                     'physics_terms': []
                 }
-    
     return ego_results
 
 def find_failure_pathways(G_filtered, source_terms, target_terms, require_physics_nodes=False):
@@ -345,14 +330,12 @@ def find_failure_pathways(G_filtered, source_terms, target_terms, require_physic
     Find shortest paths between different types of failure mechanisms
     """
     pathways = {}
-    
     for source in source_terms:
         for target in target_terms:
             if source in G_filtered.nodes() and target in G_filtered.nodes():
                 try:
                     # Try to find all shortest paths
                     paths = list(nx.all_shortest_paths(G_filtered, source=source, target=target, weight='weight'))
-                    
                     if require_physics_nodes:
                         # Filter paths that contain at least one physics term
                         filtered_paths = []
@@ -387,7 +370,6 @@ def find_failure_pathways(G_filtered, source_terms, target_terms, require_physic
                         'num_paths': 0,
                         'contains_physics': False
                     }
-    
     return pathways
 
 def analyze_temporal_patterns(nodes_df, edges_df, time_column='year'):
@@ -397,19 +379,16 @@ def analyze_temporal_patterns(nodes_df, edges_df, time_column='year'):
     if time_column in nodes_df.columns:
         time_periods = sorted(nodes_df[time_column].dropna().unique())
         temporal_analysis = {}
-        
         for period in time_periods:
             period_nodes = nodes_df[nodes_df[time_column] == period]
             temporal_analysis[period] = {
                 'total_concepts': len(period_nodes),
-                'failure_concepts': len([n for n in period_nodes['node'] 
-                                       if any(kw in n.lower() for kw in 
-                                       ['crack', 'fracture', 'degrad', 'fatigue', 'damage'])]),
+                'failure_concepts': len([n for n in period_nodes['node']
+                    if any(kw in n.lower() for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage'])]),
                 'physics_concepts': len([n for n in period_nodes['node']
-                                       if any(term in n.lower() for term in PHYSICS_TERMS)]),
+                    if any(term in n.lower() for term in PHYSICS_TERMS)]),
                 'top_concepts': period_nodes.nlargest(5, 'frequency')['node'].tolist()
             }
-        
         return temporal_analysis
     else:
         return {"error": "Time column not found in data"}
@@ -418,19 +397,16 @@ def analyze_failure_correlations(G_filtered):
     """
     Analyze correlations between different failure mechanisms
     """
-    failure_terms = [n for n in G_filtered.nodes() 
-                    if any(kw in n.lower() for kw in 
-                    ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure'])]
+    failure_terms = [n for n in G_filtered.nodes()
+        if any(kw in n.lower() for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure'])]
     
     corr_matrix = np.zeros((len(failure_terms), len(failure_terms)))
-    
     for i, term1 in enumerate(failure_terms):
         for j, term2 in enumerate(failure_terms):
             if G_filtered.has_edge(term1, term2):
                 corr_matrix[i, j] = G_filtered[term1][term2].get('weight', 0)
             else:
                 corr_matrix[i, j] = 0
-    
     return corr_matrix, failure_terms
 
 # -----------------------
@@ -447,24 +423,19 @@ def fig_to_base64(fig, format='png'):
 def create_static_visualization(G_filtered, pos, node_colors, node_sizes):
     """Create a static matplotlib visualization for export"""
     plt.figure(figsize=(16, 12))
-    
     # Draw edges
     nx.draw_networkx_edges(G_filtered, pos, alpha=0.3, width=1)
-    
     # Draw nodes
-    nx.draw_networkx_nodes(G_filtered, pos, 
-                          node_color=node_colors, 
-                          node_size=node_sizes,
-                          alpha=0.8)
-    
+    nx.draw_networkx_nodes(G_filtered, pos,
+        node_color=node_colors,
+        node_size=node_sizes,
+        alpha=0.8)
     # Draw labels
-    nx.draw_networkx_labels(G_filtered, pos, 
-                           font_size=8, 
-                           font_family='sans-serif')
-    
+    nx.draw_networkx_labels(G_filtered, pos,
+        font_size=8,
+        font_family='sans-serif')
     plt.title("Battery Research Knowledge Graph", fontsize=16)
     plt.axis('off')
-    
     return plt
 
 # Filter the graph with user-based nodes and exclusions
@@ -480,7 +451,7 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
                 valid_nodes.update(G.neighbors(node))
     else:
         for n, d in G.nodes(data=True):
-            if (d.get("frequency", 0) >= min_freq and 
+            if (d.get("frequency", 0) >= min_freq and
                 d.get("category", "") in selected_categories and
                 d.get("type", "") in selected_types and
                 (not suppress_low_priority or d.get("priority_score", 0) >= min_priority_score)):
@@ -495,7 +466,7 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
     
     # Add edges
     for u, v, d in G.edges(data=True):
-        if (u in G_filtered.nodes and v in G_filtered.nodes and 
+        if (u in G_filtered.nodes and v in G_filtered.nodes and
             d.get("weight", 0) >= min_weight):
             G_filtered.add_edge(u, v, **d)
     
@@ -509,7 +480,6 @@ def load_llm(backend):
     """Load the selected LLM model with caching"""
     if not TRANSFORMERS_AVAILABLE:
         return None, None, backend
-    
     try:
         if "GPT-2" in backend:
             tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
@@ -520,16 +490,14 @@ def load_llm(backend):
                 model_name = "Qwen/Qwen2-0.5B-Instruct"
             else:  # Qwen2.5-0.5B
                 model_name = "Qwen/Qwen2.5-0.5B-Instruct"
-            
             tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
             model = AutoModelForCausalLM.from_pretrained(
-                model_name, 
-                torch_dtype="auto", 
-                device_map="auto", 
+                model_name,
+                torch_dtype="auto",
+                device_map="auto",
                 trust_remote_code=True
             )
-        
-        model.eval()
+            model.eval()
         return tokenizer, model, backend
     except Exception as e:
         st.warning(f"Failed to load {backend}: {str(e)}")
@@ -627,7 +595,7 @@ class BatteryNLParser:
             'correlate': 'Correlation Analysis',
             'relationship': 'Correlation Analysis'
         }
-
+    
     def parse_regex(self, text):
         """Fast regex-based parsing with physics term recognition"""
         if not text:
@@ -658,7 +626,6 @@ class BatteryNLParser:
         for category, keywords in self.physics_keywords.items():
             if any(keyword in text_lower for keyword in keywords):
                 detected_physics.append(category)
-        
         if detected_physics:
             params['detected_physics'] = detected_physics
         
@@ -672,15 +639,14 @@ class BatteryNLParser:
         if params['analysis_type'] == 'Pathway Analysis':
             source_match = re.search(r'from\s+([a-zA-Z\s\-]+?)\s+to', text_lower)
             target_match = re.search(r'to\s+([a-zA-Z\s\-]+?)(?:\s+and|\s*,|$|\.)', text_lower)
-            
             if source_match:
                 params['source_terms'] = [t.strip() for t in source_match.group(1).split(',')]
             if target_match:
                 params['target_terms'] = [t.strip() for t in target_match.group(1).split(',')]
-            
-            # Check if physics requirement is mentioned
-            if 'physics' in text_lower and ('path' in text_lower or 'route' in text_lower):
-                params['require_physics_in_pathways'] = True
+        
+        # Check if physics requirement is mentioned
+        if 'physics' in text_lower and ('path' in text_lower or 'route' in text_lower):
+            params['require_physics_in_pathways'] = True
         
         # Extract focus terms
         for pattern in [r'focus\s*on\s*([a-zA-Z\s\-]+?)(?:\s+and|\s*,|$|\.)',
@@ -691,20 +657,17 @@ class BatteryNLParser:
                 break
         
         return params
-
+    
     def _extract_json_robust(self, generated):
         """Extract and repair JSON from generated text"""
         json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
         match = re.search(json_pattern, generated, re.DOTALL)
-        
         if not match:
             match = re.search(r'\{.*\}', generated, re.DOTALL)
-        
         if match:
             json_str = match.group(0)
             json_str = re.sub(r'(true|false|null)\s*(")', r'\1,\2', json_str)
             json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
-            
             try:
                 return json.loads(json_str)
             except:
@@ -714,32 +677,28 @@ class BatteryNLParser:
                 except:
                     pass
         return None
-
+    
     def parse_with_llm(self, text, tokenizer, model, regex_params=None, temperature=0.1):
         """Use LLM to extract parameters with physics awareness"""
         if not text or tokenizer is None or model is None:
             return regex_params if regex_params else self.defaults.copy()
         
-        system = """You are an expert in battery degradation analysis with deep physics knowledge. 
-Extract parameters for knowledge graph exploration from the user query. 
+        system = """You are an expert in battery degradation analysis with deep physics knowledge.
+Extract parameters for knowledge graph exploration from the user query.
 Recognize and prioritize physics terms (stress, diffusion, SEI, plating, etc.)."""
-
+        
         examples = """
 Examples with physics context:
 1. "Show me pathways from electrode cracking to capacity fade that involve diffusion-induced stress"
-   → {"analysis_type": "Pathway Analysis", "source_terms": ["electrode cracking"], "target_terms": ["capacity fade"], "focus_terms": ["diffusion-induced stress"], "require_physics_in_pathways": true}
-
+→ {"analysis_type": "Pathway Analysis", "source_terms": ["electrode cracking"], "target_terms": ["capacity fade"], "focus_terms": ["diffusion-induced stress"], "require_physics_in_pathways": true}
 2. "Analyze communities related to chemo-mechanical degradation, boost physics terms to 0.2 weight"
-   → {"analysis_type": "Community Detection", "focus_terms": ["chemo-mechanical", "degradation"], "physics_boost_weight": 0.2, "selected_categories": ["Crack and Fracture", "Degradation"]}
-
+→ {"analysis_type": "Community Detection", "focus_terms": ["chemo-mechanical", "degradation"], "physics_boost_weight": 0.2, "selected_categories": ["Crack and Fracture", "Degradation"]}
 3. "Show ego network around stress concentration and fracture, min physics similarity 0.6"
-   → {"analysis_type": "Ego Network Analysis", "central_nodes": ["stress concentration", "fracture"], "min_physics_similarity": 0.6}
-
+→ {"analysis_type": "Ego Network Analysis", "central_nodes": ["stress concentration", "fracture"], "min_physics_similarity": 0.6}
 4. "Find correlations between thermal runaway and mechanical degradation, require physics terms"
-   → {"analysis_type": "Correlation Analysis", "focus_terms": ["thermal runaway", "mechanical degradation"], "require_physics_in_pathways": true}
-
+→ {"analysis_type": "Correlation Analysis", "focus_terms": ["thermal runaway", "mechanical degradation"], "require_physics_in_pathways": true}
 5. "How have SEI formation and lithium plating concepts evolved? Focus on physics terms"
-   → {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "lithium plating"], "time_column": "year"}
+→ {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "lithium plating"], "time_column": "year"}
 
 Battery physics equations for context:
 • Diffusion stress: σ = E·Ω·Δc/(1-ν)
@@ -751,21 +710,18 @@ Battery physics equations for context:
         user = f"""{examples}
 Text: "{text}"
 Preliminary regex: {json.dumps(regex_params, default=str) if regex_params else 'None'}
-
 Output ONLY a JSON object with keys from: {list(self.defaults.keys())}
 Include physics_boost_weight, require_physics_in_pathways, min_physics_similarity when mentioned.
-
 JSON:"""
-
-        backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
         
+        backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
         try:
             if "Qwen" in backend:
                 messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
                 prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             else:
-                prompt = f"{system}\n\n{user}\n"
-
+                prompt = f"{system}\n{user}\n"
+            
             inputs = tokenizer.encode(prompt, return_tensors='pt', truncation=True, max_length=512)
             if torch.cuda.is_available():
                 inputs = inputs.to('cuda')
@@ -795,14 +751,14 @@ JSON:"""
                     params['physics_boost_weight'] = np.clip(float(params['physics_boost_weight']), 0, 0.5)
                 
                 return params
+            
             return regex_params if regex_params else self.defaults.copy()
         except Exception as e:
             return regex_params if regex_params else self.defaults.copy()
-
+    
     def hybrid_parse(self, text, tokenizer=None, model=None, use_ensemble=False, ensemble_runs=3):
         """Combine regex and LLM with confidence-based merging"""
         regex_params = self.parse_regex(text)
-        
         if tokenizer is None or model is None:
             return regex_params
         
@@ -874,17 +830,14 @@ JSON:"""
 # -----------------------
 class DegradationInsightGenerator:
     """Generate intelligent insights using physics equations and graph metrics"""
-    
     _cache = OrderedDict()
     _max_cache_size = 20
     
     @staticmethod
-    def generate_insights(analysis_results, analysis_type, user_query, relevance_score, 
-                          parsed_params, graph_stats, tokenizer, model):
+    def generate_insights(analysis_results, analysis_type, user_query, relevance_score,
+                         parsed_params, graph_stats, tokenizer, model):
         """Generate insights with physics equations and actual graph numbers"""
-        
         cache_key = hashlib.md5(f"{analysis_type}_{user_query}_{relevance_score:.3f}_{str(parsed_params)[:100]}".encode()).hexdigest()
-        
         if cache_key in DegradationInsightGenerator._cache:
             DegradationInsightGenerator._cache.move_to_end(cache_key)
             return DegradationInsightGenerator._cache[cache_key]
@@ -905,12 +858,11 @@ class DegradationInsightGenerator:
 - Physics-based modeling
 
 Use the actual graph metrics and physics equations to provide grounded insights."""
-
+        
         prompt = f"""User query: "{user_query}"
 Analysis type: {analysis_type}
 Relevance score: {relevance_score:.2f}
 Graph stats: {graph_stats['nodes']} nodes, {graph_stats['edges']} edges
-
 User-specified parameters:
 {json.dumps({k: v for k, v in parsed_params.items() if v != BatteryNLParser().defaults.get(k)}, indent=2, default=str)}
 
@@ -932,16 +884,15 @@ Output exactly 5 bullet points starting with "•". Each bullet must:
 - Be actionable and concise (1-2 sentences)
 
 Insights:"""
-
-        backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
         
+        backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
         try:
             if "Qwen" in backend:
                 messages = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
                 full_prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             else:
-                full_prompt = f"{system}\n\n{prompt}\n"
-
+                full_prompt = f"{system}\n{prompt}\n"
+            
             inputs = tokenizer.encode(full_prompt, return_tensors='pt', truncation=True, max_length=512)
             if torch.cuda.is_available():
                 inputs = inputs.to('cuda')
@@ -973,7 +924,6 @@ Insights:"""
                 DegradationInsightGenerator._cache.popitem(last=False)
             
             return insights
-            
         except Exception as e:
             return f"• LLM insight generation unavailable: {str(e)}\n• Review the analysis results above for degradation patterns."
     
@@ -981,18 +931,15 @@ Insights:"""
     def _prepare_physics_summary(results, analysis_type, params, graph_stats):
         """Create summary with physics context and actual numbers"""
         summary_lines = []
-        
         summary_lines.append(f"Graph: {graph_stats['nodes']} nodes, {graph_stats['edges']} edges")
         summary_lines.append(f"Filters: min_weight={params.get('min_weight')}, min_freq={params.get('min_freq')}, min_priority={params.get('min_priority_score'):.2f}")
         
         if analysis_type == "Centrality Analysis" and isinstance(results, pd.DataFrame) and not results.empty:
             top_degree = results.nlargest(3, 'degree')
             top_between = results.nlargest(3, 'betweenness')
-            
             summary_lines.append("\nTop by degree (most connected):")
             for _, row in top_degree.iterrows():
                 summary_lines.append(f"  - {row['node']}: degree={row['degree']:.3f}")
-            
             summary_lines.append("\nTop by betweenness (bridges):")
             for _, row in top_between.iterrows():
                 summary_lines.append(f"  - {row['node']}: betweenness={row['betweenness']:.3f}")
@@ -1027,7 +974,7 @@ Insights:"""
         return "\n".join(summary_lines)
 
 # -----------------------
-# 10. SIDEBAR UPDATE UTILITY
+# 10. SIDEBAR UPDATE UTILITY (MODIFIED WITH TYPE SAFETY)
 # -----------------------
 def apply_params_to_sidebar(params):
     """Update session state with parsed parameters and force rerun"""
@@ -1035,20 +982,39 @@ def apply_params_to_sidebar(params):
         if key in ['min_weight', 'min_freq', 'min_priority_score', 'priority_threshold', 
                    'edge_width_factor', 'label_font_size', 'label_max_chars',
                    'physics_boost_weight', 'min_physics_similarity']:
-            st.session_state[f'auto_{key}'] = val
+            
+            # FIX: Handle cases where LLM returns a list (e.g. [10]) instead of int (10)
+            clean_val = val
+            if isinstance(val, list):
+                # If it's a list, try to take the first element
+                clean_val = val[0] if len(val) > 0 else 0
+            
+            # Ensure it is a float/int and not a string or other type
+            try:
+                clean_val = float(clean_val)
+            except (ValueError, TypeError):
+                clean_val = 0.0  # Fallback if conversion fails
+
+            st.session_state[f'auto_{key}'] = clean_val
+
         elif key == 'excluded_terms':
             if isinstance(val, list):
                 st.session_state['auto_excluded'] = ', '.join(val)
             else:
                 st.session_state['auto_excluded'] = str(val)
         elif key == 'selected_nodes':
-            st.session_state['auto_selected_nodes'] = val if isinstance(val, list) else [val]
+            # Ensure it is a list
+            final_nodes = val if isinstance(val, list) else [val]
+            st.session_state['auto_selected_nodes'] = final_nodes
         elif key == 'selected_categories':
-            st.session_state['auto_selected_categories'] = val if isinstance(val, list) else [val]
+            final_cats = val if isinstance(val, list) else [val]
+            st.session_state['auto_selected_categories'] = final_cats
         elif key == 'selected_types':
-            st.session_state['auto_selected_types'] = val if isinstance(val, list) else [val]
+            final_types = val if isinstance(val, list) else [val]
+            st.session_state['auto_selected_types'] = final_types
         elif key in ['suppress_low_priority', 'highlight_priority', 'show_labels', 'require_physics_in_pathways']:
-            st.session_state[f'auto_{key}'] = val
+            # Ensure it is a boolean
+            st.session_state[f'auto_{key}'] = bool(val)
         elif key == 'analysis_type':
             st.session_state['auto_analysis_type'] = val
     
@@ -1059,34 +1025,27 @@ def apply_params_to_sidebar(params):
 # -----------------------
 def run_analysis(analysis_type, params, G_filtered, nodes_df, edges_df):
     """Execute the specified analysis and return results"""
-    
     if analysis_type == "Centrality Analysis":
         focus_terms = params.get('focus_terms', ['crack', 'fracture', 'degradation'])
         return analyze_failure_centrality(G_filtered, focus_terms)
-    
     elif analysis_type == "Community Detection":
         communities, partition = detect_failure_communities(G_filtered)
         return communities
-    
     elif analysis_type == "Ego Network Analysis":
-        central_nodes = params.get('central_nodes', 
-                                   ["electrode cracking", "SEI formation", "capacity fade"])
+        central_nodes = params.get('central_nodes',
+            ["electrode cracking", "SEI formation", "capacity fade"])
         return analyze_ego_networks(G_filtered, central_nodes)
-    
     elif analysis_type == "Pathway Analysis":
         source_terms = params.get('source_terms', ["electrode cracking"])
         target_terms = params.get('target_terms', ["capacity fade"])
         require_physics = params.get('require_physics_in_pathways', False)
         return find_failure_pathways(G_filtered, source_terms, target_terms, require_physics)
-    
     elif analysis_type == "Temporal Analysis":
         time_col = params.get('time_column', 'year')
         return analyze_temporal_patterns(nodes_df, edges_df, time_col)
-    
     elif analysis_type == "Correlation Analysis":
         corr_matrix, terms = analyze_failure_correlations(G_filtered)
         return (corr_matrix, terms)
-    
     else:
         return None
 
@@ -1097,9 +1056,8 @@ def initialize_session_state():
     """Initialize all session state variables"""
     parser = BatteryNLParser()
     defaults = parser.defaults.copy()
-    
     auto_defaults = {
-        f'auto_{k}': v for k, v in defaults.items() 
+        f'auto_{k}': v for k, v in defaults.items()
         if k not in ['focus_terms', 'source_terms', 'target_terms', 'central_nodes', 'time_column']
     }
     auto_defaults['auto_excluded'] = ', '.join(defaults['excluded_terms'])
@@ -1143,17 +1101,14 @@ class RelevanceScorer:
     def score_query_to_nodes(self, query, nodes_list):
         if not query or not nodes_list:
             return 0.5
-        
         if self.use_scibert:
             try:
                 query_emb = get_scibert_embedding(query)
                 sample_nodes = nodes_list[:min(100, len(nodes_list))]
                 node_embs = get_scibert_embedding(sample_nodes)
-                
                 valid = [i for i, emb in enumerate(node_embs) if emb is not None]
                 if not valid or query_emb is None:
                     return 0.5
-                
                 sims = [cosine_similarity([query_emb], [node_embs[i]])[0][0] for i in valid]
                 return float(np.mean(sims)) if sims else 0.5
             except:
@@ -1184,7 +1139,7 @@ try:
     edges_df, nodes_df = load_data()
     st.session_state.edges_df = edges_df
     st.session_state.nodes_df = nodes_df
-
+    
     # Normalize Terms
     def normalize_term(term: str) -> str:
         if not isinstance(term, str):
@@ -1199,31 +1154,31 @@ try:
             "fatigue": "fatigue",
         }
         return replacements.get(term, term)
-
+    
     nodes_df["node"] = nodes_df["node"].apply(normalize_term)
     edges_df["source"] = edges_df["source"].apply(normalize_term)
     edges_df["target"] = edges_df["target"].apply(normalize_term)
-
+    
     # Build Initial Graph
     G = nx.Graph()
     for _, row in nodes_df.iterrows():
-        G.add_node(row["node"], 
-                   type=row["type"], 
-                   category=row["category"], 
-                   frequency=row["frequency"],
-                   unit=row.get("unit", "None"),
-                   similarity_score=row.get("similarity_score", 0))
-
+        G.add_node(row["node"],
+            type=row["type"],
+            category=row["category"],
+            frequency=row["frequency"],
+            unit=row.get("unit", "None"),
+            similarity_score=row.get("similarity_score", 0))
+    
     for _, row in edges_df.iterrows():
-        G.add_edge(row["source"], row["target"], 
-                   weight=row["weight"], 
-                   type=row["type"], 
-                   label=row["label"],
-                   relationship=row.get("relationship", ""),
-                   strength=row.get("strength", 0))
-
+        G.add_edge(row["source"], row["target"],
+            weight=row["weight"],
+            type=row["type"],
+            label=row["label"],
+            relationship=row.get("relationship", ""),
+            strength=row.get("strength", 0))
+    
     st.session_state.G = G
-
+    
     # Calculate Physics-Augmented Priority Scores
     physics_boost = st.session_state.get('auto_physics_boost_weight', 0.15)
     priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost)
@@ -1231,7 +1186,7 @@ try:
         G.nodes[node]['priority_score'] = priority_scores.get(node, 0)
     nodes_df['priority_score'] = nodes_df['node'].apply(lambda x: priority_scores.get(x, 0))
     st.session_state.priority_scores = priority_scores
-
+    
     # UI Header
     st.title("🔋 Intelligent Battery Degradation Knowledge Explorer")
     st.markdown("""
@@ -1241,11 +1196,10 @@ try:
     .physics-badge { background-color: #4CAF50; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
     </style>
     """, unsafe_allow_html=True)
-
+    
     # Query Interface
     with st.expander("🤖 AI-Powered Query Interface", expanded=True):
         col1, col2, col3 = st.columns([3, 1, 1])
-        
         with col1:
             user_query = st.text_area(
                 "Ask about battery degradation in natural language:",
@@ -1253,7 +1207,6 @@ try:
                 placeholder="e.g., 'Show pathways from electrode cracking to capacity fade involving diffusion-induced stress' or 'Analyze communities with high physics relevance'",
                 key="user_query_input"
             )
-        
         with col2:
             st.markdown("### 🧠 LLM Settings")
             model_choice = st.selectbox(
@@ -1262,21 +1215,17 @@ try:
                 index=0,
                 key="llm_choice"
             )
-            
             if TRANSFORMERS_AVAILABLE:
                 tokenizer, model, loaded = load_llm(model_choice)
                 st.session_state.llm_tokenizer = tokenizer
                 st.session_state.llm_model = model
                 st.session_state.llm_backend_loaded = loaded
-            
             use_llm = st.checkbox("Use LLM parsing", value=True)
             use_ensemble = st.checkbox("Use ensemble", value=False)
             ensemble_runs = 3
             if use_ensemble:
                 ensemble_runs = st.slider("Ensemble runs", 2, 5, 3)
-            
             generate_insights = st.checkbox("Generate insights", value=True)
-        
         with col3:
             st.markdown("### 🚀 Actions")
             run_button = st.button("🔍 Analyze Query", type="primary", use_container_width=True)
@@ -1285,15 +1234,14 @@ try:
                 st.session_state.last_query = ""
                 st.session_state.last_insights = None
                 st.rerun()
-
+    
     # Process Query
     if run_button and user_query:
         with st.spinner("🔍 Analyzing your query..."):
             parser = st.session_state.parser
-            
             if use_llm and st.session_state.llm_tokenizer is not None:
                 params = parser.hybrid_parse(
-                    user_query, 
+                    user_query,
                     st.session_state.llm_tokenizer,
                     st.session_state.llm_model,
                     use_ensemble=use_ensemble,
@@ -1342,67 +1290,77 @@ try:
             
             # Apply to sidebar
             apply_params_to_sidebar(params)
-
+    
     # Sidebar Filters (all reading from session_state)
     with st.sidebar:
         st.markdown("## ⚙️ Filters")
-        
         col1, col2 = st.columns(2)
         with col1:
+            # FIX: Defensive coding for slider value type safety
+            current_min_weight = st.session_state.get('auto_min_weight', 10)
+            if isinstance(current_min_weight, list):
+                current_min_weight = current_min_weight[0] if current_min_weight else 10
             min_weight = st.slider(
-                "Min edge weight", 
-                min_value=int(edges_df["weight"].min()), 
-                max_value=int(edges_df["weight"].max()), 
-                value=st.session_state.get('auto_min_weight', 10), 
+                "Min edge weight",
+                min_value=int(edges_df["weight"].min()),
+                max_value=int(edges_df["weight"].max()),
+                value=int(current_min_weight),  # Explicitly cast to int
                 step=1,
                 key="min_weight_slider"
             )
         with col2:
+            # FIX: Defensive coding for slider value type safety
+            current_min_freq = st.session_state.get('auto_min_freq', 5)
+            if isinstance(current_min_freq, list):
+                current_min_freq = current_min_freq[0] if current_min_freq else 5
             min_node_freq = st.slider(
-                "Min node frequency", 
-                min_value=int(nodes_df["frequency"].min()), 
-                max_value=int(nodes_df["frequency"].max()), 
-                value=st.session_state.get('auto_min_freq', 5), 
+                "Min node frequency",
+                min_value=int(nodes_df["frequency"].min()),
+                max_value=int(nodes_df["frequency"].max()),
+                value=int(current_min_freq),  # Explicitly cast to int
                 step=1,
                 key="min_freq_slider"
             )
-
+        
         # Categories
         categories = sorted(nodes_df["category"].dropna().unique())
         default_cats = st.session_state.get('auto_selected_categories', categories)
         selected_categories = st.multiselect(
-            "Filter by category", 
-            categories, 
+            "Filter by category",
+            categories,
             default=default_cats,
             key="category_multiselect"
         )
-
+        
         # Node types
         node_types = sorted(nodes_df["type"].dropna().unique())
         default_types = st.session_state.get('auto_selected_types', node_types)
         selected_types = st.multiselect(
-            "Filter by node type", 
-            node_types, 
+            "Filter by node type",
+            node_types,
             default=default_types,
             key="type_multiselect"
         )
-
+        
         # Priority
+        current_min_priority = st.session_state.get('auto_min_priority_score', 0.2)
+        if isinstance(current_min_priority, list):
+            current_min_priority = current_min_priority[0] if current_min_priority else 0.2
         min_priority = st.slider(
-            "Min priority score", 
-            0.0, 1.0, 
-            st.session_state.get('auto_min_priority_score', 0.2), 
+            "Min priority score",
+            0.0, 1.0,
+            float(current_min_priority),  # Explicitly cast to float
             0.05,
             key="priority_slider"
         )
-
+        
         # Node selection
         st.subheader("🔍 Node Inclusion/Exclusion")
-        default_selected = st.session_state.get('auto_selected_nodes', 
-                                               ["electrode cracking", "SEI formation", "capacity fade"])
+        default_selected = st.session_state.get('auto_selected_nodes',
+            ["electrode cracking", "SEI formation", "capacity fade"])
         default_selected = [n for n in default_selected if n in G.nodes()]
         selected_nodes = st.multiselect(
-            "Include specific nodes", 
+            "Include specific nodes",
             options=sorted(G.nodes()),
             default=default_selected,
             key="nodes_multiselect"
@@ -1410,89 +1368,109 @@ try:
         
         default_excluded = st.session_state.get('auto_excluded', 'battery, material')
         excluded_input = st.text_input(
-            "Exclude terms (comma-separated)", 
+            "Exclude terms (comma-separated)",
             value=default_excluded,
             key="excluded_input"
         )
         excluded_terms = [t.strip().lower() for t in excluded_input.split(',') if t.strip()]
-
+        
         # Physics settings
         st.subheader("🔬 Physics Settings")
+        current_physics_boost = st.session_state.get('auto_physics_boost_weight', 0.15)
+        if isinstance(current_physics_boost, list):
+            current_physics_boost = current_physics_boost[0] if current_physics_boost else 0.15
         physics_boost = st.slider(
-            "Physics boost weight", 
-            0.0, 0.5, 
-            st.session_state.get('auto_physics_boost_weight', 0.15), 
+            "Physics boost weight",
+            0.0, 0.5,
+            float(current_physics_boost),  # Explicitly cast to float
             0.05,
             key="physics_boost_slider",
             help="Higher values prioritize nodes matching battery physics terms"
         )
         
         require_physics = st.checkbox(
-            "Require physics terms in pathways", 
+            "Require physics terms in pathways",
             value=st.session_state.get('auto_require_physics_in_pathways', False),
             key="physics_require_checkbox"
         )
-
+        
         # Highlighting
         st.subheader("🎯 Highlighting")
         highlight = st.checkbox(
-            "Highlight high-priority nodes", 
+            "Highlight high-priority nodes",
             value=st.session_state.get('auto_highlight_priority', True),
             key="highlight_checkbox"
         )
+        
+        current_threshold = st.session_state.get('auto_priority_threshold', 0.7)
+        if isinstance(current_threshold, list):
+            current_threshold = current_threshold[0] if current_threshold else 0.7
         threshold = st.slider(
-            "Highlight threshold", 
-            0.5, 1.0, 
-            st.session_state.get('auto_priority_threshold', 0.7), 
+            "Highlight threshold",
+            0.5, 1.0,
+            float(current_threshold),  # Explicitly cast to float
             0.05,
             key="threshold_slider"
         )
+        
         suppress = st.checkbox(
-            "Suppress low-priority nodes", 
+            "Suppress low-priority nodes",
             value=st.session_state.get('auto_suppress_low_priority', False),
             key="suppress_checkbox"
         )
-
+        
         # Labels
         st.subheader("📝 Labels")
         show_labels = st.checkbox(
-            "Show labels", 
+            "Show labels",
             value=st.session_state.get('auto_show_labels', True),
             key="labels_checkbox"
         )
+        
+        current_label_size = st.session_state.get('auto_label_font_size', 16)
+        if isinstance(current_label_size, list):
+            current_label_size = current_label_size[0] if current_label_size else 16
         label_size = st.slider(
-            "Font size", 
-            10, 100, 
-            st.session_state.get('auto_label_font_size', 16),
+            "Font size",
+            10, 100,
+            int(current_label_size),  # Explicitly cast to int
             key="font_slider"
         )
+        
+        current_max_chars = st.session_state.get('auto_label_max_chars', 15)
+        if isinstance(current_max_chars, list):
+            current_max_chars = current_max_chars[0] if current_max_chars else 15
         max_chars = st.slider(
-            "Max chars", 
-            10, 30, 
-            st.session_state.get('auto_label_max_chars', 15),
+            "Max chars",
+            10, 30,
+            int(current_max_chars),  # Explicitly cast to int
             key="chars_slider"
         )
         
+        current_edge_width = st.session_state.get('auto_edge_width_factor', 0.5)
+        if isinstance(current_edge_width, list):
+            current_edge_width = current_edge_width[0] if current_edge_width else 0.5
         edge_width = st.slider(
-            "Edge width factor", 
-            0.1, 2.0, 
-            st.session_state.get('auto_edge_width_factor', 0.5),
+            "Edge width factor",
+            0.1, 2.0,
+            float(current_edge_width),  # Explicitly cast to float
             key="edge_slider"
         )
-
-        # Apply filters
-        G_filtered = filter_graph(
-            G, min_weight, min_node_freq, selected_categories, selected_types,
-            selected_nodes, excluded_terms, min_priority, suppress
-        )
-        st.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
-
+    
+    # Apply filters
+    G_filtered = filter_graph(
+        G, min_weight, min_node_freq, selected_categories, selected_types,
+        selected_nodes, excluded_terms, min_priority, suppress
+    )
+    
+    st.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
+    
     # Run analysis if we have a query
     if G_filtered.number_of_nodes() > 0 and st.session_state.last_params:
         analysis_type = st.session_state.last_params.get('analysis_type', 'Centrality Analysis')
         
         # Run analysis
-        results = run_analysis(analysis_type, st.session_state.last_params, 
+        results = run_analysis(analysis_type, st.session_state.last_params,
                               G_filtered, nodes_df, edges_df)
         st.session_state.last_analysis_results = results
         
@@ -1501,11 +1479,11 @@ try:
             with st.spinner("🤖 Generating physics-grounded insights..."):
                 graph_stats = {'nodes': G_filtered.number_of_nodes(), 'edges': G_filtered.number_of_edges()}
                 insights = st.session_state.insight_generator.generate_insights(
-                    results, analysis_type, user_query, 
+                    results, analysis_type, user_query,
                     relevance if 'relevance' in locals() else 0.5,
                     st.session_state.last_params,
                     graph_stats,
-                    st.session_state.llm_tokenizer, 
+                    st.session_state.llm_tokenizer,
                     st.session_state.llm_model
                 )
                 st.session_state.last_insights = insights
@@ -1520,151 +1498,152 @@ try:
         })
         if len(st.session_state.analysis_history) > 10:
             st.session_state.analysis_history = st.session_state.analysis_history[-10:]
-
-    # Display insights
-    if st.session_state.last_insights:
-        st.markdown("### 🤖 Physics-Grounded Insights")
-        st.markdown(f"""
-        <div class="insight-box">
-        {st.session_state.last_insights.replace('•', '<br>•')}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Visualization
-    if G_filtered.number_of_nodes() > 0:
-        # FIX: Define analysis_type_display with a default value for the visualization title
-        if st.session_state.last_params:
-            analysis_type_display = st.session_state.last_params.get('analysis_type', 'General View')
-        else:
-            analysis_type_display = 'General View'
         
-        # Node coloring by category
-        cats = list(set([G_filtered.nodes[n].get('category', 'Unknown') for n in G_filtered.nodes()]))
-        color_map = {c: px.colors.qualitative.Set3[i % len(px.colors.qualitative.Set3)] for i, c in enumerate(cats)}
-        node_colors = [color_map.get(G_filtered.nodes[n].get('category', 'Unknown'), 'lightgray') for n in G_filtered.nodes()]
+        # Display insights
+        if st.session_state.last_insights:
+            st.markdown("### 🤖 Physics-Grounded Insights")
+            st.markdown(f"""
+            <div class="insight-box">
+            {st.session_state.last_insights.replace('•', '<br>•')}
+            </div>
+            """, unsafe_allow_html=True)
         
-        # Layout
-        pos = nx.spring_layout(G_filtered, k=1, iterations=100, seed=42, weight='weight')
-        
-        # Node sizes based on priority
-        scores = [G_filtered.nodes[n].get('priority_score', 0) for n in G_filtered.nodes()]
-        min_s, max_s = 15, 60
-        if max(scores) > min(scores):
-            sizes = [min_s + (max_s - min_s) * (s - min(scores)) / (max(scores) - min(scores)) for s in scores]
-        else:
-            sizes = [30] * len(scores)
-        
-        # Edges
-        edge_x, edge_y = [], []
-        for u, v in G_filtered.edges():
-            x0, y0 = pos[u]
-            x1, y1 = pos[v]
-            edge_x.extend([x0, x1, None])
-            edge_y.extend([y0, y1, None])
-        
-        edge_trace = go.Scatter(
-            x=edge_x, y=edge_y,
-            line=dict(width=edge_width, color='#888'),
-            hoverinfo='none',
-            mode='lines'
-        )
-        
-        # Nodes
-        node_x, node_y, node_text, node_labels, node_symbols = [], [], [], [], []
-        for node in G_filtered.nodes():
-            x, y = pos[node]
-            node_x.append(x)
-            node_y.append(y)
-            d = G_filtered.nodes[node]
-            node_text.append(
-                f"{node}<br>"
-                f"Category: {d.get('category', 'N/A')}<br>"
-                f"Frequency: {d.get('frequency', 'N/A')}<br>"
-                f"Priority: {d.get('priority_score', 0):.3f}"
-            )
-            if len(node) > max_chars:
-                node_labels.append(node[:max_chars] + "...")
+        # Visualization
+        if G_filtered.number_of_nodes() > 0:
+            # FIX: Define analysis_type_display with a default value for the visualization title
+            if st.session_state.last_params:
+                analysis_type_display = st.session_state.last_params.get('analysis_type', 'General View')
             else:
-                node_labels.append(node)
-            if highlight and d.get('priority_score', 0) > threshold:
-                node_symbols.append('star')
+                analysis_type_display = 'General View'
+            
+            # Node coloring by category
+            cats = list(set([G_filtered.nodes[n].get('category', 'Unknown') for n in G_filtered.nodes()]))
+            color_map = {c: px.colors.qualitative.Set3[i % len(px.colors.qualitative.Set3)] for i, c in enumerate(cats)}
+            node_colors = [color_map.get(G_filtered.nodes[n].get('category', 'Unknown'), 'lightgray') for n in G_filtered.nodes()]
+            
+            # Layout
+            pos = nx.spring_layout(G_filtered, k=1, iterations=100, seed=42, weight='weight')
+            
+            # Node sizes based on priority
+            scores = [G_filtered.nodes[n].get('priority_score', 0) for n in G_filtered.nodes()]
+            min_s, max_s = 15, 60
+            if max(scores) > min(scores):
+                sizes = [min_s + (max_s - min_s) * (s - min(scores)) / (max(scores) - min(scores)) for s in scores]
             else:
-                node_symbols.append('circle')
-        
-        node_trace = go.Scatter(
-            x=node_x, y=node_y,
-            mode='markers+text' if show_labels else 'markers',
-            text=node_labels if show_labels else None,
-            textfont=dict(size=label_size, color='black'),
-            textposition='middle center',
-            hoverinfo='text',
-            hovertext=node_text,
-            marker=dict(
-                color=node_colors,
-                size=sizes,
-                symbol=node_symbols,
-                line=dict(width=1, color='darkgray')
+                sizes = [30] * len(scores)
+            
+            # Edges
+            edge_x, edge_y = [], []
+            for u, v in G_filtered.edges():
+                x0, y0 = pos[u]
+                x1, y1 = pos[v]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+            
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                line=dict(width=edge_width, color='#888'),
+                hoverinfo='none',
+                mode='lines'
             )
-        )
+            
+            # Nodes
+            node_x, node_y, node_text, node_labels, node_symbols = [], [], [], [], []
+            for node in G_filtered.nodes():
+                x, y = pos[node]
+                node_x.append(x)
+                node_y.append(y)
+                d = G_filtered.nodes[node]
+                node_text.append(
+                    f"{node}<br>"
+                    f"Category: {d.get('category', 'N/A')}<br>"
+                    f"Frequency: {d.get('frequency', 'N/A')}<br>"
+                    f"Priority: {d.get('priority_score', 0):.3f}"
+                )
+                if len(node) > max_chars:
+                    node_labels.append(node[:max_chars] + "...")
+                else:
+                    node_labels.append(node)
+                if highlight and d.get('priority_score', 0) > threshold:
+                    node_symbols.append('star')
+                else:
+                    node_symbols.append('circle')
+            
+            node_trace = go.Scatter(
+                x=node_x, y=node_y,
+                mode='markers+text' if show_labels else 'markers',
+                text=node_labels if show_labels else None,
+                textfont=dict(size=label_size, color='black'),
+                textposition='middle center',
+                hoverinfo='text',
+                hovertext=node_text,
+                marker=dict(
+                    color=node_colors,
+                    size=sizes,
+                    symbol=node_symbols,
+                    line=dict(width=1, color='darkgray')
+                )
+            )
+            
+            fig = go.Figure(data=[edge_trace, node_trace])
+            for cat, col in color_map.items():
+                fig.add_trace(go.Scatter(
+                    x=[None], y=[None], mode='markers',
+                    marker=dict(size=10, color=col), name=cat, showlegend=True
+                ))
+            
+            fig.update_layout(
+                title=f"Battery Degradation Knowledge Graph - {analysis_type_display}",
+                showlegend=True,
+                legend=dict(x=1.05, y=1),
+                hovermode='closest',
+                margin=dict(b=20, l=5, r=150, t=80),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
-        fig = go.Figure(data=[edge_trace, node_trace])
-        for cat, col in color_map.items():
-            fig.add_trace(go.Scatter(
-                x=[None], y=[None], mode='markers',
-                marker=dict(size=10, color=col), name=cat, showlegend=True
-            ))
-        
-        fig.update_layout(
-            title=f"Battery Degradation Knowledge Graph - {analysis_type_display}",
-            showlegend=True,
-            legend=dict(x=1.05, y=1),
-            hovermode='closest',
-            margin=dict(b=20, l=5, r=150, t=80),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Analysis Results Display
-    if st.session_state.last_analysis_results and st.session_state.last_params:
-        atype = st.session_state.last_params.get('analysis_type', 'Centrality Analysis')
-        st.markdown(f"### 📊 {atype} Results")
-        res = st.session_state.last_analysis_results
-        
-        if atype == "Centrality Analysis" and isinstance(res, pd.DataFrame) and not res.empty:
-            st.dataframe(res[['node', 'degree', 'betweenness', 'closeness', 'category']].head(20))
-            fig = px.scatter(res, x='degree', y='betweenness', color='category', 
-                           size='eigenvector', hover_data=['node'])
-            st.plotly_chart(fig)
-        
-        elif atype == "Community Detection" and isinstance(res, dict):
-            for cid, data in list(res.items())[:5]:
-                with st.expander(f"Community {cid} ({len(data['nodes'])} nodes)"):
-                    st.write("**Physics terms:**", dict(data['physics_terms'].most_common(5)))
-                    st.write("**Sample nodes:**", ", ".join(data['nodes'][:10]))
-        
-        elif atype == "Pathway Analysis" and isinstance(res, dict):
-            valid = sum(1 for v in res.values() if v['path'] is not None)
-            st.write(f"Found {valid} pathways")
-            for name, data in list(res.items())[:10]:
-                if data['path']:
-                    badge = "🔬" if data.get('contains_physics') else ""
-                    st.write(f"**{name}** {badge}: {' → '.join(data['nodes'])}")
-        
-        elif atype == "Correlation Analysis" and isinstance(res, tuple) and len(res) == 2:
-            corr, terms = res
-            if len(terms) > 0:
-                fig = px.imshow(corr, x=terms, y=terms, color_continuous_scale='Reds')
-                fig.update_layout(xaxis_tickangle=-45)
+        # Analysis Results Display
+        if st.session_state.last_analysis_results and st.session_state.last_params:
+            atype = st.session_state.last_params.get('analysis_type', 'Centrality Analysis')
+            st.markdown(f"### 📊 {atype} Results")
+            res = st.session_state.last_analysis_results
+            
+            if atype == "Centrality Analysis" and isinstance(res, pd.DataFrame) and not res.empty:
+                st.dataframe(res[['node', 'degree', 'betweenness', 'closeness', 'category']].head(20))
+                fig = px.scatter(res, x='degree', y='betweenness', color='category',
+                                size='eigenvector', hover_data=['node'])
                 st.plotly_chart(fig)
-
+            
+            elif atype == "Community Detection" and isinstance(res, dict):
+                for cid, data in list(res.items())[:5]:
+                    with st.expander(f"Community {cid} ({len(data['nodes'])} nodes)"):
+                        st.write("**Physics terms:**", dict(data['physics_terms'].most_common(5)))
+                        st.write("**Sample nodes:**", ", ".join(data['nodes'][:10]))
+            
+            elif atype == "Pathway Analysis" and isinstance(res, dict):
+                valid = sum(1 for v in res.values() if v['path'] is not None)
+                st.write(f"Found {valid} pathways")
+                for name, data in list(res.items())[:10]:
+                    if data['path']:
+                        badge = "🔬" if data.get('contains_physics') else ""
+                        st.write(f"**{name}** {badge}: {' → '.join(data['nodes'])}")
+            
+            elif atype == "Correlation Analysis" and isinstance(res, tuple) and len(res) == 2:
+                corr, terms = res
+                if len(terms) > 0:
+                    fig = px.imshow(corr, x=terms, y=terms, color_continuous_scale='Reds')
+                    fig.update_layout(xaxis_tickangle=-45)
+                    st.plotly_chart(fig)
+    
     # History
     if st.session_state.analysis_history:
         with st.expander("📜 Analysis History"):
             for entry in reversed(st.session_state.analysis_history[-5:]):
                 st.write(f"**{entry['timestamp']}** - {entry['query'][:50]}...")
                 st.write(f"Type: {entry['analysis_type']}, Nodes: {entry['nodes']}")
-
+    
     # Export
     st.sidebar.subheader("💾 Export")
     if st.sidebar.button("Export Filtered Graph"):
