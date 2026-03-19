@@ -7,7 +7,7 @@ Fully data‑grounded; LLM used only for parsing and inference on pre‑computed
 """
 
 import os
-import pathlib                     # <-- ADDED for robust path handling
+import pathlib
 import streamlit as st
 import pandas as pd
 import networkx as nx
@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 def get_data_dir() -> str:
     """
-    Determine the most likely directory containing nodes.csv and edges.csv.
+    Determine the most likely directory containing knowledge_graph_edges.csv and knowledge_graph_nodes.csv.
     Checks, in order:
       1. Environment variable BATTERY_DATA_DIR
       2. Script directory (if __file__ exists) and its 'data' subfolder
@@ -69,9 +69,9 @@ def get_data_dir() -> str:
         if p.is_dir():
             return str(p.resolve())
 
-    # Helper to check if a directory contains either nodes.csv or edges.csv
+    # Helper to check if a directory contains either of the required files
     def has_data_files(dir_path: pathlib.Path) -> bool:
-        return (dir_path / "nodes.csv").exists() or (dir_path / "edges.csv").exists()
+        return (dir_path / "knowledge_graph_nodes.csv").exists() or (dir_path / "knowledge_graph_edges.csv").exists()
 
     # 2. Script directory (if we are in a script)
     if '__file__' in globals():
@@ -1018,42 +1018,33 @@ class RelevanceScorer:
             return min(1.0, matches / 50.0)
 
 # ============================================================================
-# DATA LOADING FUNCTION (uses robust DB_DIR)
+# DATA LOADING FUNCTION – now uses the same filenames and error handling as the second code
 # ============================================================================
 @st.cache_data
 def load_data():
     """
     Loads nodes and edges DataFrames from CSV files located in DB_DIR.
-    If files are not found, creates small sample data for demonstration.
+    File names: knowledge_graph_nodes.csv, knowledge_graph_edges.csv.
+    If either file is missing, the app shows an error and stops (no sample data).
     """
-    nodes_file = os.path.join(DB_DIR, 'nodes.csv')
-    edges_file = os.path.join(DB_DIR, 'edges.csv')
+    nodes_file = os.path.join(DB_DIR, 'knowledge_graph_nodes.csv')
+    edges_file = os.path.join(DB_DIR, 'knowledge_graph_edges.csv')
 
-    if os.path.exists(nodes_file) and os.path.exists(edges_file):
-        nodes_df = pd.read_csv(nodes_file)
-        edges_df = pd.read_csv(edges_file)
-    else:
-        # Create sample data to allow the app to run
-        st.warning(f"Data files not found in {DB_DIR}. Using sample data.")
-        sample_nodes = [
-            {"node": "electrode cracking", "type": "term", "category": "Crack and Fracture", "frequency": 120, "unit": "μm", "similarity_score": 0.85, "year": 2020},
-            {"node": "SEI formation", "type": "term", "category": "Degradation", "frequency": 200, "unit": "nm", "similarity_score": 0.75, "year": 2021},
-            {"node": "capacity fade", "type": "term", "category": "Degradation", "frequency": 180, "unit": "%", "similarity_score": 0.8, "year": 2022},
-            {"node": "lithium plating", "type": "term", "category": "Degradation", "frequency": 90, "unit": "V", "similarity_score": 0.7, "year": 2021},
-            {"node": "diffusion-induced stress", "type": "term", "category": "Deformation", "frequency": 60, "unit": "MPa", "similarity_score": 0.9, "year": 2020},
-            {"node": "thermal runaway", "type": "term", "category": "Degradation", "frequency": 150, "unit": "°C", "similarity_score": 0.95, "year": 2022},
-        ]
-        sample_edges = [
-            {"source": "electrode cracking", "target": "capacity fade", "weight": 25, "type": "leads_to", "label": "causes", "relationship": "causal", "strength": 0.8},
-            {"source": "SEI formation", "target": "capacity fade", "weight": 30, "type": "leads_to", "label": "contributes_to", "relationship": "causal", "strength": 0.7},
-            {"source": "lithium plating", "target": "capacity fade", "weight": 15, "type": "leads_to", "label": "accelerates", "relationship": "causal", "strength": 0.6},
-            {"source": "diffusion-induced stress", "target": "electrode cracking", "weight": 20, "type": "leads_to", "label": "induces", "relationship": "causal", "strength": 0.9},
-            {"source": "thermal runaway", "target": "capacity fade", "weight": 10, "type": "leads_to", "label": "causes", "relationship": "causal", "strength": 0.5},
-        ]
-        nodes_df = pd.DataFrame(sample_nodes)
-        edges_df = pd.DataFrame(sample_edges)
+    missing = []
+    if not os.path.exists(nodes_file):
+        missing.append('knowledge_graph_nodes.csv')
+    if not os.path.exists(edges_file):
+        missing.append('knowledge_graph_edges.csv')
 
-    # Ensure required columns exist
+    if missing:
+        st.error(f"❌ Required data file(s) not found in {DB_DIR}: {', '.join(missing)}. "
+                 f"Please upload the files to the correct location or set the BATTERY_DATA_DIR environment variable.")
+        st.stop()
+
+    nodes_df = pd.read_csv(nodes_file)
+    edges_df = pd.read_csv(edges_file)
+
+    # Ensure required columns exist (add default values if missing)
     required_node_cols = ['node', 'type', 'category', 'frequency']
     for col in required_node_cols:
         if col not in nodes_df.columns:
@@ -1089,7 +1080,7 @@ def main():
     KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
     PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
 
-    # Load data
+    # Load data – will stop if files missing
     try:
         edges_df, nodes_df = load_data()
     except Exception as e:
