@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
-===================================================
+INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER – ENHANCED
+===============================================================
 Fully data‑grounded; LLM used only for parsing and inference on pre‑computed JSON.
+Now includes advanced graph metrics, physics equation relevance, and operational modulation.
 """
 
 import os
@@ -99,107 +100,165 @@ def get_data_dir() -> str:
 DB_DIR = get_data_dir()
 logger.info(f"Data directory set to: {DB_DIR}")
 
-APP_VERSION = "5.1.0"   # Updated version
+APP_VERSION = "6.0.0"   # Enhanced version
 
 # ----------------------------------------------------------------------------
-# 15+ PHYSICS EQUATIONS (used for context and template matching)
+# 25+ PHYSICS EQUATIONS (expanded, now with full descriptions for embedding matching)
 # ----------------------------------------------------------------------------
 PHYSICS_EQUATIONS = {
     "diffusion_stress": {
         "equation": r"σ = \frac{E \Omega \Delta c}{1 - \nu}",
-        "description": "Diffusion-induced stress in active particles",
+        "description": "Diffusion-induced stress in active particles. Relates stress to concentration gradient.",
         "variables": {"E": "Young's modulus (GPa)", "Ω": "Partial molar volume (m³/mol)",
                       "Δc": "Concentration gradient (mol/m³)", "ν": "Poisson's ratio"},
         "unit": "MPa"
     },
     "sei_growth": {
         "equation": r"δ_{SEI} \propto \sqrt{t}",
-        "description": "SEI layer growth kinetics (parabolic)",
+        "description": "SEI layer growth kinetics (parabolic). Thickness increases with square root of time.",
         "variables": {"δ_SEI": "SEI thickness (nm)", "t": "Time (hours)"},
         "unit": "nm"
     },
     "chemo_mechanical": {
         "equation": r"LAM \propto \int \sigma \, dN",
-        "description": "Loss of Active Material from stress cycling",
+        "description": "Loss of Active Material from stress cycling. Accumulated stress over cycles.",
         "variables": {"LAM": "Loss of Active Material (%)", "σ": "Stress (MPa)", "N": "Cycle number"},
         "unit": "%"
     },
     "lithium_plating": {
         "equation": r"Risk \uparrow \text{ when } V < V_{plate} \text{ or } T < 0°C",
-        "description": "Lithium plating risk conditions",
+        "description": "Lithium plating risk conditions. Plating occurs at low voltage or low temperature.",
         "variables": {"V": "Cell voltage (V)", "V_plate": "Plating potential (~0.1V vs Li/Li+)", "T": "Temperature (°C)"},
         "unit": "V/°C"
     },
     "capacity_fade": {
         "equation": r"Q_{loss} = Q_0 - \int I(t) \, dt",
-        "description": "Integrated current loss over time",
+        "description": "Integrated current loss over time. Capacity loss as ampere-hour throughput.",
         "variables": {"Q_loss": "Capacity loss (mAh)", "Q_0": "Initial capacity (mAh)", "I": "Current (A)"},
         "unit": "%"
     },
     "crack_propagation": {
         "equation": r"\frac{da}{dN} = C(\Delta K)^m",
-        "description": "Paris law for fatigue crack growth",
+        "description": "Paris law for fatigue crack growth. Crack growth per cycle as function of stress intensity.",
         "variables": {"a": "Crack length (μm)", "N": "Cycle number", "ΔK": "Stress intensity factor (MPa·m^½)", "C, m": "Material constants"},
         "unit": "μm"
     },
     "nernst_equation": {
         "equation": r"E = E^0 - \frac{RT}{nF} \ln Q",
-        "description": "Electrode potential under non-standard conditions",
+        "description": "Electrode potential under non-standard conditions. Relates potential to reaction quotient.",
         "variables": {"E": "Cell potential (V)", "E^0": "Standard potential (V)", "R": "Gas constant", "T": "Temperature (K)", "n": "Number of electrons", "F": "Faraday constant", "Q": "Reaction quotient"},
         "unit": "V"
     },
     "butler_volmer": {
         "equation": r"j = j_0 \left[ \exp\left(\frac{\alpha n F \eta}{RT}\right) - \exp\left(-\frac{(1-\alpha) n F \eta}{RT}\right) \right]",
-        "description": "Electrode kinetics (current density)",
+        "description": "Electrode kinetics (current density). Relates current to overpotential.",
         "variables": {"j": "Current density (A/m²)", "j_0": "Exchange current density", "α": "Charge transfer coefficient", "η": "Overpotential (V)"},
         "unit": "A/m²"
     },
     "heat_generation": {
         "equation": r"Q_{gen} = I^2 R + I T \frac{dU}{dT}",
-        "description": "Total heat generation (Joule + reversible)",
+        "description": "Total heat generation (Joule + reversible).",
         "variables": {"Q_gen": "Heat generation rate (W)", "I": "Current (A)", "R": "Internal resistance (Ω)", "dU/dT": "Entropy coefficient (V/K)"},
         "unit": "W"
     },
     "thermal_runaway": {
         "equation": r"\frac{dT}{dt} = \frac{Q_{gen} - Q_{diss}}{m C_p}",
-        "description": "Temperature rise rate",
+        "description": "Temperature rise rate. Balance of heat generation and dissipation.",
         "variables": {"T": "Temperature (°C)", "Q_gen": "Heat generation (W)", "Q_diss": "Heat dissipation (W)", "m": "Mass (kg)", "C_p": "Specific heat (J/kg·K)"},
         "unit": "°C"
     },
     "calendar_aging": {
         "equation": r"Q_{loss} \propto \sqrt{t} \cdot \exp\left(-\frac{E_a}{RT}\right)",
-        "description": "Calendar aging with Arrhenius temperature dependence",
+        "description": "Calendar aging with Arrhenius temperature dependence.",
         "variables": {"Q_loss": "Capacity loss (%)", "t": "Time (months)", "E_a": "Activation energy (kJ/mol)", "T": "Temperature (K)"},
         "unit": "%/year"
     },
     "cycle_aging": {
         "equation": r"Q_{loss} = A \cdot N^z \cdot \text{DOD}^b",
-        "description": "Cycle aging model",
+        "description": "Cycle aging model. Capacity loss as function of cycles and depth of discharge.",
         "variables": {"N": "Cycle number", "DOD": "Depth of Discharge (%)", "A, z, b": "Fitting parameters"},
         "unit": "cycles"
     },
     "diffusion_coefficient": {
         "equation": r"D = D_0 \exp\left(-\frac{E_a}{RT}\right)",
-        "description": "Temperature-dependent diffusion coefficient",
+        "description": "Temperature-dependent diffusion coefficient. Arrhenius behavior.",
         "variables": {"D": "Diffusion coefficient (cm²/s)", "D_0": "Pre-exponential factor", "E_a": "Activation energy (kJ/mol)"},
         "unit": "cm²/s"
     },
     "migration_flux": {
         "equation": r"J = -D \nabla c + \frac{z F D c}{RT} \nabla \phi",
-        "description": "Nernst-Planck ion flux (diffusion + migration)",
+        "description": "Nernst-Planck ion flux (diffusion + migration).",
         "variables": {"J": "Ion flux (mol/m²·s)", "c": "Concentration (mol/m³)", "φ": "Electric potential (V)"},
         "unit": "mol/m²·s"
     },
     "gas_evolution": {
         "equation": r"V_{gas} \propto \int I_{parasitic} \, dt",
-        "description": "Gas volume from parasitic reactions",
+        "description": "Gas volume from parasitic reactions.",
         "variables": {"V_gas": "Gas volume (mL)", "I_parasitic": "Parasitic current (mA)"},
         "unit": "mL"
+    },
+    "stress_intensity": {
+        "equation": r"K_I = Y \sigma \sqrt{\pi a}",
+        "description": "Stress intensity factor for mode I fracture. Depends on crack length and stress.",
+        "variables": {"K_I": "Stress intensity (MPa·m^½)", "Y": "Geometric factor", "σ": "Applied stress (MPa)", "a": "Crack length (m)"},
+        "unit": "MPa·m^½"
+    },
+    "young_modulus": {
+        "equation": r"E = \frac{\sigma}{\epsilon}",
+        "description": "Young's modulus, ratio of stress to strain in elastic region.",
+        "variables": {"E": "Young's modulus (GPa)", "σ": "Stress (MPa)", "ε": "Strain"},
+        "unit": "GPa"
+    },
+    "poisson_ratio": {
+        "equation": r"\nu = -\frac{\epsilon_{lateral}}{\epsilon_{axial}}",
+        "description": "Poisson's ratio, negative ratio of transverse to axial strain.",
+        "variables": {"ν": "Poisson's ratio", "ε_lateral": "Lateral strain", "ε_axial": "Axial strain"},
+        "unit": "dimensionless"
+    },
+    "fracture_toughness": {
+        "equation": r"K_{IC} = Y \sigma_f \sqrt{\pi a_c}",
+        "description": "Fracture toughness, critical stress intensity for crack propagation.",
+        "variables": {"K_IC": "Fracture toughness (MPa·m^½)", "σ_f": "Fracture stress (MPa)", "a_c": "Critical crack length (m)"},
+        "unit": "MPa·m^½"
+    },
+    "electrochemical_strain": {
+        "equation": r"\epsilon_{chem} = \beta \Delta c",
+        "description": "Chemical strain due to concentration change.",
+        "variables": {"ε_chem": "Chemical strain", "β": "Expansion coefficient (m³/mol)", "Δc": "Concentration change (mol/m³)"},
+        "unit": "dimensionless"
+    },
+    "sei_ionic_resistance": {
+        "equation": r"R_{SEI} = \frac{\delta_{SEI}}{\kappa_{SEI}}",
+        "description": "Ionic resistance of SEI layer.",
+        "variables": {"R_SEI": "Resistance (Ω·m²)", "δ_SEI": "Thickness (m)", "κ_SEI": "Ionic conductivity (S/m)"},
+        "unit": "Ω·m²"
+    },
+    "exchange_current": {
+        "equation": r"j_0 = F k^0 (c_{ox})^{1-\alpha} (c_{red})^{\alpha}",
+        "description": "Exchange current density from rate constant and concentrations.",
+        "variables": {"j_0": "Exchange current density (A/m²)", "k^0": "Standard rate constant (m/s)", "c_ox", "c_red": "Concentrations (mol/m³)", "α": "Transfer coefficient"},
+        "unit": "A/m²"
+    },
+    "porosity_evolution": {
+        "equation": r"\frac{\partial \epsilon}{\partial t} = -\frac{M_{SEI}}{\rho_{SEI}} j_{SEI}",
+        "description": "Porosity change due to SEI growth.",
+        "variables": {"ε": "Porosity", "M_SEI": "Molar mass (kg/mol)", "ρ_SEI": "Density (kg/m³)", "j_SEI": "SEI current (A/m²)"},
+        "unit": "s⁻¹"
+    },
+    "li_diffusion_time": {
+        "equation": r"\tau = \frac{L^2}{D}",
+        "description": "Characteristic diffusion time in electrode particle.",
+        "variables": {"τ": "Diffusion time (s)", "L": "Diffusion length (m)", "D": "Diffusion coefficient (m²/s)"},
+        "unit": "s"
     }
 }
 
-# Extended physics terms for semantic boosting
-PHYSICS_TERMS = [
+# Extended physics terms for semantic boosting (now derived from equation descriptions)
+PHYSICS_TERMS = list(set([
+    term.lower() for eq in PHYSICS_EQUATIONS.values()
+    for term in eq["description"].split()
+    if len(term) > 3
+])) + [
     "diffusion-induced stress", "SEI formation", "chemo-mechanical coupling",
     "lithium plating", "mechanical degradation", "stress concentration",
     "fracture toughness", "crack propagation", "particle cracking",
@@ -293,6 +352,7 @@ scibert_tokenizer = None
 scibert_model = None
 KEY_TERMS_EMBEDDINGS = []
 PHYSICS_TERMS_EMBEDDINGS = []
+EQUATION_DESCRIPTION_EMBEDDINGS = {}  # mapping equation name -> embedding
 
 @st.cache_resource
 def load_scibert():
@@ -335,6 +395,16 @@ def compute_embeddings(texts):
     """Helper to compute and cache embeddings for a list of texts."""
     return get_scibert_embedding(texts)
 
+def compute_equation_embeddings():
+    """Pre‑compute embeddings for each physics equation description."""
+    global scibert_tokenizer, scibert_model
+    eq_emb = {}
+    for name, data in PHYSICS_EQUATIONS.items():
+        desc = data["description"]
+        emb = get_scibert_embedding(desc)
+        eq_emb[name] = emb
+    return eq_emb
+
 # ============================================================================
 # UNIT-AWARE PARSING (simple version)
 # ============================================================================
@@ -361,62 +431,119 @@ class UnitParser:
         return extracted
 
 # ============================================================================
-# ENHANCED PRIORITY SCORE CALCULATION (with physics boost and operational constraints)
+# ADVANCED GRAPH METRICS AND PHYSICS RELEVANCE
 # ============================================================================
-def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operational_params=None):
+def compute_advanced_metrics(G):
+    """Compute PageRank, clustering coefficient, and k‑core decomposition for all nodes."""
+    pagerank = nx.pagerank(G, weight='weight')
+    clustering = nx.clustering(G, weight='weight')
+    # k‑core: core number for each node
+    core_numbers = nx.core_number(G)
+    return pagerank, clustering, core_numbers
+
+def compute_physics_relevance_for_nodes(G, equation_embeddings):
+    """
+    For each node, compute its maximum cosine similarity to any physics equation description.
+    Returns a dict node -> physics_relevance (0..1).
+    """
+    if not equation_embeddings:
+        return {n: 0.0 for n in G.nodes()}
+    node_emb_dict = {}
+    nodes = list(G.nodes())
+    embs = get_scibert_embedding(nodes)
+    for n, emb in zip(nodes, embs):
+        if emb is not None:
+            node_emb_dict[n] = emb
+    relevance = {}
+    for n in G.nodes():
+        n_emb = node_emb_dict.get(n)
+        if n_emb is None:
+            relevance[n] = 0.0
+        else:
+            max_sim = 0.0
+            for eq_emb in equation_embeddings.values():
+                if eq_emb is not None:
+                    sim = cosine_similarity([n_emb], [eq_emb])[0][0]
+                    if sim > max_sim:
+                        max_sim = sim
+            relevance[n] = max_sim
+    return relevance
+
+# ============================================================================
+# ENHANCED PRIORITY SCORE CALCULATION (with advanced metrics and operational modulation)
+# ============================================================================
+def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operational_params=None,
+                               physics_relevance=None, pagerank=None, clustering=None, core_numbers=None):
     """
     Enhanced priority scoring with:
-      - Frequency (0.35)
-      - Degree centrality (0.25)
-      - Betweenness centrality (0.20)
+      - Frequency (0.25)
+      - Degree centrality (0.15)
+      - Betweenness centrality (0.15)
+      - PageRank (0.10)
+      - Clustering coefficient (0.05)
+      - Core number (0.05)
       - Semantic relevance to KEY_TERMS (0.10)
-      - Physics boost term (physics_boost_weight, default 0.15)
-    Operational constraints (C-rate, voltage, temperature) further boost relevant nodes.
-    Uses global KEY_TERMS_EMBEDDINGS and PHYSICS_TERMS_EMBEDDINGS.
+      - Physics relevance (physics_boost_weight, default 0.15)
+    Operational constraints (C-rate, voltage, temperature) modulate physics relevance.
     """
-    global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
     max_freq = nodes_df['frequency'].max() if nodes_df['frequency'].max() > 0 else 1
     nodes_df['norm_frequency'] = nodes_df['frequency'] / max_freq
 
     degree_centrality = nx.degree_centrality(G)
     betweenness_centrality = nx.betweenness_centrality(G)
-    try:
-        eigenvector_centrality = nx.eigenvector_centrality(G, max_iter=1000)
-    except:
-        eigenvector_centrality = {node: 0 for node in G.nodes()}
 
+    # If advanced metrics not provided, compute them
+    if pagerank is None:
+        pagerank = nx.pagerank(G, weight='weight')
+    if clustering is None:
+        clustering = nx.clustering(G, weight='weight')
+    if core_numbers is None:
+        core_numbers = nx.core_number(G)
+
+    # Normalize core numbers to [0,1]
+    max_core = max(core_numbers.values()) if core_numbers else 1
+    core_norm = {n: v / max_core for n, v in core_numbers.items()}
+
+    # Semantic relevance to KEY_TERMS (using pre‑computed embeddings)
     node_terms = nodes_df['node'].tolist()
     term_embeddings = get_scibert_embedding(node_terms)
     term_embeddings_dict = dict(zip(node_terms, term_embeddings))
 
     semantic_scores = {}
-    physics_scores = {}
     for node in G.nodes():
         emb = term_embeddings_dict.get(node)
         if emb is None:
             semantic_scores[node] = 0
-            physics_scores[node] = 0
         else:
-            # Semantic relevance to KEY_TERMS
-            sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS if kt_emb is not None]
-            semantic_scores[node] = max(sem_sims, default=0)
-            # Physics relevance to PHYSICS_TERMS
-            phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
-            phys_score = max(phys_sims, default=0)
+            sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS if kt_emb is not None]
+            semantic_scores[node] = max(sims, default=0)
 
-            # Operational constraint modifiers
-            if operational_params:
-                if operational_params.get('temperature', 25) > 45 and any(t in node.lower() for t in ['thermal', 'temp']):
-                    phys_score *= 1.3
-                if operational_params.get('c_rate', 1.0) > 2.0 and any(t in node.lower() for t in ['rate', 'power']):
-                    phys_score *= 1.3
-                if operational_params.get('voltage', 3.7) > 4.2 and any(t in node.lower() for t in ['voltage', 'potential']):
-                    phys_score *= 1.3
-            physics_scores[node] = min(phys_score, 1.0)
+    # Physics relevance (if not provided, compute from equation embeddings)
+    if physics_relevance is None:
+        physics_relevance = compute_physics_relevance_for_nodes(G, EQUATION_DESCRIPTION_EMBEDDINGS)
 
-    w_f, w_d, w_b, w_s, w_p = 0.35, 0.25, 0.20, 0.10, physics_boost_weight
-    total = w_f + w_d + w_b + w_s + w_p
-    w_f, w_d, w_b, w_s, w_p = w_f/total, w_d/total, w_b/total, w_s/total, w_p/total
+    # Operational constraint modulation: boost physics relevance if node matches extreme conditions
+    def operational_modulation(node, base_phys):
+        mod = 1.0
+        if operational_params:
+            if operational_params.get('temperature', 25) > 45 and any(t in node.lower() for t in ['thermal', 'temp', 'heat']):
+                mod *= 1.3
+            if operational_params.get('c_rate', 1.0) > 2.0 and any(t in node.lower() for t in ['rate', 'power', 'current']):
+                mod *= 1.3
+            if operational_params.get('voltage', 3.7) > 4.2 and any(t in node.lower() for t in ['voltage', 'potential']):
+                mod *= 1.3
+            if operational_params.get('dod', 80) > 80 and any(t in node.lower() for t in ['depth', 'discharge']):
+                mod *= 1.2
+            if operational_params.get('soc', 50) < 20 and any(t in node.lower() for t in ['low soc', 'overdischarge']):
+                mod *= 1.2
+        return min(base_phys * mod, 1.0)
+
+    physics_modulated = {n: operational_modulation(n, physics_relevance.get(n, 0)) for n in G.nodes()}
+
+    # Weight definitions
+    w_f, w_d, w_b, w_pr, w_cl, w_core, w_s, w_p = 0.25, 0.15, 0.15, 0.10, 0.05, 0.05, 0.10, physics_boost_weight
+    total = w_f + w_d + w_b + w_pr + w_cl + w_core + w_s + w_p
+    w_f, w_d, w_b, w_pr, w_cl, w_core, w_s, w_p = [w/total for w in [w_f, w_d, w_b, w_pr, w_cl, w_core, w_s, w_p]]
 
     priority_scores = {}
     for node in G.nodes():
@@ -425,13 +552,16 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
             w_f * freq +
             w_d * degree_centrality.get(node, 0) +
             w_b * betweenness_centrality.get(node, 0) +
+            w_pr * pagerank.get(node, 0) +
+            w_cl * clustering.get(node, 0) +
+            w_core * core_norm.get(node, 0) +
             w_s * semantic_scores.get(node, 0) +
-            w_p * physics_scores.get(node, 0)
+            w_p * physics_modulated.get(node, 0)
         )
     return priority_scores
 
 # ============================================================================
-# FAILURE ANALYSIS FUNCTIONS (as in original snippet, preserved)
+# FAILURE ANALYSIS FUNCTIONS (enhanced to include new metrics)
 # ============================================================================
 def analyze_failure_centrality(G_filtered, focus_terms=None):
     if focus_terms is None:
@@ -443,6 +573,12 @@ def analyze_failure_centrality(G_filtered, focus_terms=None):
         eigen = nx.eigenvector_centrality(G_filtered, max_iter=1000)
     except:
         eigen = {n: 0 for n in G_filtered.nodes()}
+    pagerank = nx.pagerank(G_filtered, weight='weight')
+    clustering = nx.clustering(G_filtered, weight='weight')
+    core_numbers = nx.core_number(G_filtered)
+    max_core = max(core_numbers.values()) if core_numbers else 1
+    core_norm = {n: v/max_core for n,v in core_numbers.items()}
+
     results = []
     for node in G_filtered.nodes():
         if any(term in node.lower() for term in focus_terms):
@@ -452,162 +588,401 @@ def analyze_failure_centrality(G_filtered, focus_terms=None):
                 'betweenness': between.get(node, 0),
                 'closeness': closeness.get(node, 0),
                 'eigenvector': eigen.get(node, 0),
+                'pagerank': pagerank.get(node, 0),
+                'clustering': clustering.get(node, 0),
+                'core_number': core_numbers.get(node, 0),
+                'core_norm': core_norm.get(node, 0),
                 'category': G_filtered.nodes[node].get('category', ''),
                 'type': G_filtered.nodes[node].get('type', '')
             })
     return pd.DataFrame(results)
 
-def detect_failure_communities(G_filtered):
-    try:
-        partition = community_louvain.best_partition(G_filtered, weight='weight', resolution=1.2)
-    except:
-        partition = {node: 0 for node in G_filtered.nodes()}
-    communities = {}
-    for node, cid in partition.items():
-        if cid not in communities:
-            communities[cid] = {'nodes': [], 'categories': Counter(), 'failure_keywords': Counter(), 'physics_terms': Counter()}
-        communities[cid]['nodes'].append(node)
-        cat = G_filtered.nodes[node].get('category', '')
-        if cat:
-            communities[cid]['categories'][cat] += 1
-        for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure']:
-            if kw in node.lower():
-                communities[cid]['failure_keywords'][kw] += 1
-        for term in PHYSICS_TERMS:
-            if term in node.lower():
-                communities[cid]['physics_terms'][term] += 1
-    return communities, partition
-
-def analyze_ego_networks(G_filtered, central_nodes=None):
-    if central_nodes is None:
-        central_nodes = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress", "capacity fade", "lithium plating"]
-    results = {}
-    for node in central_nodes:
-        if node in G_filtered.nodes():
-            try:
-                ego = nx.ego_graph(G_filtered, node, radius=2)
-                results[node] = {
-                    'node_count': ego.number_of_nodes(),
-                    'edge_count': ego.number_of_edges(),
-                    'density': nx.density(ego),
-                    'average_degree': sum(dict(ego.degree()).values()) / ego.number_of_nodes() if ego.number_of_nodes() > 0 else 0,
-                    'centrality': nx.degree_centrality(ego).get(node, 0),
-                    'neighbors': list(ego.neighbors(node)),
-                    'subgraph_categories': Counter([ego.nodes[n].get('category', '') for n in ego.nodes()]),
-                    'physics_terms': [n for n in ego.nodes() if any(t in n.lower() for t in PHYSICS_TERMS)]
-                }
-            except:
-                results[node] = {'node_count': 0, 'edge_count': 0, 'density': 0, 'average_degree': 0, 'centrality': 0, 'neighbors': [], 'subgraph_categories': Counter(), 'physics_terms': []}
-    return results
-
-def find_failure_pathways(G_filtered, source_terms, target_terms, require_physics=False, min_physics_similarity=0.5):
+def find_failure_pathways(G_filtered, source_terms, target_terms, require_physics=False,
+                          min_physics_similarity=0.5, physics_relevance=None):
+    """
+    Enhanced pathway analysis: if physics_relevance dict is given, compute avg physics along path.
+    Also add physics_weighted_paths that maximize sum of physics relevance.
+    """
     pathways = {}
+    physics_weighted_paths = []  # for new analysis type
+
     for src in source_terms:
         for tgt in target_terms:
             if src in G_filtered.nodes() and tgt in G_filtered.nodes():
                 try:
+                    # Get all shortest paths by weight (or unweighted if weight not used)
                     paths = list(nx.all_shortest_paths(G_filtered, source=src, target=tgt, weight='weight'))
-                    if require_physics:
+                    if require_physics and physics_relevance is not None:
+                        # Filter paths that have at least one node with physics relevance > min_physics_similarity
                         filtered = []
                         for p in paths:
-                            has_phys = any(any(t in node.lower() for t in PHYSICS_TERMS) for node in p)
-                            if has_phys:
+                            max_rel = max(physics_relevance.get(n, 0) for n in p)
+                            if max_rel >= min_physics_similarity:
                                 filtered.append(p)
                         paths = filtered
                     if paths:
+                        # Use the first path for simplicity
                         path = paths[0]
-                        physics_scores = []
-                        for node in path:
-                            emb = get_scibert_embedding(node)
-                            if emb is not None and PHYSICS_TERMS_EMBEDDINGS:
-                                sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
-                                physics_scores.append(max(sims, default=0))
-                        avg_phys = np.mean(physics_scores) if physics_scores else 0
+                        # Compute average physics relevance along path
+                        if physics_relevance is not None:
+                            phys_scores = [physics_relevance.get(n, 0) for n in path]
+                            avg_phys = np.mean(phys_scores)
+                            sum_phys = np.sum(phys_scores)
+                        else:
+                            avg_phys = 0
+                            sum_phys = 0
                         pathways[f"{src} -> {tgt}"] = {
                             'path': path,
                             'length': len(path)-1,
                             'nodes': path,
                             'num_paths': len(paths),
-                            'contains_physics': any(any(t in node.lower() for t in PHYSICS_TERMS) for n in path),
-                            'avg_physics_similarity': avg_phys
+                            'contains_physics': any(physics_relevance.get(n, 0) > 0 for n in path) if physics_relevance else False,
+                            'avg_physics_similarity': avg_phys,
+                            'sum_physics': sum_phys
                         }
+                        # Also store for physics-weighted ranking
+                        physics_weighted_paths.append({
+                            'path': path,
+                            'source': src,
+                            'target': tgt,
+                            'sum_physics': sum_phys,
+                            'avg_physics': avg_phys,
+                            'length': len(path)-1
+                        })
                     else:
-                        pathways[f"{src} -> {tgt}"] = {'path': None, 'length': float('inf'), 'nodes': [], 'contains_physics': False, 'avg_physics_similarity': 0}
+                        pathways[f"{src} -> {tgt}"] = {'path': None, 'length': float('inf'), 'nodes': [], 'contains_physics': False, 'avg_physics_similarity': 0, 'sum_physics': 0}
                 except nx.NetworkXNoPath:
-                    pathways[f"{src} -> {tgt}"] = {'path': None, 'length': float('inf'), 'nodes': [], 'contains_physics': False, 'avg_physics_similarity': 0}
-    return pathways
+                    pathways[f"{src} -> {tgt}"] = {'path': None, 'length': float('inf'), 'nodes': [], 'contains_physics': False, 'avg_physics_similarity': 0, 'sum_physics': 0}
+    # Sort physics_weighted_paths by sum_physics descending
+    physics_weighted_paths.sort(key=lambda x: x['sum_physics'], reverse=True)
+    return pathways, physics_weighted_paths
 
-def analyze_temporal_patterns(nodes_df, edges_df, time_column='year'):
-    if time_column not in nodes_df.columns:
-        return {"error": "Time column not found"}
-    periods = sorted(nodes_df[time_column].dropna().unique())
-    analysis = {}
-    for p in periods:
-        period_nodes = nodes_df[nodes_df[time_column] == p]
-        analysis[p] = {
-            'total_concepts': len(period_nodes),
-            'failure_concepts': len([n for n in period_nodes['node'] if any(kw in n.lower() for kw in ['crack','fracture','degrad','fatigue','damage'])]),
-            'physics_concepts': len([n for n in period_nodes['node'] if any(term in n.lower() for term in PHYSICS_TERMS)]),
-            'top_concepts': period_nodes.nlargest(5, 'frequency')['node'].tolist()
+# ============================================================================
+# STRUCTURED INSIGHT GENERATOR (produces countable JSON, now enriched)
+# ============================================================================
+class DegradationInsightGenerator:
+    @staticmethod
+    def generate_structured_insights(
+        analysis_results,
+        analysis_type: str,
+        parsed_params: Dict,
+        graph_stats: Dict,
+        user_query: str = "",
+        physics_relevance: Optional[Dict] = None,
+        pagerank: Optional[Dict] = None,
+        clustering: Optional[Dict] = None,
+        core_numbers: Optional[Dict] = None
+    ) -> Dict:
+        """
+        Returns a fully numerical, countable JSON object.
+        Every entry has a composite_weight (0–1) that can be sorted/ranked.
+        """
+        global PHYSICS_TERMS_EMBEDDINGS
+        data = {
+            "summary": {
+                "nodes": graph_stats["nodes"],
+                "edges": graph_stats["edges"],
+                "analysis_type": analysis_type,
+                "query_focus_score": 0.0
+            },
+            "ranked_mechanisms": [],
+            "pathways": [],
+            "physics_weighted_pathways": [],
+            "communities": [],
+            "strong_correlations": [],
+            "temporal_trend": {},
+            "operational_constraints": {
+                "c_rate": parsed_params.get("c_rate", 1.0),
+                "voltage": parsed_params.get("voltage", 3.7),
+                "temperature": parsed_params.get("temperature", 25.0),
+                "soc": parsed_params.get("soc", 50.0),
+                "dod": parsed_params.get("dod", 80.0)
+            }
         }
-    return analysis
 
-def analyze_failure_correlations(G_filtered):
-    failure_terms = [n for n in G_filtered.nodes() if any(kw in n.lower() for kw in ['crack','fracture','degrad','fatigue','damage','failure'])]
-    n = len(failure_terms)
-    corr = np.zeros((n, n))
-    for i, t1 in enumerate(failure_terms):
-        for j, t2 in enumerate(failure_terms):
-            if G_filtered.has_edge(t1, t2):
-                corr[i, j] = G_filtered.edges[t1, t2].get('weight', 0)
-    return corr, failure_terms
+        # ------------------------------------------------------------------
+        # 1. Ranked Mechanisms (Centrality / Community)
+        # ------------------------------------------------------------------
+        if analysis_type == "Centrality Analysis" and isinstance(analysis_results, pd.DataFrame) and not analysis_results.empty:
+            top = analysis_results.nlargest(15, "degree")  # take more, we'll re-weight
+            for _, row in top.iterrows():
+                node = row["node"]
+                # Physics match from pre‑computed physics_relevance
+                phys_match = physics_relevance.get(node, 0.0) if physics_relevance else 0.0
+
+                # Operational boost (already factored into physics_relevance via modulation, but we keep it separate for transparency)
+                operational_boost = 1.0
+                if parsed_params.get("temperature", 25) > 45 and any(t in node.lower() for t in ["thermal", "temp"]):
+                    operational_boost = 1.3
+                if parsed_params.get("c_rate", 1.0) > 2.0 and any(t in node.lower() for t in ["rate", "power"]):
+                    operational_boost = 1.3
+                if parsed_params.get("voltage", 3.7) > 4.2 and any(t in node.lower() for t in ["voltage", "potential"]):
+                    operational_boost = 1.3
+
+                # Get advanced metrics
+                pr_val = pagerank.get(node, 0) if pagerank else 0
+                clust_val = clustering.get(node, 0) if clustering else 0
+                core_val = core_numbers.get(node, 0) if core_numbers else 0
+                max_core = max(core_numbers.values()) if core_numbers else 1
+                core_norm = core_val / max_core if max_core > 0 else 0
+
+                # Composite weight: combine degree, betweenness, physics, pagerank, clustering, core
+                comp = (
+                    0.3 * row["degree"] +
+                    0.15 * row.get("betweenness", 0) +
+                    0.2 * phys_match +
+                    0.1 * pr_val +
+                    0.1 * clust_val +
+                    0.1 * core_norm +
+                    0.05 * operational_boost
+                )
+                # Clamp to 0-1
+                comp = min(max(comp, 0), 1)
+
+                # Find matching physics equation (closest by embedding)
+                equation = ""
+                if phys_match > 0.3 and EQUATION_DESCRIPTION_EMBEDDINGS:
+                    # find equation with highest similarity to node embedding
+                    node_emb = get_scibert_embedding(node)
+                    if node_emb is not None:
+                        best_eq = None
+                        best_sim = 0
+                        for eq_name, eq_emb in EQUATION_DESCRIPTION_EMBEDDINGS.items():
+                            if eq_emb is not None:
+                                sim = cosine_similarity([node_emb], [eq_emb])[0][0]
+                                if sim > best_sim:
+                                    best_sim = sim
+                                    best_eq = eq_name
+                        if best_eq:
+                            equation = PHYSICS_EQUATIONS[best_eq]["equation"]
+
+                entry = {
+                    "name": node,
+                    "degree": round(row["degree"], 3),
+                    "betweenness": round(row.get("betweenness", 0), 3),
+                    "pagerank": round(pr_val, 3),
+                    "clustering": round(clust_val, 3),
+                    "core_number": core_val,
+                    "physics_match": round(phys_match, 3),
+                    "operational_boost": round(operational_boost, 2),
+                    "composite_weight": round(comp, 3),
+                    "equation": equation
+                }
+                data["ranked_mechanisms"].append(entry)
+
+        # ------------------------------------------------------------------
+        # 2. Pathways (standard)
+        # ------------------------------------------------------------------
+        if analysis_type == "Pathway Analysis" and isinstance(analysis_results, tuple) and len(analysis_results)==2:
+            pathways_dict, phys_weighted = analysis_results
+            for name, p in pathways_dict.items():
+                if p.get("path"):
+                    phys_score = p.get("avg_physics_similarity", 0)
+                    composite = (0.5 * (1 / (p["length"] + 1)) + 0.5 * phys_score) * 1.0
+                    data["pathways"].append({
+                        "path": name,
+                        "length": p["length"],
+                        "avg_physics_similarity": round(phys_score, 3),
+                        "composite_weight": round(composite, 3),
+                        "contains_physics": p.get("contains_physics", False)
+                    })
+            # Also add physics-weighted pathways
+            for pw in phys_weighted[:10]:
+                data["physics_weighted_pathways"].append({
+                    "source": pw["source"],
+                    "target": pw["target"],
+                    "path": " → ".join(pw["path"]),
+                    "length": pw["length"],
+                    "sum_physics": round(pw["sum_physics"], 3),
+                    "avg_physics": round(pw["avg_physics"], 3)
+                })
+
+        # ------------------------------------------------------------------
+        # 3. Communities (enhanced with physics count)
+        # ------------------------------------------------------------------
+        if analysis_type == "Community Detection" and isinstance(analysis_results, dict):
+            for cid, c in list(analysis_results.items())[:5]:
+                phys_count = sum(c.get("physics_terms", Counter()).values())
+                size = len(c["nodes"])
+                # Also compute average physics relevance in community if physics_relevance available
+                if physics_relevance:
+                    avg_phys = np.mean([physics_relevance.get(n, 0) for n in c["nodes"]])
+                else:
+                    avg_phys = 0
+                data["communities"].append({
+                    "community_id": cid,
+                    "size": size,
+                    "physics_terms_count": phys_count,
+                    "avg_physics_relevance": round(avg_phys, 3),
+                    "composite_weight": round(phys_count / max(size, 1) * avg_phys, 3)
+                })
+
+        # ------------------------------------------------------------------
+        # 4. Correlations (top 3)
+        # ------------------------------------------------------------------
+        if analysis_type == "Correlation Analysis" and isinstance(analysis_results, tuple) and len(analysis_results)==2:
+            corr, terms = analysis_results
+            if len(terms) > 0:
+                top_corrs = []
+                for i in range(min(len(terms),10)):
+                    for j in range(i+1, min(len(terms),10)):
+                        if corr[i,j] > 0:
+                            top_corrs.append((terms[i], terms[j], corr[i,j]))
+                top_corrs.sort(key=lambda x: x[2], reverse=True)
+                for t1, t2, val in top_corrs[:3]:
+                    data["strong_correlations"].append({
+                        "term1": t1,
+                        "term2": t2,
+                        "strength": round(val, 3)
+                    })
+
+        # ------------------------------------------------------------------
+        # 5. Temporal trend (simplified) – FIXED to handle non-dict values
+        # ------------------------------------------------------------------
+        if analysis_type == "Temporal Analysis" and isinstance(analysis_results, dict):
+            periods = sorted(analysis_results.keys())
+            if periods:
+                first, last = periods[0], periods[-1]
+                first_val = analysis_results[first]
+                last_val = analysis_results[last]
+                if isinstance(first_val, dict):
+                    fc_first = first_val.get('failure_concepts', 0)
+                else:
+                    fc_first = 0
+                if isinstance(last_val, dict):
+                    fc_last = last_val.get('failure_concepts', 0)
+                else:
+                    fc_last = 0
+                data["temporal_trend"] = {
+                    "first_period": first,
+                    "last_period": last,
+                    "failure_concepts_change": fc_last - fc_first,
+                    "direction": "increasing" if fc_last > fc_first else "decreasing"
+                }
+
+        # ------------------------------------------------------------------
+        # Query-Aware Gating (SciBERT focus boost)
+        # ------------------------------------------------------------------
+        if user_query:
+            query_emb = get_scibert_embedding(user_query)
+            if query_emb is not None:
+                for mech in data["ranked_mechanisms"]:
+                    mech_emb = get_scibert_embedding(mech["name"])
+                    if mech_emb is not None:
+                        sim = cosine_similarity([query_emb], [mech_emb])[0][0]
+                        mech["composite_weight"] = round(mech["composite_weight"] * (1 + 0.5 * sim), 3)
+                        mech["query_relevance"] = round(sim, 3)
+
+                if data["ranked_mechanisms"]:
+                    data["summary"]["query_focus_score"] = round(max(
+                        (m.get("query_relevance", 0) for m in data["ranked_mechanisms"]), default=0.0
+                    ), 3)
+
+        # Sort everything by composite_weight
+        data["ranked_mechanisms"].sort(key=lambda x: x["composite_weight"], reverse=True)
+        data["pathways"].sort(key=lambda x: x["composite_weight"], reverse=True)
+        data["physics_weighted_pathways"].sort(key=lambda x: x["sum_physics"], reverse=True)
+
+        return data
 
 # ============================================================================
-# FILTER GRAPH (original, adapted to use priority scores)
+# INFERENCE-ONLY LLM CALL (sees only the JSON)
 # ============================================================================
-def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
-    Gf = nx.Graph()
-    valid = set()
-    if selected_nodes:
-        for n in selected_nodes:
-            if n in G.nodes() and G.nodes[n].get('priority_score', 0) >= min_priority_score:
-                valid.add(n)
-                valid.update(G.neighbors(n))
-    else:
-        for n, d in G.nodes(data=True):
-            if (d.get('frequency',0) >= min_freq and
-                d.get('category','') in selected_categories and
-                d.get('type','') in selected_types and
-                (not suppress_low_priority or d.get('priority_score',0) >= min_priority_score)):
-                valid.add(n)
-    valid = {n for n in valid if not any(ex in n.lower() for ex in excluded_terms)}
-    for n in valid:
-        Gf.add_node(n, **G.nodes[n])
-    for u, v, d in G.edges(data=True):
-        if u in Gf.nodes and v in Gf.nodes and d.get('weight',0) >= min_weight:
-            Gf.add_edge(u, v, **d)
-    return Gf
+def llm_infer_on_insights(structured_json: Dict, user_query: str, tokenizer, model) -> str:
+    """LLM sees ONLY the JSON data. Never invents. Pure inference."""
+    if tokenizer is None or model is None:
+        return "LLM not available."
+
+    prompt = f"""You are a factual battery analyst. Use ONLY the JSON data below.
+Answer the user query in 1-3 short bullets, referencing specific numbers from the JSON.
+Never add new mechanisms or numbers.
+User query: "{user_query}"
+
+JSON data:
+{json.dumps(structured_json, indent=2)}
+
+Answer (bullets, using numbers from JSON):"""
+
+    try:
+        inputs = tokenizer.encode(prompt, return_tensors="pt", truncation=True, max_length=1024)
+        if torch.cuda.is_available():
+            inputs = inputs.to("cuda")
+        with torch.no_grad():
+            out = model.generate(inputs, max_new_tokens=300, temperature=0.0, do_sample=False,
+                                 pad_token_id=tokenizer.eos_token_id)
+        answer = tokenizer.decode(out[0], skip_special_tokens=True)
+        # extract only the part after "Answer:"
+        if "Answer:" in answer:
+            return answer.split("Answer:")[-1].strip()
+        return answer.strip()
+    except Exception as e:
+        logger.error(f"LLM inference error: {e}")
+        return f"Error generating inference: {e}"
 
 # ============================================================================
-# EXPORT HELPERS (original)
+# RELEVANCE SCORER (unchanged)
 # ============================================================================
-def fig_to_base64(fig, format='png'):
-    buf = BytesIO()
-    fig.savefig(buf, format=format, bbox_inches='tight', dpi=200)
-    buf.seek(0)
-    return base64.b64encode(buf.read()).decode()
-
-def create_static_visualization(G_filtered, pos, node_colors, node_sizes):
-    plt.figure(figsize=(16,12))
-    nx.draw_networkx_edges(G_filtered, pos, alpha=0.3, width=1)
-    nx.draw_networkx_nodes(G_filtered, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8)
-    nx.draw_networkx_labels(G_filtered, pos, font_size=8)
-    plt.title("Battery Research Knowledge Graph", fontsize=16)
-    plt.axis('off')
-    return plt
+class RelevanceScorer:
+    def __init__(self, use_scibert=True):
+        global scibert_tokenizer, scibert_model
+        self.use_scibert = use_scibert and scibert_tokenizer is not None and scibert_model is not None
+    def score_query_to_nodes(self, query: str, nodes_list: List[str]) -> float:
+        if not query or not nodes_list:
+            return 0.5
+        if self.use_scibert:
+            try:
+                q_emb = get_scibert_embedding(query)
+                sample = nodes_list[:100]
+                n_emb = get_scibert_embedding(sample)
+                valid = [i for i, e in enumerate(n_emb) if e is not None]
+                if not valid or q_emb is None:
+                    return 0.5
+                sims = [cosine_similarity([q_emb], [n_emb[i]])[0][0] for i in valid]
+                return float(np.mean(sims)) if sims else 0.5
+            except:
+                return 0.5
+        else:
+            words = set(query.lower().split())
+            matches = sum(1 for n in nodes_list[:100] if any(w in n.lower() for w in words))
+            return min(1.0, matches / 50.0)
 
 # ============================================================================
-# UNIFIED LLM LOADER (cached)
+# DATA LOADING FUNCTION – unchanged
+# ============================================================================
+@st.cache_data
+def load_data():
+    nodes_file = os.path.join(DB_DIR, 'knowledge_graph_nodes.csv')
+    edges_file = os.path.join(DB_DIR, 'knowledge_graph_edges.csv')
+
+    missing = []
+    if not os.path.exists(nodes_file):
+        missing.append('knowledge_graph_nodes.csv')
+    if not os.path.exists(edges_file):
+        missing.append('knowledge_graph_edges.csv')
+
+    if missing:
+        st.error(f"❌ Required data file(s) not found in {DB_DIR}: {', '.join(missing)}. "
+                 f"Please upload the files to the correct location or set the BATTERY_DATA_DIR environment variable.")
+        st.stop()
+
+    nodes_df = pd.read_csv(nodes_file)
+    edges_df = pd.read_csv(edges_file)
+
+    # Ensure required columns exist (add default values if missing)
+    required_node_cols = ['node', 'type', 'category', 'frequency']
+    for col in required_node_cols:
+        if col not in nodes_df.columns:
+            nodes_df[col] = '' if col != 'frequency' else 0
+
+    required_edge_cols = ['source', 'target', 'weight']
+    for col in required_edge_cols:
+        if col not in edges_df.columns:
+            edges_df[col] = '' if col != 'weight' else 0
+
+    return edges_df, nodes_df
+
+# ============================================================================
+# UNIFIED LLM LOADER (unchanged)
 # ============================================================================
 @st.cache_resource(show_spinner="Loading LLM for intelligent parsing...")
 def load_llm(backend: str):
@@ -633,7 +1008,7 @@ def load_llm(backend: str):
         return None, None, backend
 
 # ============================================================================
-# INTELLIGENT NLP PARSER (hybrid regex + LLM, strictly within scope)
+# NLP PARSER (unchanged from original, but uses the same class)
 # ============================================================================
 class BatteryNLParser:
     def __init__(self):
@@ -654,7 +1029,8 @@ class BatteryNLParser:
             'ego': 'Ego Network Analysis',
             'pathway': 'Pathway Analysis',
             'temporal': 'Temporal Analysis',
-            'correlation': 'Correlation Analysis'
+            'correlation': 'Correlation Analysis',
+            'physics pathway': 'Physics‑Weighted Pathway Analysis'  # new
         }
 
     def parse_regex(self, text: str) -> Dict:
@@ -719,6 +1095,7 @@ Examples:
 4. "Find correlations between thermal runaway and mechanical degradation" -> {"analysis_type": "Correlation Analysis", "focus_terms": ["thermal runaway", "mechanical degradation"]}
 5. "How have SEI formation and lithium plating evolved?" -> {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "lithium plating"]}
 6. "High C-rate 2C, temperature 45°C" -> {"c_rate": 2.0, "temperature": 45.0}
+7. "Find physics‑rich pathways from SEI growth to capacity fade" -> {"analysis_type": "Physics‑Weighted Pathway Analysis", "source_terms": ["SEI growth"], "target_terms": ["capacity fade"], "require_physics_in_pathways": true}
 """
         user = f"{examples}\nText: \"{text}\"\nPreliminary regex: {json.dumps(regex_params, default=str) if regex_params else 'None'}\nJSON:"
         backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
@@ -785,305 +1162,20 @@ Examples:
         return merged
 
 # ============================================================================
-# STRUCTURED INSIGHT GENERATOR (produces countable JSON)
-# ============================================================================
-class DegradationInsightGenerator:
-    @staticmethod
-    def generate_structured_insights(
-        analysis_results,
-        analysis_type: str,
-        parsed_params: Dict,
-        graph_stats: Dict,
-        user_query: str = ""
-    ) -> Dict:
-        """
-        Returns a fully numerical, countable JSON object.
-        Every entry has a composite_weight (0–1) that can be sorted/ranked.
-        Uses global PHYSICS_TERMS_EMBEDDINGS and get_scibert_embedding.
-        """
-        global PHYSICS_TERMS_EMBEDDINGS
-        data = {
-            "summary": {
-                "nodes": graph_stats["nodes"],
-                "edges": graph_stats["edges"],
-                "analysis_type": analysis_type,
-                "query_focus_score": 0.0
-            },
-            "ranked_mechanisms": [],
-            "pathways": [],
-            "communities": [],
-            "strong_correlations": [],
-            "temporal_trend": {},
-            "operational_constraints": {
-                "c_rate": parsed_params.get("c_rate", 1.0),
-                "voltage": parsed_params.get("voltage", 3.7),
-                "temperature": parsed_params.get("temperature", 25.0)
-            }
-        }
-
-        # ------------------------------------------------------------------
-        # 1. Ranked Mechanisms (Centrality / Community)
-        # ------------------------------------------------------------------
-        if analysis_type == "Centrality Analysis" and isinstance(analysis_results, pd.DataFrame) and not analysis_results.empty:
-            top = analysis_results.nlargest(10, "degree")
-            for _, row in top.iterrows():
-                # Physics match
-                node_emb = get_scibert_embedding(row["node"])
-                phys_match = 0.0
-                if node_emb is not None and PHYSICS_TERMS_EMBEDDINGS:
-                    sims = [cosine_similarity([node_emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
-                    phys_match = max(sims, default=0.0)
-
-                # Operational boost
-                operational_boost = 1.0
-                if parsed_params.get("temperature", 25) > 45 and any(t in row["node"].lower() for t in ["thermal", "temp"]):
-                    operational_boost = 1.3
-                if parsed_params.get("c_rate", 1.0) > 2.0 and any(t in row["node"].lower() for t in ["rate", "power"]):
-                    operational_boost = 1.3
-                if parsed_params.get("voltage", 3.7) > 4.2 and any(t in row["node"].lower() for t in ["voltage", "potential"]):
-                    operational_boost = 1.3
-
-                composite_weight = (
-                    0.4 * row["degree"] +
-                    0.3 * phys_match +
-                    0.2 * operational_boost +
-                    0.1 * row.get("betweenness", 0)
-                )
-
-                # Find matching physics equation
-                equation = ""
-                for eq_name, eq_data in PHYSICS_EQUATIONS.items():
-                    if any(k in row["node"].lower() for k in eq_name.lower().split('_')):
-                        equation = eq_data["equation"]
-                        break
-
-                entry = {
-                    "name": row["node"],
-                    "degree": round(row["degree"], 3),
-                    "betweenness": round(row.get("betweenness", 0), 3),
-                    "physics_match": round(phys_match, 3),
-                    "operational_boost": round(operational_boost, 2),
-                    "composite_weight": round(composite_weight, 3),
-                    "equation": equation
-                }
-                data["ranked_mechanisms"].append(entry)
-
-        # ------------------------------------------------------------------
-        # 2. Pathways
-        # ------------------------------------------------------------------
-        if analysis_type == "Pathway Analysis" and isinstance(analysis_results, dict):
-            for name, p in analysis_results.items():
-                if p.get("path"):
-                    phys_score = p.get("avg_physics_similarity", 0)
-                    composite = (0.5 * (1 / (p["length"] + 1)) + 0.5 * phys_score) * 1.0
-                    data["pathways"].append({
-                        "path": name,
-                        "length": p["length"],
-                        "avg_physics_similarity": round(phys_score, 3),
-                        "composite_weight": round(composite, 3),
-                        "contains_physics": p.get("contains_physics", False)
-                    })
-
-        # ------------------------------------------------------------------
-        # 3. Communities
-        # ------------------------------------------------------------------
-        if analysis_type == "Community Detection" and isinstance(analysis_results, dict):
-            for cid, c in list(analysis_results.items())[:5]:
-                phys_count = sum(c.get("physics_terms", Counter()).values())
-                size = len(c["nodes"])
-                data["communities"].append({
-                    "community_id": cid,
-                    "size": size,
-                    "physics_terms_count": phys_count,
-                    "composite_weight": round(phys_count / max(size, 1), 3)
-                })
-
-        # ------------------------------------------------------------------
-        # 4. Correlations (top 3)
-        # ------------------------------------------------------------------
-        if analysis_type == "Correlation Analysis" and isinstance(analysis_results, tuple) and len(analysis_results)==2:
-            corr, terms = analysis_results
-            if len(terms) > 0:
-                top_corrs = []
-                for i in range(min(len(terms),10)):
-                    for j in range(i+1, min(len(terms),10)):
-                        if corr[i,j] > 0:
-                            top_corrs.append((terms[i], terms[j], corr[i,j]))
-                top_corrs.sort(key=lambda x: x[2], reverse=True)
-                for t1, t2, val in top_corrs[:3]:
-                    data["strong_correlations"].append({
-                        "term1": t1,
-                        "term2": t2,
-                        "strength": round(val, 3)
-                    })
-
-        # ------------------------------------------------------------------
-        # 5. Temporal trend (simplified) – FIXED to handle non-dict values
-        # ------------------------------------------------------------------
-        if analysis_type == "Temporal Analysis" and isinstance(analysis_results, dict):
-            periods = sorted(analysis_results.keys())
-            if periods:
-                first, last = periods[0], periods[-1]
-                # Safely get failure_concepts, handling possible non-dict values
-                first_val = analysis_results[first]
-                last_val = analysis_results[last]
-                if isinstance(first_val, dict):
-                    fc_first = first_val.get('failure_concepts', 0)
-                else:
-                    # If it's not a dict, assume it's the count directly? For safety, set to 0 and log.
-                    fc_first = 0
-                    logger.warning(f"Temporal analysis value for {first} is not a dict: {type(first_val)}")
-                if isinstance(last_val, dict):
-                    fc_last = last_val.get('failure_concepts', 0)
-                else:
-                    fc_last = 0
-                    logger.warning(f"Temporal analysis value for {last} is not a dict: {type(last_val)}")
-                data["temporal_trend"] = {
-                    "first_period": first,
-                    "last_period": last,
-                    "failure_concepts_change": fc_last - fc_first,
-                    "direction": "increasing" if fc_last > fc_first else "decreasing"
-                }
-
-        # ------------------------------------------------------------------
-        # Query-Aware Gating (SciBERT focus boost)
-        # ------------------------------------------------------------------
-        if user_query:
-            query_emb = get_scibert_embedding(user_query)
-            if query_emb is not None:
-                for mech in data["ranked_mechanisms"]:
-                    mech_emb = get_scibert_embedding(mech["name"])
-                    if mech_emb is not None:
-                        sim = cosine_similarity([query_emb], [mech_emb])[0][0]
-                        mech["composite_weight"] = round(mech["composite_weight"] * (1 + 0.5 * sim), 3)
-                        mech["query_relevance"] = round(sim, 3)
-
-                if data["ranked_mechanisms"]:
-                    data["summary"]["query_focus_score"] = round(max(
-                        (m.get("query_relevance", 0) for m in data["ranked_mechanisms"]), default=0.0
-                    ), 3)
-
-        # Sort everything by composite_weight
-        data["ranked_mechanisms"].sort(key=lambda x: x["composite_weight"], reverse=True)
-        data["pathways"].sort(key=lambda x: x["composite_weight"], reverse=True)
-
-        return data
-
-# ============================================================================
-# INFERENCE-ONLY LLM CALL (sees only the JSON)
-# ============================================================================
-def llm_infer_on_insights(structured_json: Dict, user_query: str, tokenizer, model) -> str:
-    """LLM sees ONLY the JSON data. Never invents. Pure inference."""
-    if tokenizer is None or model is None:
-        return "LLM not available."
-
-    prompt = f"""You are a factual battery analyst. Use ONLY the JSON data below.
-Answer the user query in 1-3 short bullets. Never add new mechanisms or numbers.
-User query: "{user_query}"
-
-JSON data:
-{json.dumps(structured_json, indent=2)}
-
-Answer:"""
-
-    try:
-        inputs = tokenizer.encode(prompt, return_tensors="pt", truncation=True, max_length=1024)
-        if torch.cuda.is_available():
-            inputs = inputs.to("cuda")
-        with torch.no_grad():
-            out = model.generate(inputs, max_new_tokens=300, temperature=0.0, do_sample=False,
-                                 pad_token_id=tokenizer.eos_token_id)
-        answer = tokenizer.decode(out[0], skip_special_tokens=True)
-        # extract only the part after "Answer:"
-        if "Answer:" in answer:
-            return answer.split("Answer:")[-1].strip()
-        return answer.strip()
-    except Exception as e:
-        logger.error(f"LLM inference error: {e}")
-        return f"Error generating inference: {e}"
-
-# ============================================================================
-# RELEVANCE SCORER (simple)
-# ============================================================================
-class RelevanceScorer:
-    def __init__(self, use_scibert=True):
-        global scibert_tokenizer, scibert_model
-        self.use_scibert = use_scibert and scibert_tokenizer is not None and scibert_model is not None
-    def score_query_to_nodes(self, query: str, nodes_list: List[str]) -> float:
-        if not query or not nodes_list:
-            return 0.5
-        if self.use_scibert:
-            try:
-                q_emb = get_scibert_embedding(query)
-                sample = nodes_list[:100]
-                n_emb = get_scibert_embedding(sample)
-                valid = [i for i, e in enumerate(n_emb) if e is not None]
-                if not valid or q_emb is None:
-                    return 0.5
-                sims = [cosine_similarity([q_emb], [n_emb[i]])[0][0] for i in valid]
-                return float(np.mean(sims)) if sims else 0.5
-            except:
-                return 0.5
-        else:
-            words = set(query.lower().split())
-            matches = sum(1 for n in nodes_list[:100] if any(w in n.lower() for w in words))
-            return min(1.0, matches / 50.0)
-
-# ============================================================================
-# DATA LOADING FUNCTION – now uses the same filenames and error handling as the second code
-# ============================================================================
-@st.cache_data
-def load_data():
-    """
-    Loads nodes and edges DataFrames from CSV files located in DB_DIR.
-    File names: knowledge_graph_nodes.csv, knowledge_graph_edges.csv.
-    If either file is missing, the app shows an error and stops (no sample data).
-    """
-    nodes_file = os.path.join(DB_DIR, 'knowledge_graph_nodes.csv')
-    edges_file = os.path.join(DB_DIR, 'knowledge_graph_edges.csv')
-
-    missing = []
-    if not os.path.exists(nodes_file):
-        missing.append('knowledge_graph_nodes.csv')
-    if not os.path.exists(edges_file):
-        missing.append('knowledge_graph_edges.csv')
-
-    if missing:
-        st.error(f"❌ Required data file(s) not found in {DB_DIR}: {', '.join(missing)}. "
-                 f"Please upload the files to the correct location or set the BATTERY_DATA_DIR environment variable.")
-        st.stop()
-
-    nodes_df = pd.read_csv(nodes_file)
-    edges_df = pd.read_csv(edges_file)
-
-    # Ensure required columns exist (add default values if missing)
-    required_node_cols = ['node', 'type', 'category', 'frequency']
-    for col in required_node_cols:
-        if col not in nodes_df.columns:
-            nodes_df[col] = '' if col != 'frequency' else 0
-
-    required_edge_cols = ['source', 'target', 'weight']
-    for col in required_edge_cols:
-        if col not in edges_df.columns:
-            edges_df[col] = '' if col != 'weight' else 0
-
-    return edges_df, nodes_df
-
-# ============================================================================
 # MAIN APPLICATION
 # ============================================================================
 def main():
     # --- Page config must be the very first Streamlit command ---
-    st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
+    st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer (Enhanced)")
 
     # Now it's safe to call other Streamlit functions
-    st.markdown(f"<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer – Enhanced</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center;'>Version {APP_VERSION} — LLM used ONLY for parsing and inference on structured JSON.</p>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------------------
     # Initialize models and embeddings (after page config)
     # ------------------------------------------------------------------------
-    global scibert_tokenizer, scibert_model, KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+    global scibert_tokenizer, scibert_model, KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS, EQUATION_DESCRIPTION_EMBEDDINGS
     scibert_tokenizer, scibert_model = load_scibert()
     # Compute embeddings for key terms and physics terms (cached)
     KEY_TERMS_EMBEDDINGS = compute_embeddings(KEY_TERMS)
@@ -1091,6 +1183,8 @@ def main():
     # Remove None entries
     KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
     PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
+    # Compute equation embeddings
+    EQUATION_DESCRIPTION_EMBEDDINGS = compute_equation_embeddings()
 
     # Load data – will stop if files missing
     try:
@@ -1174,12 +1268,29 @@ def main():
         max_chars = st.slider("Max chars", 10, 30, 15, key="max_chars")
         edge_width = st.slider("Edge width factor", 0.1, 2.0, 0.5, key="edge_width")
 
+        # New: colour by physics relevance
+        colour_by = st.radio("Colour nodes by", ["Community", "Physics Relevance"], index=0, key="colour_by")
+
+    # Calculate advanced metrics
+    pagerank, clustering, core_numbers = compute_advanced_metrics(G)
+    # Compute physics relevance for all nodes (using equation descriptions)
+    physics_relevance = compute_physics_relevance_for_nodes(G, EQUATION_DESCRIPTION_EMBEDDINGS)
+
     # Calculate priority scores with current settings
-    operational = {"c_rate": c_rate, "voltage": voltage, "temperature": temperature}
-    priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost, operational_params=operational)
+    operational = {"c_rate": c_rate, "voltage": voltage, "temperature": temperature, "soc": soc, "dod": dod}
+    priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost,
+                                                 operational_params=operational,
+                                                 physics_relevance=physics_relevance,
+                                                 pagerank=pagerank, clustering=clustering,
+                                                 core_numbers=core_numbers)
     for n in G.nodes():
         G.nodes[n]['priority_score'] = priority_scores.get(n, 0)
+        G.nodes[n]['physics_relevance'] = physics_relevance.get(n, 0)
+        G.nodes[n]['pagerank'] = pagerank.get(n, 0)
+        G.nodes[n]['clustering'] = clustering.get(n, 0)
+        G.nodes[n]['core_number'] = core_numbers.get(n, 0)
     nodes_df['priority_score'] = nodes_df['node'].apply(lambda x: priority_scores.get(x, 0))
+    nodes_df['physics_relevance'] = nodes_df['node'].apply(lambda x: physics_relevance.get(x, 0))
 
     # Filter graph
     G_filtered = filter_graph(G, min_weight, min_freq, selected_cats, selected_types,
@@ -1194,7 +1305,7 @@ def main():
         col1, col2, col3 = st.columns([3,1,1])
         with col1:
             user_query = st.text_area("Ask about battery degradation in natural language:", height=100,
-                                      placeholder="e.g., 'Show pathways from electrode cracking to capacity fade involving diffusion-induced stress'",
+                                      placeholder="e.g., 'Show physics‑rich pathways from electrode cracking to capacity fade involving diffusion-induced stress'",
                                       key="user_query")
         with col2:
             st.markdown("### 🧠 LLM Settings")
@@ -1260,12 +1371,13 @@ def main():
         elif at == "Ego Network Analysis":
             central = st.session_state.last_params.get('central_nodes', ["electrode cracking","SEI formation","capacity fade"]) if st.session_state.last_params else None
             results = analyze_ego_networks(G_filtered, central)
-        elif at == "Pathway Analysis":
+        elif at == "Pathway Analysis" or at == "Physics‑Weighted Pathway Analysis":
             src = st.session_state.last_params.get('source_terms', ['electrode cracking']) if st.session_state.last_params else ['electrode cracking']
             tgt = st.session_state.last_params.get('target_terms', ['capacity fade']) if st.session_state.last_params else ['capacity fade']
             req = st.session_state.last_params.get('require_physics_in_pathways', False) if st.session_state.last_params else False
             min_phys = st.session_state.last_params.get('min_physics_similarity', 0.5) if st.session_state.last_params else 0.5
-            results = find_failure_pathways(G_filtered, src, tgt, require_physics=req, min_physics_similarity=min_phys)
+            results = find_failure_pathways(G_filtered, src, tgt, require_physics=req, min_physics_similarity=min_phys,
+                                            physics_relevance=physics_relevance)
         elif at == "Temporal Analysis":
             time_col = st.session_state.last_params.get('time_column', 'year') if st.session_state.last_params else 'year'
             results = analyze_temporal_patterns(nodes_df, edges_df, time_col)
@@ -1276,11 +1388,22 @@ def main():
 
         st.session_state.last_analysis_results = results
 
-        # Generate structured insights (JSON)
+        # Generate structured insights (JSON) – pass advanced metrics
         graph_stats = {'nodes': G_filtered.number_of_nodes(), 'edges': G_filtered.number_of_edges()}
         params_for_insights = st.session_state.last_params if st.session_state.last_params else {}
+        # For the filtered graph, recompute advanced metrics on the filtered graph for accurate ranking
+        pagerank_f = nx.pagerank(G_filtered, weight='weight')
+        clustering_f = nx.clustering(G_filtered, weight='weight')
+        core_f = nx.core_number(G_filtered)
+        # Physics relevance for filtered nodes
+        phys_rel_f = {n: physics_relevance.get(n, 0) for n in G_filtered.nodes()}
+
         structured = st.session_state.insight_generator.generate_structured_insights(
-            results, at, params_for_insights, graph_stats, user_query
+            results, at, params_for_insights, graph_stats, user_query,
+            physics_relevance=phys_rel_f,
+            pagerank=pagerank_f,
+            clustering=clustering_f,
+            core_numbers=core_f
         )
         st.session_state.last_structured_insights = structured
 
@@ -1290,9 +1413,13 @@ def main():
 
         # Optional: Show ranked mechanisms as a table
         if structured["ranked_mechanisms"]:
-            st.subheader("🏆 Ranked Failure Mechanisms")
+            st.subheader("🏆 Ranked Failure Mechanisms (Enhanced)")
             df_rank = pd.DataFrame(structured["ranked_mechanisms"])
-            st.dataframe(df_rank[["name", "composite_weight", "degree", "physics_match", "equation"]])
+            st.dataframe(df_rank[["name", "composite_weight", "degree", "physics_match", "pagerank", "clustering", "core_number", "equation"]])
+
+        if structured["physics_weighted_pathways"]:
+            st.subheader("🧪 Physics‑Weighted Pathways (sorted by total physics relevance)")
+            st.dataframe(pd.DataFrame(structured["physics_weighted_pathways"]))
 
         # Second LLM inference (only if user wants)
         if st.checkbox("🤖 Ask LLM to summarise the numerical insights (inference only)", value=False):
@@ -1305,10 +1432,22 @@ def main():
 
         # Visualization
         if G_filtered.number_of_nodes() > 0:
-            cats = list(set([G_filtered.nodes[n].get('category','Unknown') for n in G_filtered.nodes()]))
-            color_pal = px.colors.qualitative.Set3 if len(cats) <= 10 else px.colors.qualitative.Alphabet
-            color_map = {c: color_pal[i % len(color_pal)] for i, c in enumerate(cats)}
-            node_colors = [color_map.get(G_filtered.nodes[n].get('category','Unknown'), 'lightgray') for n in G_filtered.nodes()]
+            if colour_by == "Community":
+                # community detection on filtered graph
+                try:
+                    partition = community_louvain.best_partition(G_filtered, weight='weight')
+                    comm_map = partition
+                except:
+                    comm_map = {n: 0 for n in G_filtered.nodes()}
+                unique_comms = sorted(set(comm_map.values()))
+                color_pal = px.colors.qualitative.Set3 if len(unique_comms) <= 10 else px.colors.qualitative.Alphabet
+                node_colors = [color_pal[comm_map[n] % len(color_pal)] for n in G_filtered.nodes()]
+            else:  # Physics Relevance
+                # colour by physics_relevance value (continuous)
+                phys_vals = [G_filtered.nodes[n].get('physics_relevance', 0) for n in G_filtered.nodes()]
+                # use a colour scale: low=blue, high=red
+                node_colors = phys_vals  # for plotly, we'll use colorscale
+
             pos = nx.spring_layout(G_filtered, k=1, iterations=100, seed=42, weight='weight')
             scores = [G_filtered.nodes[n].get('priority_score',0) for n in G_filtered.nodes()]
             min_s, max_s = 15, 60
@@ -1321,27 +1460,53 @@ def main():
                 x0,y0 = pos[u]; x1,y1 = pos[v]
                 edge_x.extend([x0,x1,None]); edge_y.extend([y0,y1,None])
             edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=edge_width, color='#888'), hoverinfo='none', mode='lines')
-            node_x, node_y, node_text, node_labels, node_symbols = [],[],[],[],[]
+            node_x, node_y, node_text, node_labels = [],[],[],[]
             for n in G_filtered.nodes():
                 x,y = pos[n]
                 node_x.append(x); node_y.append(y)
                 d = G_filtered.nodes[n]
-                node_text.append(f"{n}<br>Category: {d.get('category','N/A')}<br>Freq: {d.get('frequency',0)}<br>Priority: {d.get('priority_score',0):.3f}")
+                node_text.append(
+                    f"{n}<br>Category: {d.get('category','N/A')}<br>Freq: {d.get('frequency',0)}<br>"
+                    f"Priority: {d.get('priority_score',0):.3f}<br>Physics rel: {d.get('physics_relevance',0):.3f}<br>"
+                    f"PageRank: {d.get('pagerank',0):.3f}<br>Clustering: {d.get('clustering',0):.3f}<br>"
+                    f"Core: {d.get('core_number',0)}"
+                )
                 node_labels.append(n[:max_chars]+'...' if len(n)>max_chars else n)
-                node_symbols.append('star' if highlight and d.get('priority_score',0)>threshold else 'circle')
-            node_trace = go.Scatter(
-                x=node_x, y=node_y,
-                mode='markers+text' if show_labels else 'markers',
-                text=node_labels if show_labels else None,
-                textfont=dict(size=label_size, color='black'),
-                textposition='middle center',
-                hoverinfo='text', hovertext=node_text,
-                marker=dict(color=node_colors, size=sizes, symbol=node_symbols, line=dict(width=1, color='darkgray'))
-            )
-            fig = go.Figure(data=[edge_trace, node_trace])
-            for cat, col in color_map.items():
-                fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color=col), name=cat, showlegend=True))
-            fig.update_layout(title=f"Battery Degradation Graph - {at}", showlegend=True, hovermode='closest',
+
+            if colour_by == "Community":
+                node_trace = go.Scatter(
+                    x=node_x, y=node_y,
+                    mode='markers+text' if show_labels else 'markers',
+                    text=node_labels if show_labels else None,
+                    textfont=dict(size=label_size, color='black'),
+                    textposition='middle center',
+                    hoverinfo='text', hovertext=node_text,
+                    marker=dict(color=node_colors, size=sizes, line=dict(width=1, color='darkgray'))
+                )
+                # Add legend for communities
+                fig = go.Figure(data=[edge_trace, node_trace])
+                for i, col in enumerate(color_pal[:len(unique_comms)]):
+                    fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color=col), name=f"Comm {i}", showlegend=True))
+            else:
+                node_trace = go.Scatter(
+                    x=node_x, y=node_y,
+                    mode='markers+text' if show_labels else 'markers',
+                    text=node_labels if show_labels else None,
+                    textfont=dict(size=label_size, color='black'),
+                    textposition='middle center',
+                    hoverinfo='text', hovertext=node_text,
+                    marker=dict(
+                        color=node_colors,
+                        colorscale='Viridis',
+                        showscale=True,
+                        colorbar=dict(title="Physics Relevance"),
+                        size=sizes,
+                        line=dict(width=1, color='darkgray')
+                    )
+                )
+                fig = go.Figure(data=[edge_trace, node_trace])
+
+            fig.update_layout(title=f"Battery Degradation Graph - {at}", showlegend=(colour_by=="Community"), hovermode='closest',
                               xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                               yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
             st.plotly_chart(fig, use_container_width=True)
