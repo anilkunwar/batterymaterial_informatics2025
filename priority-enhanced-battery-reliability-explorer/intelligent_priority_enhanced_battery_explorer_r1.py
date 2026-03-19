@@ -236,7 +236,14 @@ PHYSICS_EQUATIONS = {
     "exchange_current": {
         "equation": r"j_0 = F k^0 (c_{ox})^{1-\alpha} (c_{red})^{\alpha}",
         "description": "Exchange current density from rate constant and concentrations.",
-        "variables": {"j_0": "Exchange current density (A/m²)", "k^0": "Standard rate constant (m/s)", "c_ox", "c_red": "Concentrations (mol/m³)", "α": "Transfer coefficient"},
+        # CORRECTED: c_ox and c_red are separate keys with their own descriptions.
+        "variables": {
+            "j_0": "Exchange current density (A/m²)", 
+            "k^0": "Standard rate constant (m/s)", 
+            "c_ox": "Oxidized species concentration (mol/m³)", 
+            "c_red": "Reduced species concentration (mol/m³)", 
+            "α": "Transfer coefficient"
+        },
         "unit": "A/m²"
     },
     "porosity_evolution": {
@@ -597,6 +604,49 @@ def analyze_failure_centrality(G_filtered, focus_terms=None):
             })
     return pd.DataFrame(results)
 
+def detect_failure_communities(G_filtered):
+    try:
+        partition = community_louvain.best_partition(G_filtered, weight='weight', resolution=1.2)
+    except:
+        partition = {node: 0 for node in G_filtered.nodes()}
+    communities = {}
+    for node, cid in partition.items():
+        if cid not in communities:
+            communities[cid] = {'nodes': [], 'categories': Counter(), 'failure_keywords': Counter(), 'physics_terms': Counter()}
+        communities[cid]['nodes'].append(node)
+        cat = G_filtered.nodes[node].get('category', '')
+        if cat:
+            communities[cid]['categories'][cat] += 1
+        for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure']:
+            if kw in node.lower():
+                communities[cid]['failure_keywords'][kw] += 1
+        for term in PHYSICS_TERMS:
+            if term in node.lower():
+                communities[cid]['physics_terms'][term] += 1
+    return communities, partition
+
+def analyze_ego_networks(G_filtered, central_nodes=None):
+    if central_nodes is None:
+        central_nodes = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress", "capacity fade", "lithium plating"]
+    results = {}
+    for node in central_nodes:
+        if node in G_filtered.nodes():
+            try:
+                ego = nx.ego_graph(G_filtered, node, radius=2)
+                results[node] = {
+                    'node_count': ego.number_of_nodes(),
+                    'edge_count': ego.number_of_edges(),
+                    'density': nx.density(ego),
+                    'average_degree': sum(dict(ego.degree()).values()) / ego.number_of_nodes() if ego.number_of_nodes() > 0 else 0,
+                    'centrality': nx.degree_centrality(ego).get(node, 0),
+                    'neighbors': list(ego.neighbors(node)),
+                    'subgraph_categories': Counter([ego.nodes[n].get('category', '') for n in ego.nodes()]),
+                    'physics_terms': [n for n in ego.nodes() if any(t in n.lower() for t in PHYSICS_TERMS)]
+                }
+            except:
+                results[node] = {'node_count': 0, 'edge_count': 0, 'density': 0, 'average_degree': 0, 'centrality': 0, 'neighbors': [], 'subgraph_categories': Counter(), 'physics_terms': []}
+    return results
+
 def find_failure_pathways(G_filtered, source_terms, target_terms, require_physics=False,
                           min_physics_similarity=0.5, physics_relevance=None):
     """
@@ -656,6 +706,75 @@ def find_failure_pathways(G_filtered, source_terms, target_terms, require_physic
     # Sort physics_weighted_paths by sum_physics descending
     physics_weighted_paths.sort(key=lambda x: x['sum_physics'], reverse=True)
     return pathways, physics_weighted_paths
+
+def analyze_temporal_patterns(nodes_df, edges_df, time_column='year'):
+    if time_column not in nodes_df.columns:
+        return {"error": "Time column not found"}
+    periods = sorted(nodes_df[time_column].dropna().unique())
+    analysis = {}
+    for p in periods:
+        period_nodes = nodes_df[nodes_df[time_column] == p]
+        analysis[p] = {
+            'total_concepts': len(period_nodes),
+            'failure_concepts': len([n for n in period_nodes['node'] if any(kw in n.lower() for kw in ['crack','fracture','degrad','fatigue','damage'])]),
+            'physics_concepts': len([n for n in period_nodes['node'] if any(term in n.lower() for term in PHYSICS_TERMS)]),
+            'top_concepts': period_nodes.nlargest(5, 'frequency')['node'].tolist()
+        }
+    return analysis
+
+def analyze_failure_correlations(G_filtered):
+    failure_terms = [n for n in G_filtered.nodes() if any(kw in n.lower() for kw in ['crack','fracture','degrad','fatigue','damage','failure'])]
+    n = len(failure_terms)
+    corr = np.zeros((n, n))
+    for i, t1 in enumerate(failure_terms):
+        for j, t2 in enumerate(failure_terms):
+            if G_filtered.has_edge(t1, t2):
+                corr[i, j] = G_filtered.edges[t1, t2].get('weight', 0)
+    return corr, failure_terms
+
+# ============================================================================
+# FILTER GRAPH (original, adapted to use priority scores)
+# ============================================================================
+def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
+    Gf = nx.Graph()
+    valid = set()
+    if selected_nodes:
+        for n in selected_nodes:
+            if n in G.nodes() and G.nodes[n].get('priority_score', 0) >= min_priority_score:
+                valid.add(n)
+                valid.update(G.neighbors(n))
+    else:
+        for n, d in G.nodes(data=True):
+            if (d.get('frequency',0) >= min_freq and
+                d.get('category','') in selected_categories and
+                d.get('type','') in selected_types and
+                (not suppress_low_priority or d.get('priority_score',0) >= min_priority_score)):
+                valid.add(n)
+    valid = {n for n in valid if not any(ex in n.lower() for ex in excluded_terms)}
+    for n in valid:
+        Gf.add_node(n, **G.nodes[n])
+    for u, v, d in G.edges(data=True):
+        if u in Gf.nodes and v in Gf.nodes and d.get('weight',0) >= min_weight:
+            Gf.add_edge(u, v, **d)
+    return Gf
+
+# ============================================================================
+# EXPORT HELPERS (original)
+# ============================================================================
+def fig_to_base64(fig, format='png'):
+    buf = BytesIO()
+    fig.savefig(buf, format=format, bbox_inches='tight', dpi=200)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+def create_static_visualization(G_filtered, pos, node_colors, node_sizes):
+    plt.figure(figsize=(16,12))
+    nx.draw_networkx_edges(G_filtered, pos, alpha=0.3, width=1)
+    nx.draw_networkx_nodes(G_filtered, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8)
+    nx.draw_networkx_labels(G_filtered, pos, font_size=8)
+    plt.title("Battery Research Knowledge Graph", fontsize=16)
+    plt.axis('off')
+    return plt
 
 # ============================================================================
 # STRUCTURED INSIGHT GENERATOR (produces countable JSON, now enriched)
