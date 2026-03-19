@@ -92,7 +92,18 @@ Parameter extraction is within the Numerical Scope of Battery Reliability but In
 
 Both Parameter extraction and Insight Generation are within the Numerical Scope of Battery Reliability / the Database
 
-[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt9-streamlit-red)](https://batteryreliabilitygpt9.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used only for parameter extraction but not for insight generation, Numerical Scope focused code)
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt9-streamlit-red)](https://batteryreliabilitygpt9.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used only for parameter extraction but not for insight generation, Numerical Scope focused code, model on synthetic data and the code does not access factual databaset)
 
-[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt10-streamlit-red)](https://batteryreliabilitygpt10.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used  for both parameter extraction and  for insight generation, Numerical Scope focused code)
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt10-streamlit-red)](https://batteryreliabilitygpt10.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used  for both parameter extraction and  for insight generation, Numerical Scope focused code,  model on synthetic data and the code does not access factual databaset)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt11-streamlit-red)](https://batteryreliabilitygpt11.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used  for both parameter extraction and  for insight generation, Numerical Scope focused code, r10 + code implementation on real dataset)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryknowledgegpt12-streamlit-red)](https://batteryreliabilitygpt12.streamlit.app/) (automated gpt interface to knowledge graph r2 + incorporating physics based rules to graph analysis,  LLM used only for parameter extraction but not for insight generation, Numerical Scope focused code, r9+ code implementation on real dataset)
+
+
+
+
+
+
+
 
