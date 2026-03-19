@@ -54,6 +54,13 @@ PREKnoweldge graph visualization
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/preknowledgegraphbatterydegradationr3-streamlit-red)](https://batterysolid-priorityenhancedkgvisualr3.streamlit.app/)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/hierarchicalearner1-streamlit-red)](https://batteryreliability-hierarchical-learner1.streamlit.app/)
+
+
+Intelligent Models:
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batterydegradationgpt1-streamlit-red)](https://batterydegradationexplorer-gpt1.streamlit.app/ )
+
+
 ## Term categories by integrating regex, scibert embeddings and mlpclassifiers
 
 
