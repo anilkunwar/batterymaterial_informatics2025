@@ -918,14 +918,26 @@ class DegradationInsightGenerator:
                     })
 
         # ------------------------------------------------------------------
-        # 5. Temporal trend (simplified)
+        # 5. Temporal trend (simplified) – FIXED to handle non-dict values
         # ------------------------------------------------------------------
         if analysis_type == "Temporal Analysis" and isinstance(analysis_results, dict):
             periods = sorted(analysis_results.keys())
             if periods:
                 first, last = periods[0], periods[-1]
-                fc_first = analysis_results[first].get('failure_concepts',0)
-                fc_last = analysis_results[last].get('failure_concepts',0)
+                # Safely get failure_concepts, handling possible non-dict values
+                first_val = analysis_results[first]
+                last_val = analysis_results[last]
+                if isinstance(first_val, dict):
+                    fc_first = first_val.get('failure_concepts', 0)
+                else:
+                    # If it's not a dict, assume it's the count directly? For safety, set to 0 and log.
+                    fc_first = 0
+                    logger.warning(f"Temporal analysis value for {first} is not a dict: {type(first_val)}")
+                if isinstance(last_val, dict):
+                    fc_last = last_val.get('failure_concepts', 0)
+                else:
+                    fc_last = 0
+                    logger.warning(f"Temporal analysis value for {last} is not a dict: {type(last_val)}")
                 data["temporal_trend"] = {
                     "first_period": first,
                     "last_period": last,
