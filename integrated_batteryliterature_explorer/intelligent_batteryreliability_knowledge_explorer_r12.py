@@ -5,6 +5,9 @@ INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
 Now with data searchability: search for nodes in the knowledge graph,
 see the results, and highlight them on the graph.
+
+Uses strict file naming: knowledge_graph_nodes.csv, knowledge_graph_edges.csv
+Optional mock fallback for development.
 """
 
 import os
@@ -878,46 +881,55 @@ class RelevanceScorer:
 # ============================================================================
 # DATA LOADING (Robust with error handling – fallback to mock data optional)
 # ============================================================================
-def load_data(use_mock_fallback=True):
+def load_data(use_mock_on_failure=False):
     """
-    Load edges.csv and nodes.csv from DB_DIR.
-    If use_mock_fallback is True, return mock data on failure; otherwise raise.
+    Load knowledge_graph_nodes.csv and knowledge_graph_edges.csv from DB_DIR.
+    If use_mock_on_failure is True, return mock data on failure; otherwise raise an error and stop.
     """
-    edges_path = os.path.join(DB_DIR, "edges.csv")
-    nodes_path = os.path.join(DB_DIR, "nodes.csv")
+    nodes_file = os.path.join(DB_DIR, "knowledge_graph_nodes.csv")
+    edges_file = os.path.join(DB_DIR, "knowledge_graph_edges.csv")
 
-    if os.path.exists(edges_path) and os.path.exists(nodes_path):
-        edges_df = pd.read_csv(edges_path)
-        nodes_df = pd.read_csv(nodes_path)
-        logger.info(f"Loaded real data from {DB_DIR}")
-        return edges_df, nodes_df
+    missing = []
+    if not os.path.exists(nodes_file):
+        missing.append("knowledge_graph_nodes.csv")
+    if not os.path.exists(edges_file):
+        missing.append("knowledge_graph_edges.csv")
 
-    # Files not found
-    if use_mock_fallback:
-        logger.warning(f"Data files not found in {DB_DIR}. Using mock data.")
-        # Mock data generation for robustness
-        nodes_data = [
-            {"node": "electrode cracking", "type": "term", "category": "Crack and Fracture", "frequency": 50, "unit": "None", "similarity_score": 0.9},
-            {"node": "SEI formation", "type": "term", "category": "Degradation", "frequency": 40, "unit": "None", "similarity_score": 0.8},
-            {"node": "capacity fade", "type": "term", "category": "Degradation", "frequency": 60, "unit": "None", "similarity_score": 0.95},
-            {"node": "diffusion-induced stress", "type": "term", "category": "Crack and Fracture", "frequency": 30, "unit": "MPa", "similarity_score": 0.85},
-            {"node": "lithium plating", "type": "term", "category": "Degradation", "frequency": 25, "unit": "V", "similarity_score": 0.75}
-        ]
-        edges_data = [
-            {"source": "electrode cracking", "target": "capacity fade", "weight": 0.8, "type": "relates_to", "label": "causes", "relationship": "causation", "strength": 0.8},
-            {"source": "SEI formation", "target": "capacity fade", "weight": 0.9, "type": "relates_to", "label": "causes", "relationship": "causation", "strength": 0.9},
-            {"source": "diffusion-induced stress", "target": "electrode cracking", "weight": 0.7, "type": "relates_to", "label": "leads to", "relationship": "causation", "strength": 0.7},
-            {"source": "lithium plating", "target": "capacity fade", "weight": 0.6, "type": "relates_to", "label": "contributes to", "relationship": "correlation", "strength": 0.6}
-        ]
-        nodes_df = pd.DataFrame(nodes_data)
-        edges_df = pd.DataFrame(edges_data)
-        return edges_df, nodes_df
-    else:
-        raise FileNotFoundError(
-            f"Required data files not found in {DB_DIR}.\n"
-            "Please place edges.csv and nodes.csv in that directory, "
-            "or set the BATTERY_KNOWLEDGE_DATA environment variable."
-        )
+    if missing:
+        if use_mock_on_failure:
+            st.warning(f"Real data files not found in {DB_DIR}. Using mock/demo data.")
+            logger.warning(f"Missing files: {missing}. Falling back to mock data.")
+            # Mock data generation for robustness
+            nodes_data = [
+                {"node": "electrode cracking", "type": "term", "category": "Crack and Fracture", "frequency": 50, "unit": "None", "similarity_score": 0.9},
+                {"node": "SEI formation", "type": "term", "category": "Degradation", "frequency": 40, "unit": "None", "similarity_score": 0.8},
+                {"node": "capacity fade", "type": "term", "category": "Degradation", "frequency": 60, "unit": "None", "similarity_score": 0.95},
+                {"node": "diffusion-induced stress", "type": "term", "category": "Crack and Fracture", "frequency": 30, "unit": "MPa", "similarity_score": 0.85},
+                {"node": "lithium plating", "type": "term", "category": "Degradation", "frequency": 25, "unit": "V", "similarity_score": 0.75}
+            ]
+            edges_data = [
+                {"source": "electrode cracking", "target": "capacity fade", "weight": 0.8, "type": "relates_to", "label": "causes", "relationship": "causation", "strength": 0.8},
+                {"source": "SEI formation", "target": "capacity fade", "weight": 0.9, "type": "relates_to", "label": "causes", "relationship": "causation", "strength": 0.9},
+                {"source": "diffusion-induced stress", "target": "electrode cracking", "weight": 0.7, "type": "relates_to", "label": "leads to", "relationship": "causation", "strength": 0.7},
+                {"source": "lithium plating", "target": "capacity fade", "weight": 0.6, "type": "relates_to", "label": "contributes to", "relationship": "correlation", "strength": 0.6}
+            ]
+            nodes_df = pd.DataFrame(nodes_data)
+            edges_df = pd.DataFrame(edges_data)
+            return edges_df, nodes_df
+        else:
+            st.error(
+                f"Required data files not found in {DB_DIR}.\n"
+                f"Missing: {', '.join(missing)}\n\n"
+                "Please place the files there, or set the BATTERY_KNOWLEDGE_DATA environment variable to the correct directory.\n"
+                "If you are developing and want to use mock data, set use_mock_on_failure=True in the load_data() call."
+            )
+            st.stop()
+
+    # Normal loading
+    nodes_df = pd.read_csv(nodes_file)
+    edges_df = pd.read_csv(edges_file)
+    logger.info(f"Loaded real data from {DB_DIR}")
+    return edges_df, nodes_df
 
 # ============================================================================
 # MAIN APPLICATION (integrating all components)
@@ -926,9 +938,9 @@ def main():
     st.markdown(f"<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center;'>Version {APP_VERSION} — LLM used ONLY for query parsing; all insights are data‑grounded.</p>", unsafe_allow_html=True)
 
-    # Load data
+    # Load data – set use_mock_on_failure=True if you want mock data during development
     try:
-        edges_df, nodes_df = load_data(use_mock_fallback=True)  # set False to require real files
+        edges_df, nodes_df = load_data(use_mock_on_failure=False)  # Change to True for mock fallback
     except Exception as e:
         st.error(f"Data loading failed: {e}")
         st.stop()
@@ -1253,8 +1265,8 @@ def main():
         if st.button("Export Filtered Graph as CSV"):
             nodes_exp = pd.DataFrame([{'node':n, **G_filtered.nodes[n]} for n in G_filtered.nodes()])
             edges_exp = pd.DataFrame([{'source':u, 'target':v, **G_filtered.edges[u,v]} for u,v in G_filtered.edges()])
-            st.download_button("Download Nodes", nodes_exp.to_csv(index=False), "nodes.csv")
-            st.download_button("Download Edges", edges_exp.to_csv(index=False), "edges.csv")
+            st.download_button("Download Nodes", nodes_exp.to_csv(index=False), "knowledge_graph_nodes.csv")
+            st.download_button("Download Edges", edges_exp.to_csv(index=False), "knowledge_graph_edges.csv")
 
 if __name__ == "__main__":
     main()
