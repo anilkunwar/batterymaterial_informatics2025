@@ -7,6 +7,7 @@ Fully data‑grounded; LLM used only for parsing and inference on pre‑computed
 """
 
 import os
+import pathlib                     # <-- ADDED for robust path handling
 import streamlit as st
 import pandas as pd
 import networkx as nx
@@ -50,11 +51,55 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# GLOBAL CONFIGURATION
+# GLOBAL CONFIGURATION – ROBUST DATA DIRECTORY DETECTION
 # ============================================================================
-# We define DB_DIR but load_data will override it if files aren't found here
-DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
-APP_VERSION = "5.1.1"   # Updated version for robust data loading
+def get_data_dir() -> str:
+    """
+    Determine the most likely directory containing nodes.csv and edges.csv.
+    Checks, in order:
+      1. Environment variable BATTERY_DATA_DIR
+      2. Script directory (if __file__ exists) and its 'data' subfolder
+      3. Current working directory and its 'data' subfolder
+    Returns a string path (guaranteed to exist or be a reasonable default).
+    """
+    # 1. Environment variable override
+    env_dir = os.environ.get("BATTERY_DATA_DIR")
+    if env_dir:
+        p = pathlib.Path(env_dir)
+        if p.is_dir():
+            return str(p.resolve())
+
+    # Helper to check if a directory contains either nodes.csv or edges.csv
+    def has_data_files(dir_path: pathlib.Path) -> bool:
+        return (dir_path / "nodes.csv").exists() or (dir_path / "edges.csv").exists()
+
+    # 2. Script directory (if we are in a script)
+    if '__file__' in globals():
+        script_dir = pathlib.Path(__file__).resolve().parent
+        if has_data_files(script_dir):
+            return str(script_dir)
+        # Check data/ subfolder
+        data_sub = script_dir / "data"
+        if data_sub.is_dir() and has_data_files(data_sub):
+            return str(data_sub)
+
+    # 3. Current working directory
+    cwd = pathlib.Path.cwd()
+    if has_data_files(cwd):
+        return str(cwd)
+    cwd_data = cwd / "data"
+    if cwd_data.is_dir() and has_data_files(cwd_data):
+        return str(cwd_data)
+
+    # 4. Fallback – script dir if available, else cwd (no guarantee files exist)
+    if '__file__' in globals():
+        return str(pathlib.Path(__file__).resolve().parent)
+    return str(cwd)
+
+DB_DIR = get_data_dir()
+logger.info(f"Data directory set to: {DB_DIR}")
+
+APP_VERSION = "5.1.0"   # Updated version
 
 # ----------------------------------------------------------------------------
 # 15+ PHYSICS EQUATIONS (used for context and template matching)
@@ -241,10 +286,9 @@ class ParsedParameters:
         return result
 
 # ============================================================================
-# SCIBERT LOADER & EMBEDDING UTILITIES
+# SCIBERT LOADER & EMBEDDING UTILITIES (no Streamlit calls at global scope)
 # ============================================================================
-# NOTE: We declare globals here but DO NOT INITIALIZE THEM in the global scope.
-# This prevents st.warning from firing before st.set_page_config.
+# These globals will be set inside main() after page config
 scibert_tokenizer = None
 scibert_model = None
 KEY_TERMS_EMBEDDINGS = []
@@ -263,8 +307,9 @@ def load_scibert():
         st.warning(f"Failed to load SciBERT: {str(e)}. Semantic similarity will be disabled.")
         return None, None
 
-@st.cache_data
 def get_scibert_embedding(texts):
+    """Uses the globally set scibert_tokenizer and scibert_model."""
+    global scibert_tokenizer, scibert_model
     if scibert_tokenizer is None or scibert_model is None:
         return [None] * len(texts) if isinstance(texts, list) else None
     try:
@@ -284,6 +329,11 @@ def get_scibert_embedding(texts):
     except Exception as e:
         st.warning(f"SciBERT embedding failed: {str(e)}")
         return [None] * len(texts) if isinstance(texts, list) else None
+
+@st.cache_data
+def compute_embeddings(texts):
+    """Helper to compute and cache embeddings for a list of texts."""
+    return get_scibert_embedding(texts)
 
 # ============================================================================
 # UNIT-AWARE PARSING (simple version)
@@ -322,7 +372,9 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
       - Semantic relevance to KEY_TERMS (0.10)
       - Physics boost term (physics_boost_weight, default 0.15)
     Operational constraints (C-rate, voltage, temperature) further boost relevant nodes.
+    Uses global KEY_TERMS_EMBEDDINGS and PHYSICS_TERMS_EMBEDDINGS.
     """
+    global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
     max_freq = nodes_df['frequency'].max() if nodes_df['frequency'].max() > 0 else 1
     nodes_df['norm_frequency'] = nodes_df['frequency'] / max_freq
 
@@ -346,10 +398,10 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
             physics_scores[node] = 0
         else:
             # Semantic relevance to KEY_TERMS
-            sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS]
+            sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS if kt_emb is not None]
             semantic_scores[node] = max(sem_sims, default=0)
             # Physics relevance to PHYSICS_TERMS
-            phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS]
+            phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
             phys_score = max(phys_sims, default=0)
 
             # Operational constraint modifiers
@@ -379,7 +431,7 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
     return priority_scores
 
 # ============================================================================
-# FAILURE ANALYSIS FUNCTIONS
+# FAILURE ANALYSIS FUNCTIONS (as in original snippet, preserved)
 # ============================================================================
 def analyze_failure_centrality(G_filtered, focus_terms=None):
     if focus_terms is None:
@@ -468,7 +520,7 @@ def find_failure_pathways(G_filtered, source_terms, target_terms, require_physic
                         for node in path:
                             emb = get_scibert_embedding(node)
                             if emb is not None and PHYSICS_TERMS_EMBEDDINGS:
-                                sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS]
+                                sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
                                 physics_scores.append(max(sims, default=0))
                         avg_phys = np.mean(physics_scores) if physics_scores else 0
                         pathways[f"{src} -> {tgt}"] = {
@@ -511,7 +563,7 @@ def analyze_failure_correlations(G_filtered):
     return corr, failure_terms
 
 # ============================================================================
-# FILTER GRAPH
+# FILTER GRAPH (original, adapted to use priority scores)
 # ============================================================================
 def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
     Gf = nx.Graph()
@@ -537,7 +589,7 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
     return Gf
 
 # ============================================================================
-# EXPORT HELPERS
+# EXPORT HELPERS (original)
 # ============================================================================
 def fig_to_base64(fig, format='png'):
     buf = BytesIO()
@@ -581,7 +633,7 @@ def load_llm(backend: str):
         return None, None, backend
 
 # ============================================================================
-# INTELLIGENT NLP PARSER
+# INTELLIGENT NLP PARSER (hybrid regex + LLM, strictly within scope)
 # ============================================================================
 class BatteryNLParser:
     def __init__(self):
@@ -733,7 +785,7 @@ Examples:
         return merged
 
 # ============================================================================
-# STRUCTURED INSIGHT GENERATOR
+# STRUCTURED INSIGHT GENERATOR (produces countable JSON)
 # ============================================================================
 class DegradationInsightGenerator:
     @staticmethod
@@ -747,7 +799,9 @@ class DegradationInsightGenerator:
         """
         Returns a fully numerical, countable JSON object.
         Every entry has a composite_weight (0–1) that can be sorted/ranked.
+        Uses global PHYSICS_TERMS_EMBEDDINGS and get_scibert_embedding.
         """
+        global PHYSICS_TERMS_EMBEDDINGS
         data = {
             "summary": {
                 "nodes": graph_stats["nodes"],
@@ -767,15 +821,20 @@ class DegradationInsightGenerator:
             }
         }
 
+        # ------------------------------------------------------------------
+        # 1. Ranked Mechanisms (Centrality / Community)
+        # ------------------------------------------------------------------
         if analysis_type == "Centrality Analysis" and isinstance(analysis_results, pd.DataFrame) and not analysis_results.empty:
             top = analysis_results.nlargest(10, "degree")
             for _, row in top.iterrows():
+                # Physics match
                 node_emb = get_scibert_embedding(row["node"])
                 phys_match = 0.0
                 if node_emb is not None and PHYSICS_TERMS_EMBEDDINGS:
-                    sims = [cosine_similarity([node_emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS]
+                    sims = [cosine_similarity([node_emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
                     phys_match = max(sims, default=0.0)
 
+                # Operational boost
                 operational_boost = 1.0
                 if parsed_params.get("temperature", 25) > 45 and any(t in row["node"].lower() for t in ["thermal", "temp"]):
                     operational_boost = 1.3
@@ -791,6 +850,7 @@ class DegradationInsightGenerator:
                     0.1 * row.get("betweenness", 0)
                 )
 
+                # Find matching physics equation
                 equation = ""
                 for eq_name, eq_data in PHYSICS_EQUATIONS.items():
                     if any(k in row["node"].lower() for k in eq_name.lower().split('_')):
@@ -808,6 +868,9 @@ class DegradationInsightGenerator:
                 }
                 data["ranked_mechanisms"].append(entry)
 
+        # ------------------------------------------------------------------
+        # 2. Pathways
+        # ------------------------------------------------------------------
         if analysis_type == "Pathway Analysis" and isinstance(analysis_results, dict):
             for name, p in analysis_results.items():
                 if p.get("path"):
@@ -821,6 +884,9 @@ class DegradationInsightGenerator:
                         "contains_physics": p.get("contains_physics", False)
                     })
 
+        # ------------------------------------------------------------------
+        # 3. Communities
+        # ------------------------------------------------------------------
         if analysis_type == "Community Detection" and isinstance(analysis_results, dict):
             for cid, c in list(analysis_results.items())[:5]:
                 phys_count = sum(c.get("physics_terms", Counter()).values())
@@ -832,6 +898,9 @@ class DegradationInsightGenerator:
                     "composite_weight": round(phys_count / max(size, 1), 3)
                 })
 
+        # ------------------------------------------------------------------
+        # 4. Correlations (top 3)
+        # ------------------------------------------------------------------
         if analysis_type == "Correlation Analysis" and isinstance(analysis_results, tuple) and len(analysis_results)==2:
             corr, terms = analysis_results
             if len(terms) > 0:
@@ -848,6 +917,9 @@ class DegradationInsightGenerator:
                         "strength": round(val, 3)
                     })
 
+        # ------------------------------------------------------------------
+        # 5. Temporal trend (simplified)
+        # ------------------------------------------------------------------
         if analysis_type == "Temporal Analysis" and isinstance(analysis_results, dict):
             periods = sorted(analysis_results.keys())
             if periods:
@@ -861,6 +933,9 @@ class DegradationInsightGenerator:
                     "direction": "increasing" if fc_last > fc_first else "decreasing"
                 }
 
+        # ------------------------------------------------------------------
+        # Query-Aware Gating (SciBERT focus boost)
+        # ------------------------------------------------------------------
         if user_query:
             query_emb = get_scibert_embedding(user_query)
             if query_emb is not None:
@@ -876,17 +951,20 @@ class DegradationInsightGenerator:
                         (m.get("query_relevance", 0) for m in data["ranked_mechanisms"]), default=0.0
                     ), 3)
 
+        # Sort everything by composite_weight
         data["ranked_mechanisms"].sort(key=lambda x: x["composite_weight"], reverse=True)
         data["pathways"].sort(key=lambda x: x["composite_weight"], reverse=True)
 
         return data
 
 # ============================================================================
-# INFERENCE-ONLY LLM CALL
+# INFERENCE-ONLY LLM CALL (sees only the JSON)
 # ============================================================================
 def llm_infer_on_insights(structured_json: Dict, user_query: str, tokenizer, model) -> str:
+    """LLM sees ONLY the JSON data. Never invents. Pure inference."""
     if tokenizer is None or model is None:
         return "LLM not available."
+
     prompt = f"""You are a factual battery analyst. Use ONLY the JSON data below.
 Answer the user query in 1-3 short bullets. Never add new mechanisms or numbers.
 User query: "{user_query}"
@@ -895,6 +973,7 @@ JSON data:
 {json.dumps(structured_json, indent=2)}
 
 Answer:"""
+
     try:
         inputs = tokenizer.encode(prompt, return_tensors="pt", truncation=True, max_length=1024)
         if torch.cuda.is_available():
@@ -903,6 +982,7 @@ Answer:"""
             out = model.generate(inputs, max_new_tokens=300, temperature=0.0, do_sample=False,
                                  pad_token_id=tokenizer.eos_token_id)
         answer = tokenizer.decode(out[0], skip_special_tokens=True)
+        # extract only the part after "Answer:"
         if "Answer:" in answer:
             return answer.split("Answer:")[-1].strip()
         return answer.strip()
@@ -911,10 +991,11 @@ Answer:"""
         return f"Error generating inference: {e}"
 
 # ============================================================================
-# RELEVANCE SCORER
+# RELEVANCE SCORER (simple)
 # ============================================================================
 class RelevanceScorer:
     def __init__(self, use_scibert=True):
+        global scibert_tokenizer, scibert_model
         self.use_scibert = use_scibert and scibert_tokenizer is not None and scibert_model is not None
     def score_query_to_nodes(self, query: str, nodes_list: List[str]) -> float:
         if not query or not nodes_list:
@@ -937,49 +1018,23 @@ class RelevanceScorer:
             return min(1.0, matches / 50.0)
 
 # ============================================================================
-# ROBUST DATA LOADING FUNCTION
+# DATA LOADING FUNCTION (uses robust DB_DIR)
 # ============================================================================
 @st.cache_data
 def load_data():
     """
-    Intelligently searches for nodes.csv and edges.csv in multiple locations:
-    1. Relative to the script file.
-    2. Parent directory (useful if script is in a subfolder).
-    3. Current working directory (Streamlit Cloud default).
-    4. A 'data/' subfolder.
+    Loads nodes and edges DataFrames from CSV files located in DB_DIR.
+    If files are not found, creates small sample data for demonstration.
     """
-    # List of potential directories to search, in order of priority
-    potential_dirs = []
-    
-    # 1. Relative to script location (local dev)
-    if '__file__' in globals():
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        potential_dirs.append(script_dir)
-        potential_dirs.append(os.path.join(script_dir, 'data'))
-        potential_dirs.append(os.path.dirname(script_dir)) # Parent of script dir
-        
-    # 2. Current working directory (Streamlit Cloud / generic)
-    cwd = os.getcwd()
-    potential_dirs.append(cwd)
-    potential_dirs.append(os.path.join(cwd, 'data'))
+    nodes_file = os.path.join(DB_DIR, 'nodes.csv')
+    edges_file = os.path.join(DB_DIR, 'edges.csv')
 
-    found_dir = None
-    
-    for directory in potential_dirs:
-        if os.path.isdir(directory):
-            nf = os.path.join(directory, 'nodes.csv')
-            ef = os.path.join(directory, 'edges.csv')
-            if os.path.exists(nf) and os.path.exists(ef):
-                found_dir = directory
-                break
-
-    if found_dir:
-        nodes_df = pd.read_csv(os.path.join(found_dir, 'nodes.csv'))
-        edges_df = pd.read_csv(os.path.join(found_dir, 'edges.csv'))
-        st.info(f"✅ Data loaded successfully from: `{found_dir}`")
+    if os.path.exists(nodes_file) and os.path.exists(edges_file):
+        nodes_df = pd.read_csv(nodes_file)
+        edges_df = pd.read_csv(edges_file)
     else:
-        # Fallback to sample data if files are truly missing
-        st.warning("📂 Data files not found in standard locations. Using sample data.")
+        # Create sample data to allow the app to run
+        st.warning(f"Data files not found in {DB_DIR}. Using sample data.")
         sample_nodes = [
             {"node": "electrode cracking", "type": "term", "category": "Crack and Fracture", "frequency": 120, "unit": "μm", "similarity_score": 0.85, "year": 2020},
             {"node": "SEI formation", "type": "term", "category": "Degradation", "frequency": 200, "unit": "nm", "similarity_score": 0.75, "year": 2021},
@@ -1015,26 +1070,26 @@ def load_data():
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    # Declare global variables for assignment
-    global scibert_tokenizer, scibert_model
-    global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
-
-    # 1. Set Page Config (MUST BE FIRST)
+    # --- Page config must be the very first Streamlit command ---
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
 
-    # 2. Initialize Models (Now safe to use st commands)
-    with st.spinner("Loading Semantic Models..."):
-        scibert_tokenizer, scibert_model = load_scibert()
-        KEY_TERMS_EMBEDDINGS = get_scibert_embedding(KEY_TERMS)
-        KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
-        PHYSICS_TERMS_EMBEDDINGS = get_scibert_embedding(PHYSICS_TERMS)
-        PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
-
-    # 3. UI Setup
+    # Now it's safe to call other Streamlit functions
     st.markdown(f"<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center;'>Version {APP_VERSION} — LLM used ONLY for parsing and inference on structured JSON.</p>", unsafe_allow_html=True)
 
-    # 4. Load Data (Robust search)
+    # ------------------------------------------------------------------------
+    # Initialize models and embeddings (after page config)
+    # ------------------------------------------------------------------------
+    global scibert_tokenizer, scibert_model, KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+    scibert_tokenizer, scibert_model = load_scibert()
+    # Compute embeddings for key terms and physics terms (cached)
+    KEY_TERMS_EMBEDDINGS = compute_embeddings(KEY_TERMS)
+    PHYSICS_TERMS_EMBEDDINGS = compute_embeddings(PHYSICS_TERMS)
+    # Remove None entries
+    KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
+    PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
+
+    # Load data
     try:
         edges_df, nodes_df = load_data()
     except Exception as e:
@@ -1130,7 +1185,7 @@ def main():
     st.sidebar.markdown(f"**Graph Stats:** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
 
     # ------------------------------------------------------------------------
-    # QUERY INTERFACE
+    # QUERY INTERFACE (LLM parsing)
     # ------------------------------------------------------------------------
     with st.expander("🤖 AI-Powered Query Interface", expanded=True):
         col1, col2, col3 = st.columns([3,1,1])
@@ -1170,10 +1225,12 @@ def main():
 
             st.session_state.last_params = params
 
+            # Compute relevance
             all_nodes = list(G.nodes())
             relevance = st.session_state.relevance_scorer.score_query_to_nodes(user_query, all_nodes[:100])
             st.info(f"**Semantic Relevance:** {relevance:.3f}")
 
+            # Show parsed parameters
             st.markdown("### 📋 Parsed Parameters")
             cols = st.columns(3)
             for i, (k, v) in enumerate(params.items()):
@@ -1184,12 +1241,14 @@ def main():
 
             analysis_type = params.get('analysis_type', 'Centrality Analysis')
     else:
+        # If no query or button not pressed, still set a default analysis type
         analysis_type = "Centrality Analysis"
 
     # Always run analysis with current filter settings (if graph nonempty)
     if G_filtered.number_of_nodes() > 0:
         at = st.session_state.last_params.get('analysis_type', 'Centrality Analysis') if st.session_state.last_params else "Centrality Analysis"
 
+        # Execute analysis
         if at == "Centrality Analysis":
             focus = st.session_state.last_params.get('focus_terms', ['crack','fracture','degradation']) if st.session_state.last_params else None
             results = analyze_failure_centrality(G_filtered, focus)
@@ -1222,14 +1281,17 @@ def main():
         )
         st.session_state.last_structured_insights = structured
 
+        # Display JSON (optional, for transparency)
         with st.expander("📊 Structured Numerical Insights (JSON)"):
             st.json(structured)
 
+        # Optional: Show ranked mechanisms as a table
         if structured["ranked_mechanisms"]:
             st.subheader("🏆 Ranked Failure Mechanisms")
             df_rank = pd.DataFrame(structured["ranked_mechanisms"])
             st.dataframe(df_rank[["name", "composite_weight", "degree", "physics_match", "equation"]])
 
+        # Second LLM inference (only if user wants)
         if st.checkbox("🤖 Ask LLM to summarise the numerical insights (inference only)", value=False):
             with st.spinner("LLM inferring on numerical data..."):
                 answer = llm_infer_on_insights(structured, user_query,
