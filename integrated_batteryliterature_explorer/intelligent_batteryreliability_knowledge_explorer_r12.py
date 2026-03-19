@@ -56,9 +56,59 @@ except ImportError:
 warnings.filterwarnings('ignore')
 
 # ============================================================================
+# ROBUST DATA DIRECTORY DETECTION (replaces fragile DB_DIR logic)
+# ============================================================================
+def get_data_dir() -> str:
+    """
+    Determine the most likely directory containing edges.csv and nodes.csv.
+    Checks (in order):
+      1. Environment variable BATTERY_KNOWLEDGE_DATA
+      2. Directory of the current script (if __file__ exists)
+      3. 'data' subfolder under script directory
+      4. Current working directory
+      5. 'data' subfolder under current working directory
+    Returns the first existing directory among the candidates.
+    """
+    candidates = []
+
+    # 1. Environment variable
+    env_path = os.environ.get("BATTERY_KNOWLEDGE_DATA")
+    if env_path:
+        candidates.append(env_path)
+
+    # 2. Script directory (if __file__ exists)
+    if '__file__' in globals():
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        candidates.append(script_dir)
+        candidates.append(os.path.join(script_dir, "data"))
+
+    # 3. Current working directory
+    cwd = os.getcwd()
+    candidates.append(cwd)
+    candidates.append(os.path.join(cwd, "data"))
+
+    # Remove duplicates (preserve order)
+    seen = set()
+    unique_candidates = []
+    for path in candidates:
+        if path not in seen:
+            seen.add(path)
+            unique_candidates.append(path)
+
+    # Return the first candidate that exists (as a directory)
+    for path in unique_candidates:
+        if os.path.isdir(path):
+            return path
+
+    # Fallback to current working directory (it always exists)
+    return cwd
+
+DB_DIR = get_data_dir()
+logger.info(f"Data directory set to: {DB_DIR}")
+
+# ============================================================================
 # GLOBAL CONFIGURATION
 # ============================================================================
-DB_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
 APP_VERSION = "5.1.0"   # Updated version
 
 # ----------------------------------------------------------------------------
@@ -826,25 +876,26 @@ class RelevanceScorer:
             return min(1.0, matches / 50.0)
 
 # ============================================================================
-# DATA LOADING (Robust with error handling)
+# DATA LOADING (Robust with error handling – fallback to mock data optional)
 # ============================================================================
-def load_data():
-    # In a real scenario, this would load CSV files.
-    # For this snippet to be syntactically correct and avoid runtime errors 
-    # if files are missing, we return mock data.
-    try:
-        # Attempt to load actual files if they exist in DB_DIR
-        edges_path = os.path.join(DB_DIR, "edges.csv")
-        nodes_path = os.path.join(DB_DIR, "nodes.csv")
-        
-        if os.path.exists(edges_path) and os.path.exists(nodes_path):
-            edges_df = pd.read_csv(edges_path)
-            nodes_df = pd.read_csv(nodes_path)
-        else:
-            raise FileNotFoundError("Data files not found, using mock data.")
-    except Exception:
+def load_data(use_mock_fallback=True):
+    """
+    Load edges.csv and nodes.csv from DB_DIR.
+    If use_mock_fallback is True, return mock data on failure; otherwise raise.
+    """
+    edges_path = os.path.join(DB_DIR, "edges.csv")
+    nodes_path = os.path.join(DB_DIR, "nodes.csv")
+
+    if os.path.exists(edges_path) and os.path.exists(nodes_path):
+        edges_df = pd.read_csv(edges_path)
+        nodes_df = pd.read_csv(nodes_path)
+        logger.info(f"Loaded real data from {DB_DIR}")
+        return edges_df, nodes_df
+
+    # Files not found
+    if use_mock_fallback:
+        logger.warning(f"Data files not found in {DB_DIR}. Using mock data.")
         # Mock data generation for robustness
-        warnings.warn("Using mock data for demonstration purposes.")
         nodes_data = [
             {"node": "electrode cracking", "type": "term", "category": "Crack and Fracture", "frequency": 50, "unit": "None", "similarity_score": 0.9},
             {"node": "SEI formation", "type": "term", "category": "Degradation", "frequency": 40, "unit": "None", "similarity_score": 0.8},
@@ -860,8 +911,13 @@ def load_data():
         ]
         nodes_df = pd.DataFrame(nodes_data)
         edges_df = pd.DataFrame(edges_data)
-        
-    return edges_df, nodes_df
+        return edges_df, nodes_df
+    else:
+        raise FileNotFoundError(
+            f"Required data files not found in {DB_DIR}.\n"
+            "Please place edges.csv and nodes.csv in that directory, "
+            "or set the BATTERY_KNOWLEDGE_DATA environment variable."
+        )
 
 # ============================================================================
 # MAIN APPLICATION (integrating all components)
@@ -872,7 +928,7 @@ def main():
 
     # Load data
     try:
-        edges_df, nodes_df = load_data()
+        edges_df, nodes_df = load_data(use_mock_fallback=True)  # set False to require real files
     except Exception as e:
         st.error(f"Data loading failed: {e}")
         st.stop()
