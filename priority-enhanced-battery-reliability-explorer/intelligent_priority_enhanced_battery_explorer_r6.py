@@ -7,14 +7,15 @@ Expanded version with performance optimizations, mathematical robustness,
 LLM enhancements, advanced graph analytics, uncertainty quantification,
 scalability, UX improvements, and physics integration.
 
-FIXED: UnboundLocalError by moving graph initialization before sidebar.
+FIXED: UnboundLocalError for nx by ensuring import is at top and adding a runtime check.
 """
 
 import os
 import pathlib
+import sys
 import streamlit as st
 import pandas as pd
-import networkx as nx
+import networkx as nx   # <-- Import at top, no conditionals
 import plotly.graph_objects as go
 import plotly.express as px
 from networkx.algorithms import community
@@ -550,6 +551,7 @@ def trend_detection(values):
         return {'trend': trend, 'p': p, 'tau': tau}
     except:
         # fallback to Pearson correlation
+        from scipy.stats import pearsonr
         r, p = pearsonr(range(n), values)
         trend = 'increasing' if r > 0.1 else 'decreasing' if r < -0.1 else 'no trend'
         return {'trend': trend, 'p': p, 'correlation': r}
@@ -1187,9 +1189,370 @@ def load_data():
     return edges_df, nodes_df
 
 # ============================================================================
+# BATTERY NLP PARSER (regex + LLM)
+# ============================================================================
+class BatteryNLParser:
+    def __init__(self):
+        self.defaults = ParsedParameters()
+        self.patterns = {
+            'min_weight': [r'min(?:imum)?\s*edge\s*weight\s*(?:of|>=|>|=)?\s*(\d+)'],
+            'min_freq': [r'min(?:imum)?\s*(?:node)?\s*frequency\s*(?:of|>=|>|=)?\s*(\d+)'],
+            'min_priority_score': [r'priority\s*score\s*(?:of|>=|>|=)?\s*(\d*\.?\d+)'],
+            'physics_boost_weight': [r'physics\s*boost\s*(?:of|>=|>|=)?\s*(\d*\.?\d+)'],
+            'c_rate': [r'c[-\s]?rate\s*(?:of|>=|>|=)?\s*(\d+\.?\d*)'],
+            'voltage': [r'voltage\s*(?:of|>=|>|=)?\s*(\d+\.?\d*)'],
+            'temperature': [r'temperature\s*(?:of|>=|>|=)?\s*(\d+\.?\d*)'],
+            'require_physics_in_pathways': [r'require\s*physics', r'only\s*physics\s*paths?']
+        }
+        self.analysis_map = {
+            'centrality': 'Centrality Analysis',
+            'community': 'Community Detection',
+            'ego': 'Ego Network Analysis',
+            'pathway': 'Pathway Analysis',
+            'temporal': 'Temporal Analysis',
+            'correlation': 'Correlation Analysis'
+        }
+
+    def parse_regex(self, text: str) -> Dict:
+        if not text:
+            return asdict(self.defaults)
+        params = asdict(self.defaults).copy()
+        text_lower = text.lower()
+        for key, pats in self.patterns.items():
+            for pat in pats:
+                match = re.search(pat, text_lower)
+                if match:
+                    try:
+                        if key == 'require_physics_in_pathways':
+                            params[key] = True
+                        else:
+                            params[key] = float(match.group(1))
+                        break
+                    except:
+                        continue
+        # Unit parsing
+        unit_vals = UnitParser.parse_units(text)
+        if 'c_rate' in unit_vals:
+            params['c_rate'] = unit_vals['c_rate']
+        if 'voltage' in unit_vals:
+            params['voltage'] = unit_vals['voltage']
+        if 'temperature' in unit_vals:
+            params['temperature'] = unit_vals['temperature']
+        # Analysis type
+        for key, val in self.analysis_map.items():
+            if key in text_lower:
+                params['analysis_type'] = val
+                break
+        # Source/target terms
+        src = re.search(r'from\s+([a-zA-Z\s\-]+?)\s+to', text_lower)
+        tgt = re.search(r'to\s+([a-zA-Z\s\-]+?)(?:\s+and|\s*,|$|\.)', text_lower)
+        if src:
+            params['source_terms'] = [t.strip() for t in src.group(1).split(',')]
+        if tgt:
+            params['target_terms'] = [t.strip() for t in tgt.group(1).split(',')]
+        return params
+
+    def _extract_json_robust(self, generated: str) -> Optional[Dict]:
+        match = re.search(r'\{.*\}', generated, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
+            try:
+                return json.loads(json_str)
+            except:
+                return None
+        return None
+
+    def parse_with_llm(self, text, tokenizer, model, regex_params=None, temperature=0.1) -> Dict:
+        if not text or tokenizer is None or model is None:
+            return regex_params if regex_params else asdict(self.defaults)
+        system = "You are an expert in battery degradation. Output only a JSON dictionary with keys from: " + str(list(asdict(self.defaults).keys()))
+        examples = """
+Examples:
+1. "Show pathways from electrode cracking to capacity fade" -> {"analysis_type": "Pathway Analysis", "source_terms": ["electrode cracking"], "target_terms": ["capacity fade"]}
+2. "Analyze communities related to chemo-mechanical degradation, boost physics to 0.2" -> {"analysis_type": "Community Detection", "focus_terms": ["chemo-mechanical degradation"], "physics_boost_weight": 0.2}
+3. "Show ego network around stress concentration" -> {"analysis_type": "Ego Network Analysis", "central_nodes": ["stress concentration"]}
+4. "Find correlations between thermal runaway and mechanical degradation" -> {"analysis_type": "Correlation Analysis", "focus_terms": ["thermal runaway", "mechanical degradation"]}
+5. "How have SEI formation and lithium plating evolved?" -> {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "lithium plating"]}
+6. "High C-rate 2C, temperature 45°C" -> {"c_rate": 2.0, "temperature": 45.0}
+"""
+        user = f"{examples}\nText: \"{text}\"\nPreliminary regex: {json.dumps(regex_params, default=str) if regex_params else 'None'}\nJSON:"
+        backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
+        try:
+            if "Qwen" in backend:
+                messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+                prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            else:
+                prompt = f"{system}\n{user}\n"
+            inputs = tokenizer.encode(prompt, return_tensors='pt', truncation=True, max_length=512)
+            if torch.cuda.is_available():
+                inputs = inputs.to('cuda')
+            with torch.no_grad():
+                outputs = model.generate(inputs, max_new_tokens=400, temperature=temperature, do_sample=temperature>0, pad_token_id=tokenizer.eos_token_id)
+            generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            llm_params = self._extract_json_robust(generated)
+            if llm_params:
+                for k in asdict(self.defaults).keys():
+                    if k not in llm_params:
+                        llm_params[k] = asdict(self.defaults)[k]
+                for k in ['c_rate','voltage','temperature','soc','dod']:
+                    if k in llm_params:
+                        llm_params[k] = np.clip(llm_params[k], OPERATIONAL_CONSTRAINTS[k]['min'], OPERATIONAL_CONSTRAINTS[k]['max'])
+                return llm_params
+        except Exception as e:
+            logger.warning(f"LLM parsing error: {e}")
+        return regex_params if regex_params else asdict(self.defaults)
+
+    def hybrid_parse(self, text, tokenizer=None, model=None, use_ensemble=False, ensemble_runs=3) -> Dict:
+        regex_params = self.parse_regex(text)
+        if tokenizer is None or model is None:
+            return regex_params
+        if use_ensemble:
+            all_llm = [self.parse_with_llm(text, tokenizer, model, regex_params, temperature=0.2) for _ in range(ensemble_runs)]
+            llm_params = {}
+            for k in asdict(self.defaults).keys():
+                vals = [p[k] for p in all_llm]
+                if isinstance(vals[0], (int, float)):
+                    llm_params[k] = float(np.mean(vals))
+                elif isinstance(vals[0], bool):
+                    llm_params[k] = max(set(vals), key=vals.count)
+                elif isinstance(vals[0], list):
+                    flat = [item for sublist in vals for item in (sublist if isinstance(sublist, list) else [sublist])]
+                    llm_params[k] = list(set(flat))[:10]
+                else:
+                    llm_params[k] = vals[0]
+        else:
+            llm_params = self.parse_with_llm(text, tokenizer, model, regex_params)
+        merged = {}
+        for k in asdict(self.defaults).keys():
+            if k in regex_params and regex_params[k] != getattr(self.defaults, k):
+                merged[k] = regex_params[k]
+            else:
+                merged[k] = llm_params.get(k, getattr(self.defaults, k))
+        merged['confidence_score'] = 0.8
+        merged['parsing_method'] = 'hybrid'
+        return merged
+
+# ============================================================================
+# UNIT PARSER
+# ============================================================================
+class UnitParser:
+    @staticmethod
+    def parse_units(text: str) -> Dict[str, float]:
+        if not text:
+            return {}
+        text_lower = text.lower()
+        extracted = {}
+        patterns = {
+            'c_rate': [r'(\d+\.?\d*)\s*(?:C-rate|C\s*rate|C)'],
+            'voltage': [r'(\d+\.?\d*)\s*(?:V|volt|volts)'],
+            'temperature': [r'(\d+\.?\d*)\s*(?:°C|C|celsius)']
+        }
+        for key, pats in patterns.items():
+            for pat in pats:
+                match = re.search(pat, text_lower)
+                if match:
+                    try:
+                        extracted[key] = float(match.group(1))
+                    except:
+                        pass
+        return extracted
+
+# ============================================================================
+# FAILURE ANALYSIS FUNCTIONS (some were missing; adding them here)
+# ============================================================================
+def analyze_failure_centrality(G_filtered, focus_terms=None):
+    if focus_terms is None:
+        focus_terms = ["crack", "fracture", "degradation", "fatigue", "damage", "failure", "mechanical", "cycling", "capacity fade", "SEI"]
+    degree = nx.degree_centrality(G_filtered)
+    between = nx.betweenness_centrality(G_filtered)
+    closeness = nx.closeness_centrality(G_filtered)
+    try:
+        eigen = nx.eigenvector_centrality(G_filtered, max_iter=1000)
+    except:
+        eigen = {n: 0 for n in G_filtered.nodes()}
+    results = []
+    for node in G_filtered.nodes():
+        if any(term in node.lower() for term in focus_terms):
+            results.append({
+                'node': node,
+                'degree': degree.get(node, 0),
+                'betweenness': between.get(node, 0),
+                'closeness': closeness.get(node, 0),
+                'eigenvector': eigen.get(node, 0),
+                'category': G_filtered.nodes[node].get('category', ''),
+                'type': G_filtered.nodes[node].get('type', '')
+            })
+    return pd.DataFrame(results)
+
+def detect_failure_communities(G_filtered):
+    try:
+        partition = community_louvain.best_partition(G_filtered, weight='weight', resolution=1.2)
+    except:
+        partition = {node: 0 for node in G_filtered.nodes()}
+    communities = {}
+    for node, cid in partition.items():
+        if cid not in communities:
+            communities[cid] = {'nodes': [], 'categories': Counter(), 'failure_keywords': Counter(), 'physics_terms': Counter()}
+        communities[cid]['nodes'].append(node)
+        cat = G_filtered.nodes[node].get('category', '')
+        if cat:
+            communities[cid]['categories'][cat] += 1
+        for kw in ['crack', 'fracture', 'degrad', 'fatigue', 'damage', 'failure']:
+            if kw in node.lower():
+                communities[cid]['failure_keywords'][kw] += 1
+        for term in PHYSICS_TERMS:
+            if term in node.lower():
+                communities[cid]['physics_terms'][term] += 1
+    return communities, partition
+
+def analyze_ego_networks(G_filtered, central_nodes=None):
+    if central_nodes is None:
+        central_nodes = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "diffusion-induced stress", "capacity fade", "lithium plating"]
+    results = {}
+    for node in central_nodes:
+        if node in G_filtered.nodes():
+            try:
+                ego = nx.ego_graph(G_filtered, node, radius=2)
+                results[node] = {
+                    'node_count': ego.number_of_nodes(),
+                    'edge_count': ego.number_of_edges(),
+                    'density': nx.density(ego),
+                    'average_degree': sum(dict(ego.degree()).values()) / ego.number_of_nodes() if ego.number_of_nodes() > 0 else 0,
+                    'centrality': nx.degree_centrality(ego).get(node, 0),
+                    'neighbors': list(ego.neighbors(node)),
+                    'subgraph_categories': Counter([ego.nodes[n].get('category', '') for n in ego.nodes()]),
+                    'physics_terms': [n for n in ego.nodes() if any(t in n.lower() for t in PHYSICS_TERMS)]
+                }
+            except:
+                results[node] = {'node_count': 0, 'edge_count': 0, 'density': 0, 'average_degree': 0, 'centrality': 0, 'neighbors': [], 'subgraph_categories': Counter(), 'physics_terms': []}
+    return results
+
+def find_failure_pathways(G_filtered, source_terms, target_terms, require_physics=False, min_physics_similarity=0.5):
+    pathways = {}
+    for src in source_terms:
+        for tgt in target_terms:
+            if src in G_filtered.nodes() and tgt in G_filtered.nodes():
+                try:
+                    paths = list(nx.all_shortest_paths(G_filtered, source=src, target=tgt, weight='weight'))
+                    if require_physics:
+                        filtered = []
+                        for p in paths:
+                            has_phys = any(any(t in node.lower() for t in PHYSICS_TERMS) for node in p)
+                            if has_phys:
+                                filtered.append(p)
+                        paths = filtered
+                    if paths:
+                        path = paths[0]
+                        physics_scores = []
+                        for node in path:
+                            emb = get_scibert_embedding(node)
+                            if emb is not None and PHYSICS_TERMS_EMBEDDINGS:
+                                sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
+                                physics_scores.append(max(sims, default=0))
+                        avg_phys = np.mean(physics_scores) if physics_scores else 0
+                        pathways[f"{src} -> {tgt}"] = {
+                            'path': path,
+                            'length': len(path)-1,
+                            'nodes': path,
+                            'num_paths': len(paths),
+                            'contains_physics': any(any(t in node.lower() for t in PHYSICS_TERMS) for node in path),
+                            'avg_physics_similarity': avg_phys
+                        }
+                    else:
+                        pathways[f"{src} -> {tgt}"] = {'path': None, 'length': float('inf'), 'nodes': [], 'contains_physics': False, 'avg_physics_similarity': 0}
+                except nx.NetworkXNoPath:
+                    pathways[f"{src} -> {tgt}"] = {'path': None, 'length': float('inf'), 'nodes': [], 'contains_physics': False, 'avg_physics_similarity': 0}
+    return pathways
+
+def analyze_temporal_patterns(nodes_df, edges_df, time_column='year'):
+    if time_column not in nodes_df.columns:
+        return {"error": "Time column not found"}
+    periods = sorted(nodes_df[time_column].dropna().unique())
+    analysis = {}
+    for p in periods:
+        period_nodes = nodes_df[nodes_df[time_column] == p]
+        analysis[p] = {
+            'total_concepts': len(period_nodes),
+            'failure_concepts': len([n for n in period_nodes['node'] if any(kw in n.lower() for kw in ['crack','fracture','degrad','fatigue','damage'])]),
+            'physics_concepts': len([n for n in period_nodes['node'] if any(term in n.lower() for term in PHYSICS_TERMS)]),
+            'top_concepts': period_nodes.nlargest(5, 'frequency')['node'].tolist()
+        }
+    return analysis
+
+def analyze_failure_correlations(G_filtered):
+    failure_terms = [n for n in G_filtered.nodes() if any(kw in n.lower() for kw in ['crack','fracture','degrad','fatigue','damage','failure'])]
+    n = len(failure_terms)
+    corr = np.zeros((n, n))
+    for i, t1 in enumerate(failure_terms):
+        for j, t2 in enumerate(failure_terms):
+            if G_filtered.has_edge(t1, t2):
+                corr[i, j] = G_filtered.edges[t1, t2].get('weight', 0)
+    return corr, failure_terms
+
+def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
+    """Compute numerical difference metrics between two graphs (both should be filtered/influenced)."""
+    nodes1 = set(G1.nodes())
+    nodes2 = set(G2.nodes())
+    inter_nodes = nodes1 & nodes2
+
+    # Node Jaccard
+    node_jaccard = len(inter_nodes) / len(nodes1 | nodes2) if (nodes1 | nodes2) else 0
+
+    # Edge Jaccard (all edges, not just induced on inter_nodes)
+    edges1 = set(G1.edges())
+    edges2 = set(G2.edges())
+    edge_jaccard = len(edges1 & edges2) / len(edges1 | edges2) if (edges1 | edges2) else 0
+
+    # Node count delta
+    node_delta_pct = (len(nodes2) - len(nodes1)) / len(nodes1) * 100 if len(nodes1) > 0 else 0
+
+    # Average degree delta (on intersection)
+    deg1 = [G1.degree(n) for n in inter_nodes]
+    deg2 = [G2.degree(n) for n in inter_nodes]
+    avg_deg1 = np.mean(deg1) if deg1 else 0
+    avg_deg2 = np.mean(deg2) if deg2 else 0
+    avg_deg_delta = avg_deg2 - avg_deg1
+
+    # Centrality correlation (degree centrality on intersection)
+    if len(inter_nodes) > 1:
+        cent1 = [nx.degree_centrality(G1)[n] for n in inter_nodes]
+        cent2 = [nx.degree_centrality(G2)[n] for n in inter_nodes]
+        centrality_corr, _ = spearmanr(cent1, cent2)
+    else:
+        centrality_corr = 1.0 if len(inter_nodes) == 1 else 0.0
+
+    # Community similarity (NMI) – need to handle case where one graph has no nodes
+    nmi = 0.0
+    if len(inter_nodes) > 0:
+        try:
+            part1 = community_louvain.best_partition(G1.subgraph(inter_nodes))
+            part2 = community_louvain.best_partition(G2.subgraph(inter_nodes))
+            labels1 = [part1[n] for n in inter_nodes]
+            labels2 = [part2[n] for n in inter_nodes]
+            nmi = normalized_mutual_info_score(labels1, labels2)
+        except:
+            nmi = 0.0
+
+    metrics = {
+        "node_jaccard": round(node_jaccard, 3),
+        "edge_jaccard": round(edge_jaccard, 3),
+        "node_count_delta_pct": round(node_delta_pct, 1),
+        "avg_degree_delta": round(avg_deg_delta, 3),
+        "centrality_correlation": round(centrality_corr, 3),
+        "community_nmi": round(nmi, 3),
+    }
+    return metrics
+
+# ============================================================================
 # MAIN APPLICATION
 # ============================================================================
 def main():
+    # Ensure nx is defined; if not, show error
+    if 'nx' not in globals() or nx is None:
+        st.error("NetworkX module not available. Please install networkx.")
+        st.stop()
+
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
     st.markdown("<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Expanded: performance optimizations, LLM enhancements, advanced analytics, uncertainty quantification, and physics integration.</p>", unsafe_allow_html=True)
@@ -1248,7 +1611,6 @@ def main():
 
     # Initialize session state
     if "parser" not in st.session_state:
-        from dataclasses import asdict
         st.session_state.parser = BatteryNLParser()
     if "relevance_scorer" not in st.session_state:
         st.session_state.relevance_scorer = RelevanceScorer(use_scibert=True)
@@ -1760,13 +2122,11 @@ def main():
             st.download_button("Download Nodes", nodes_exp.to_csv(index=False), "nodes.csv")
             st.download_button("Download Edges", edges_exp.to_csv(index=False), "edges.csv")
         if st.button("Export as GraphML"):
-            # GraphML requires networkx write_graphml
             import networkx as nx
             buf = BytesIO()
             nx.write_graphml(G_filtered, buf)
             st.download_button("Download GraphML", buf.getvalue(), "graph.graphml")
         if st.button("Export as JSON-LD"):
-            # Simple JSON-LD conversion
             jsonld = {
                 "@context": {"@vocab": "http://example.org/battery#"},
                 "@graph": [
