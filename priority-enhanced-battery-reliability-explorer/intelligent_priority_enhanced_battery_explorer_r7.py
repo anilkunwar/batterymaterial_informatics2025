@@ -758,7 +758,7 @@ JSON list:"""
     return []
 
 def llm_suggest_missing_edges(query: str, current_nodes: List[str], tokenizer, model) -> List[Tuple[str, str, float]]:
-    """Ask LLM to suggest 0-3 missing edges (source, target, weight 1‑10)."""
+    """Ask LLM to suggest 0-3 missing edges (source, target, weight 1-10)."""
     if tokenizer is None or model is None:
         return []
     node_sample = current_nodes[:30]
