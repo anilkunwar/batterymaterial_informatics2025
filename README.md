@@ -58,6 +58,7 @@ PREKnoweldge graph visualization
 
 
 Intelligent Models:
+
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batterydegradation1gpt-streamlit-red)](https://batterydegradationexplorer1-gpt.streamlit.app/ )
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer2gpt-streamlit-red)](https://intelligentbatteryexplorer-gpt2.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is trivial)
@@ -65,6 +66,8 @@ Intelligent Models:
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer3gpt-streamlit-red)](https://intelligentbatteryexplorer3-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is trivial)
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer4gpt-streamlit-red)](https://intelligentbatteryexplorer4-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer5gpt-streamlit-red)](https://intelligentbatteryexplorer5-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust, theoretical explanation)
 
 
 
