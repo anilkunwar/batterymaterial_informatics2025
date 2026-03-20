@@ -7,7 +7,7 @@ Expanded version with performance optimizations, mathematical robustness,
 LLM enhancements, advanced graph analytics, uncertainty quantification,
 scalability, UX improvements, and physics integration.
 
-FIXED: UnboundLocalError for nx by ensuring import is at top and adding a runtime check.
+FIXED: UnboundLocalError for nx by using try/except check.
 """
 
 import os
@@ -1548,8 +1548,10 @@ def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    # Ensure nx is defined; if not, show error
-    if 'nx' not in globals() or nx is None:
+    # --- Safe check for networkx module availability (fix for UnboundLocalError) ---
+    try:
+        _ = nx  # This will raise NameError if nx is not defined
+    except NameError:
         st.error("NetworkX module not available. Please install networkx.")
         st.stop()
 
