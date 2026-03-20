@@ -734,7 +734,7 @@ class RelevanceScorer:
 # QUERY-DRIVEN GRAPH RECONSTRUCTION (with FAISS, parallel)
 # ============================================================================
 def llm_expand_vocabulary(query: str, tokenizer, model) -> List[str]:
-    """Use LLM to generate a list of 15‑25 related technical terms."""
+    """Use LLM to generate a list of 15-25 related technical terms."""
     if tokenizer is None or model is None:
         return []
     prompt = f"""You are a battery degradation expert. Given the user query below, output ONLY a JSON list of 15-25 precise technical terms/phrases that are semantically proximal or causally related (including physics mechanisms, failure modes, materials, etc.).
