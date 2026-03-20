@@ -1209,6 +1209,10 @@ def main():
         st.error(f"Data loading failed: {e}")
         st.stop()
 
+    # --------------------------------------------------------------------
+    # Normalize data and Initialize Graph G
+    # This must happen BEFORE the sidebar uses G.nodes()
+    # --------------------------------------------------------------------
     def norm(t): return t.lower().strip() if isinstance(t, str) else ""
     nodes_df["node"] = nodes_df["node"].apply(norm)
     edges_df["source"] = edges_df["source"].apply(norm)
@@ -1223,6 +1227,7 @@ def main():
                    relationship=r.get("relationship",""), strength=r.get("strength",0))
 
     G_original = G.copy()
+    # --------------------------------------------------------------------
 
     @st.cache_data
     def compute_node_embeddings_dict(nodes_list):
@@ -1259,7 +1264,7 @@ def main():
         st.session_state.last_structured_insights = None
 
     # ------------------------------------------------------------------------
-    # Sidebar filters (enhanced with UX)
+    # Sidebar filters (now G is defined and safe to use)
     # ------------------------------------------------------------------------
     with st.sidebar:
         st.markdown("## ⚙️ Manual Filters (optional)")
@@ -1511,7 +1516,7 @@ def main():
         structured_inf = {}
 
     # ------------------------------------------------------------------------
-    # NEW: Quantitative Measures Tabs (Reconstruction Mode)
+    # Quantitative Measures Tabs (Reconstruction Mode)
     # ------------------------------------------------------------------------
     if use_reconstruction and results_orig is not None and results_inf is not None:
         st.subheader("📊 Structured Insights Comparison")
