@@ -1,14 +1,3 @@
-Here is the debugged and fully expanded correct code.
-
-**Fix Explanation:**
-The error `UnboundLocalError: cannot access local variable 'nx' where it is not associated with a value` occurred because `networkx` was imported globally at the top of the file, but it was also imported *locally* inside the `main()` function within the "Export as GraphML" button callback.
-
-In Python, if a variable is assigned to anywhere within a function (even inside a conditional block like an `if` statement), Python treats that variable as **local** to the entire function. When the code reached the safety check at line 1552 (`try: _ = nx`), Python looked for a local variable named `nx`. Since the "Export" button hadn't been clicked yet, the local assignment hadn't happened, resulting in the `UnboundLocalError`.
-
-**The Fix:**
-I removed the redundant local import `import networkx as nx` from inside the `if st.button("Export as GraphML"):` block. The module is already imported globally at the top of the script, so it is accessible throughout `main()` without causing scoping conflicts.
-
-```python
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
@@ -2166,4 +2155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
