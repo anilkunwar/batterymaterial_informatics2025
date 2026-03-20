@@ -805,7 +805,7 @@ def reconstruct_graph_with_attention(G_orig: nx.Graph,
       - Multiplicative boosts (physics, degree)
       - Edge re-weighting
       - LLM-suggested missing edges
-      - Top‑K node selection (max_nodes)
+      - Top-K node selection (max_nodes)
     """
     # Step 1: Query embedding
     q_emb = get_scibert_embedding(user_query)
