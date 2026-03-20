@@ -28,4 +28,5 @@ pyvis==0.3.2
 kaleido
 ###############
 accelerate
-faiss
+#faiss  # for gpu
+faiss-cpu
