@@ -1264,7 +1264,7 @@ class BatteryNLParser:
         if not text or tokenizer is None or model is None:
             return regex_params if regex_params else asdict(self.defaults)
         system = "You are an expert in battery degradation. Output only a JSON dictionary with keys from: " + str(list(asdict(self.defaults).keys()))
-        examples = """
+        examples = ""
 Examples:
 1. "Show pathways from electrode cracking to capacity fade" -> {"analysis_type": "Pathway Analysis", "source_terms": ["electrode cracking"], "target_terms": ["capacity fade"]}
 2. "Analyze communities related to chemo-mechanical degradation, boost physics to 0.2" -> {"analysis_type": "Community Detection", "focus_terms": ["chemo-mechanical degradation"], "physics_boost_weight": 0.2}
@@ -1272,7 +1272,7 @@ Examples:
 4. "Find correlations between thermal runaway and mechanical degradation" -> {"analysis_type": "Correlation Analysis", "focus_terms": ["thermal runaway", "mechanical degradation"]}
 5. "How have SEI formation and lithium plating evolved?" -> {"analysis_type": "Temporal Analysis", "focus_terms": ["SEI formation", "lithium plating"]}
 6. "High C-rate 2C, temperature 45°C" -> {"c_rate": 2.0, "temperature": 45.0}
-"""
+""
         user = f"{examples}\nText: \"{text}\"\nPreliminary regex: {json.dumps(regex_params, default=str) if regex_params else 'None'}\nJSON:"
         backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
         try:
