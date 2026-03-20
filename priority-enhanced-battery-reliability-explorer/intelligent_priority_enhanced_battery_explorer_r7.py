@@ -2140,7 +2140,7 @@ def main():
 
     # Display example queries
     with st.expander("📚 Example Queries", expanded=False):
-        st.markdown("""
+        st.markdown(""
         - "Show pathways from electrode cracking to capacity fade involving diffusion-induced stress"
         - "Analyze communities related to chemo-mechanical degradation with physics boost 0.2"
         - "Find correlations between thermal runaway and mechanical degradation"
@@ -2148,7 +2148,7 @@ def main():
         - "Ego network around stress concentration with radius 2"
         - "High C-rate 2C, temperature 45°C, voltage 4.2V"
         - "Analyze centrality for fracture, fatigue, and damage"
-        """)
+        "")
 
 if __name__ == "__main__":
     main()
