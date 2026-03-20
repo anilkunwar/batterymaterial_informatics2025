@@ -6,6 +6,8 @@ INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 Expanded version with performance optimizations, mathematical robustness,
 LLM enhancements, advanced graph analytics, uncertainty quantification,
 scalability, UX improvements, and physics integration.
+
+FIXED: UnboundLocalError by moving graph initialization before sidebar.
 """
 
 import os
