@@ -30,3 +30,4 @@ kaleido
 accelerate
 #faiss  # for gpu
 faiss-cpu
+redis
