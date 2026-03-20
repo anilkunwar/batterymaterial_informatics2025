@@ -26,4 +26,6 @@ python-louvain
 scikit-learn
 pyvis==0.3.2
 kaleido
+###############
 accelerate
+faiss
