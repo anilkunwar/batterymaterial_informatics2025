@@ -1502,14 +1502,21 @@ def main():
         with tab2:
             col_left, col_right = st.columns(2)
             with col_left:
+                # Manual average degree calculation (corrected)
+                avg_deg_orig = (sum(d for n, d in G_filtered.degree()) / G_filtered.number_of_nodes()
+                                if G_filtered.number_of_nodes() > 0 else 0)
+                avg_deg_inf = (sum(d for n, d in G_influenced.degree()) / G_influenced.number_of_nodes()
+                               if G_influenced.number_of_nodes() > 0 else 0)
+
                 fig_bar_deg = px.bar(
                     x=["Original (filtered)", "Influenced"],
-                    y=[nx.average_degree(G_filtered), nx.average_degree(G_influenced)],
+                    y=[avg_deg_orig, avg_deg_inf],
                     title="Average Node Degree",
                     color=["Original", "Influenced"],
                     color_discrete_sequence=["#636EFA", "#EF553B"]
                 )
                 st.plotly_chart(fig_bar_deg, use_container_width=True)
+
             with col_right:
                 fig_bar_cent = px.bar(
                     x=["Spearman ρ degree centrality"],
