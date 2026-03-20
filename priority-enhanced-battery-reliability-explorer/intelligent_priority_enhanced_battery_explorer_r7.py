@@ -1024,9 +1024,9 @@ class DegradationInsightGenerator:
         user_query: str = "",
         uncertainty: Dict[str, Dict] = None
     ) -> Dict:
-        """
+        ""
         Returns a fully numerical, countable JSON object with optional uncertainty.
-        """
+        ""
         global PHYSICS_TERMS_EMBEDDINGS
         data = {
             "summary": {
