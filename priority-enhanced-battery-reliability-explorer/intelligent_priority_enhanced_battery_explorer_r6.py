@@ -3,11 +3,10 @@
 """
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
-Expanded version with performance optimizations, mathematical robustness,
+FINAL FIXED VERSION: Graph G initialized before ALL references
+Includes: performance optimizations, mathematical robustness,
 LLM enhancements, advanced graph analytics, uncertainty quantification,
 scalability, UX improvements, and physics integration.
-
-FIXED: UnboundLocalError - Graph G now initialized before sidebar usage
 """
 import os
 import pathlib
@@ -26,7 +25,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import normalized_mutual_info_score
-from scipy.stats import spearmanr, mannwhitneyu, pearsonr
+from scipy.stats import spearmanr, mannwhitneyu, pearsonr, kendalltau
 import json
 import re
 import hashlib
@@ -329,7 +328,7 @@ class ParsedQuery(BaseModel):
         return max(-20.0, min(80.0, v))
 
 # ============================================================================
-# GLOBAL VARIABLES (properly declared)
+# GLOBAL VARIABLES (properly declared at module level)
 # ============================================================================
 scibert_tokenizer = None
 scibert_model = None
@@ -539,7 +538,7 @@ def trend_detection(values):
     if n < 3:
         return {'trend': 'insufficient data', 'p': 1.0}
     try:
-        tau, p = pearsonr(range(n), values)
+        tau, p = kendalltau(range(n), values)
         trend = 'increasing' if tau > 0 else 'decreasing' if tau < 0 else 'no trend'
         return {'trend': trend, 'p': p, 'tau': tau}
     except:
@@ -736,7 +735,6 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
     """
     global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
     
-    # Use robust scaling for frequencies
     freq_vals = nodes_df['frequency'].values
     if len(freq_vals) > 0:
         norm_freq = robust_normalize(freq_vals)
@@ -835,7 +833,6 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
         if u in Gf.nodes and v in Gf.nodes and d.get('weight',0) >= min_weight:
             Gf.add_edge(u, v, **d)
     
-    # Ensure we keep only the largest connected component if graph is disconnected
     if len(Gf) > 0 and not nx.is_connected(Gf):
         largest_cc = max(nx.connected_components(Gf), key=len)
         Gf = Gf.subgraph(largest_cc).copy()
@@ -1527,7 +1524,7 @@ def plot_graph(graph, title, size_attr="priority_score", use_attention_hover=Fal
     return fig
 
 # ============================================================================
-# MAIN APPLICATION - FIXED EXECUTION ORDER
+# MAIN APPLICATION - CRITICAL FIX: G INITIALIZED BEFORE SIDEBAR
 # ============================================================================
 def main():
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
@@ -1562,8 +1559,8 @@ def main():
     edges_df["target"] = edges_df["target"].apply(norm)
     
     # =========================================================================
-    # STEP 4: ✅ CRITICAL FIX - Initialize Graph G BEFORE Sidebar
-    # This solves the UnboundLocalError
+    # STEP 4: ✅ CRITICAL FIX - Initialize Graph G BEFORE ANY SIDEBAR CODE
+    # This MUST happen before the sidebar that references G.nodes()
     # =========================================================================
     G = nx.Graph()
     for _, r in nodes_df.iterrows():
@@ -1575,7 +1572,7 @@ def main():
     G_original = G.copy()
     
     # =========================================================================
-    # STEP 5: Compute embeddings
+    # STEP 5: Compute embeddings (AFTER G is initialized)
     # =========================================================================
     @st.cache_data
     def compute_node_embeddings_dict(nodes_list):
@@ -1613,6 +1610,7 @@ def main():
     
     # =========================================================================
     # STEP 7: ✅ Sidebar - NOW G is defined and safe to use
+    # G.nodes() will work because G was initialized in Step 4
     # =========================================================================
     with st.sidebar:
         st.markdown("## ⚙️ Manual Filters (optional)")
@@ -1628,7 +1626,7 @@ def main():
         selected_types = st.multiselect("Filter by node type", types, default=types, key="types")
         min_priority = st.slider("Min priority score", 0.0, 1.0, 0.2, 0.05, key="min_priority")
         
-        # ✅ G.nodes() is now safe - G is initialized above
+        # ✅ G.nodes() is now safe - G is initialized above in Step 4
         selected_nodes = st.multiselect("Include specific nodes", sorted(G.nodes()),
                                         default=["electrode cracking", "SEI formation", "capacity fade"] if all(n in G.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else [],
                                         key="selected_nodes")
@@ -1675,26 +1673,24 @@ def main():
         
         st.markdown("### 💾 Export")
         if st.button("Export Filtered Graph as CSV"):
-            nodes_exp = pd.DataFrame([{'node': n, **G_filtered.nodes[n]} for n in G_filtered.nodes()]) if 'G_filtered' in locals() else pd.DataFrame()
-            edges_exp = pd.DataFrame([{'source': u, 'target': v, **G_filtered.edges[u, v]} for u, v in G_filtered.edges()]) if 'G_filtered' in locals() else pd.DataFrame()
+            nodes_exp = pd.DataFrame([{'node': n, **G.nodes[n]} for n in G.nodes()])
+            edges_exp = pd.DataFrame([{'source': u, 'target': v, **G.edges[u, v]} for u, v in G.edges()])
             st.download_button("Download Nodes", nodes_exp.to_csv(index=False), "nodes.csv")
             st.download_button("Download Edges", edges_exp.to_csv(index=False), "edges.csv")
         
         if st.button("Export as GraphML"):
-            import networkx as nx
             buf = BytesIO()
-            nx.write_graphml(G_filtered, buf) if 'G_filtered' in locals() else None
+            nx.write_graphml(G, buf)
             st.download_button("Download GraphML", buf.getvalue(), "graph.graphml")
         
         if st.button("Export as JSON-LD"):
             jsonld = {"@context": {"@vocab": "http://example.org/battery#"}, "@graph": []}
-            if 'G_filtered' in locals():
-                jsonld["@graph"] = [{"@id": n, "@type": "Node", "category": G_filtered.nodes[n].get('category'), "frequency": G_filtered.nodes[n].get('frequency')} for n in G_filtered.nodes()]
-                jsonld["@graph"] += [{"@id": f"{u}-{v}", "@type": "Edge", "source": u, "target": v, "weight": G_filtered.edges[u, v].get('weight')} for u, v in G_filtered.edges()]
+            jsonld["@graph"] = [{"@id": n, "@type": "Node", "category": G.nodes[n].get('category'), "frequency": G.nodes[n].get('frequency')} for n in G.nodes()]
+            jsonld["@graph"] += [{"@id": f"{u}-{v}", "@type": "Edge", "source": u, "target": v, "weight": G.edges[u, v].get('weight')} for u, v in G.edges()]
             st.download_button("Download JSON-LD", json.dumps(jsonld, indent=2), "graph.jsonld")
     
     # =========================================================================
-    # STEP 8: Query interface
+    # STEP 8: Query interface (AFTER sidebar)
     # =========================================================================
     with st.expander("🤖 AI-Powered Query Interface", expanded=True):
         col1, col2, col3 = st.columns([3,1,1])
@@ -1723,7 +1719,7 @@ def main():
                 st.rerun()
     
     # =========================================================================
-    # STEP 9: Process query
+    # STEP 9: Process query (AFTER sidebar)
     # =========================================================================
     if run_button and user_query:
         with st.spinner("🔍 Parsing query..."):
@@ -1782,7 +1778,7 @@ def main():
     params['edge_width_factor'] = edge_width
     
     # =========================================================================
-    # STEP 10: Priority scores
+    # STEP 10: Priority scores (AFTER sidebar)
     # =========================================================================
     operational = {"c_rate": c_rate, "voltage": voltage, "temperature": temperature}
     priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost,
@@ -1809,7 +1805,7 @@ def main():
     st.sidebar.markdown(f"**Graph Stats (filtered):** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
     
     # =========================================================================
-    # STEP 11: Optional graph reconstruction
+    # STEP 11: Optional graph reconstruction (AFTER sidebar)
     # =========================================================================
     if use_reconstruction and run_button and user_query:
         with st.spinner("🔄 Reconstructing graph with attention + LLM..."):
@@ -1822,7 +1818,7 @@ def main():
         G_influenced = G_filtered.copy()
     
     # =========================================================================
-    # STEP 12: Run analysis
+    # STEP 12: Run analysis (AFTER sidebar)
     # =========================================================================
     analysis_type = params.get('analysis_type', 'Centrality Analysis')
     
@@ -1879,7 +1875,7 @@ def main():
         structured_inf = {}
     
     # =========================================================================
-    # STEP 13: Display results
+    # STEP 13: Display results (AFTER sidebar)
     # =========================================================================
     if use_reconstruction and results_orig is not None and results_inf is not None:
         st.subheader("📊 Structured Insights Comparison")
@@ -1970,7 +1966,7 @@ def main():
                 st.dataframe(df_rank[["name", "composite_weight", "degree", "physics_match", "equation"]])
     
     # =========================================================================
-    # STEP 14: Visualization
+    # STEP 14: Visualization (AFTER sidebar)
     # =========================================================================
     if G_filtered.number_of_nodes() > 0:
         if use_reconstruction and G_influenced.number_of_nodes() > 0:
@@ -1989,7 +1985,7 @@ def main():
                 st.plotly_chart(fig, use_container_width=True)
     
     # =========================================================================
-    # STEP 15: Additional Analytics
+    # STEP 15: Additional Analytics (AFTER sidebar)
     # =========================================================================
     st.subheader("📊 Graph Analytics")
     col1, col2 = st.columns(2)
@@ -2006,7 +2002,7 @@ def main():
     st.plotly_chart(fig_edge, use_container_width=True)
     
     # =========================================================================
-    # STEP 16: Example Queries
+    # STEP 16: Example Queries (AFTER sidebar)
     # =========================================================================
     with st.expander("📚 Example Queries", expanded=False):
         st.markdown("""
