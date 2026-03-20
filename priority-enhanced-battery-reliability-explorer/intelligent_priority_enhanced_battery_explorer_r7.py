@@ -1488,7 +1488,7 @@ def analyze_failure_correlations(G_filtered):
     return corr, failure_terms
 
 def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
-    """Compute numerical difference metrics between two graphs (both should be filtered/influenced)."""
+    ""Compute numerical difference metrics between two graphs (both should be filtered/influenced).""
     nodes1 = set(G1.nodes())
     nodes2 = set(G2.nodes())
     inter_nodes = nodes1 & nodes2
