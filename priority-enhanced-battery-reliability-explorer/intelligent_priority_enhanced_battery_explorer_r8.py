@@ -3,11 +3,9 @@
 """
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
-Expanded version with performance optimizations, mathematical robustness,
-LLM enhancements, advanced graph analytics, uncertainty quantification,
-scalability, UX improvements, and physics integration.
-
-FIXED: UnboundLocalError for nx by removing local import inside main() scope.
+Expanded version with Pyvis interactive graphs,
+multiple LLMs (Qwen 1.5B / 3B, Phi-2, Gemma‑2B, etc.) up to 3B parameters,
+and 4‑bit quantization support for CPU‑friendly operation.
 """
 
 import os
@@ -15,7 +13,7 @@ import pathlib
 import sys
 import streamlit as st
 import pandas as pd
-import networkx as nx   # <-- Global Import
+import networkx as nx
 import plotly.graph_objects as go
 import plotly.express as px
 from networkx.algorithms import community
@@ -53,37 +51,37 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ----------------------------------------------------------------------------
-# Determine if transformers are available (optional)
+# Optional imports
 # ----------------------------------------------------------------------------
 try:
-    from transformers import AutoModel, AutoTokenizer, GPT2Tokenizer, GPT2LMHeadModel, AutoModelForCausalLM
+    from transformers import (
+        AutoModel, AutoTokenizer, GPT2Tokenizer, GPT2LMHeadModel,
+        AutoModelForCausalLM, BitsAndBytesConfig
+    )
     import torch
     TRANSFORMERS_AVAILABLE = True
+    BITSANDBYTES_AVAILABLE = False
+    try:
+        import bitsandbytes as bnb
+        BITSANDBYTES_AVAILABLE = True
+    except ImportError:
+        pass
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
     AutoModel = AutoTokenizer = GPT2Tokenizer = GPT2LMHeadModel = AutoModelForCausalLM = None
     torch = None
+    BITSANDBYTES_AVAILABLE = False
+
+# Pyvis import (optional)
+try:
+    from pyvis.network import Network
+    PYVIS_AVAILABLE = True
+except ImportError:
+    PYVIS_AVAILABLE = False
 
 # ----------------------------------------------------------------------------
-# Import optional libraries (graceful fallback)
+# Global configuration – data directory
 # ----------------------------------------------------------------------------
-try:
-    import faiss
-    FAISS_AVAILABLE = True
-except ImportError:
-    FAISS_AVAILABLE = False
-    logger.warning("FAISS not installed. Fast similarity search disabled.")
-
-try:
-    import redis
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
-    logger.warning("Redis not installed. Caching disabled.")
-
-# ============================================================================
-# GLOBAL CONFIGURATION – DATA DIRECTORY DETECTION
-# ============================================================================
 def get_data_dir() -> str:
     env_dir = os.environ.get("BATTERY_DATA_DIR")
     if env_dir:
@@ -252,7 +250,7 @@ OPERATIONAL_CONSTRAINTS = {
 }
 
 # ============================================================================
-# DATA CLASS FOR PARSED PARAMETERS (extended with confidence and uncertainty)
+# DATA CLASS FOR PARSED PARAMETERS (unchanged)
 # ============================================================================
 @dataclass
 class ParsedParameters:
@@ -288,7 +286,7 @@ class ParsedParameters:
     confidence_score: float = 0.0
     parsing_method: str = "default"
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    uncertainty: Dict[str, float] = field(default_factory=dict)  # placeholder for bootstrap uncertainties
+    uncertainty: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
         return asdict(self)
@@ -325,14 +323,14 @@ class ParsedQuery(BaseModel):
         return max(-20.0, min(80.0, v))
 
 # ============================================================================
-# SCIBERT LOADER & EMBEDDING UTILITIES (cached, with FAISS)
+# SCIBERT LOADER & EMBEDDING UTILITIES (unchanged)
 # ============================================================================
 scibert_tokenizer = None
 scibert_model = None
 KEY_TERMS_EMBEDDINGS = []
 PHYSICS_TERMS_EMBEDDINGS = []
 EMBEDDING_INDEX = None  # FAISS index
-EMBEDDING_INDEX_NODES = []  # list of node names corresponding to index
+EMBEDDING_INDEX_NODES = []
 
 @st.cache_resource
 def load_scibert():
@@ -378,41 +376,34 @@ def build_faiss_index(embeddings, nodes):
         return None, None
     if not embeddings:
         return None, None
-    # Filter out None embeddings
     valid_idx = [i for i, e in enumerate(embeddings) if e is not None]
     if not valid_idx:
         return None, None
     valid_embeddings = np.array([embeddings[i] for i in valid_idx], dtype=np.float32)
     valid_nodes = [nodes[i] for i in valid_idx]
-    index = faiss.IndexFlatIP(valid_embeddings.shape[1])  # inner product (cosine for normalized vectors)
+    index = faiss.IndexFlatIP(valid_embeddings.shape[1])
     index.add(valid_embeddings)
     return index, valid_nodes
 
 def fast_similarity_search(query_emb, index, nodes_list, k=10):
-    """Return indices and scores of top k similar nodes."""
     if query_emb is None or index is None:
         return [], []
     if len(query_emb.shape) == 1:
         query_emb = query_emb.reshape(1, -1)
     scores, indices = index.search(query_emb.astype(np.float32), k)
-    # scores are cosine similarity because vectors are normalized
     return [nodes_list[i] for i in indices[0]], scores[0]
 
 # ============================================================================
-# UNCERTAINTY QUANTIFICATION FUNCTIONS
+# UNCERTAINTY QUANTIFICATION FUNCTIONS (unchanged)
 # ============================================================================
 def bootstrap_centrality(G, n_samples=100, metric='degree'):
-    """Compute bootstrap confidence intervals for a centrality measure."""
     if G.number_of_nodes() == 0:
         return {}, {}, {}
-    # Create a copy of G with all nodes
     nodes = list(G.nodes())
-    # Collect all edges
     edges = list(G.edges())
     n_edges = len(edges)
     centrality_samples = []
     for _ in range(n_samples):
-        # Sample edges with replacement (bootstrap)
         sampled_edges = np.random.choice(len(edges), size=n_edges, replace=True)
         G_sample = nx.Graph()
         G_sample.add_nodes_from(nodes)
@@ -434,7 +425,6 @@ def bootstrap_centrality(G, n_samples=100, metric='degree'):
             cent = nx.degree_centrality(G_sample)
         centrality_samples.append(cent)
 
-    # Compute mean, std, and 95% CI
     mean_cent = {}
     std_cent = {}
     ci_lower = {}
@@ -454,15 +444,11 @@ def bootstrap_centrality(G, n_samples=100, metric='degree'):
     return mean_cent, ci_lower, ci_upper
 
 def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
-    """Compute Monte Carlo uncertainty for priority scores."""
     base_priority = calculate_priority_scores(G, nodes_df, **kwargs)
     samples = []
     for _ in range(n_samples):
-        # Slightly perturb frequencies and weights
         nodes_df_perturbed = nodes_df.copy()
-        # Add small noise to frequencies
         nodes_df_perturbed['frequency'] = nodes_df_perturbed['frequency'] * (1 + np.random.normal(0, 0.05))
-        # Perturb operational parameters
         op_params = kwargs.get('operational_params', {})
         pert_op = {}
         for k, v in op_params.items():
@@ -472,7 +458,6 @@ def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
                                             operational_params=pert_op,
                                             focus_terms=kwargs.get('focus_terms'))
         samples.append(priority)
-    # Compute mean and std for each node
     nodes = list(G.nodes())
     mean_priority = {}
     std_priority = {}
@@ -487,10 +472,9 @@ def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
     return mean_priority, std_priority
 
 # ============================================================================
-# ADVANCED GRAPH ANALYTICS
+# ADVANCED GRAPH ANALYTICS (unchanged)
 # ============================================================================
 def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weight'):
-    """Run Louvain community detection at multiple resolutions and compute stability."""
     if G.number_of_nodes() == 0:
         return {}
     partitions = {}
@@ -499,14 +483,12 @@ def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weig
             partitions[r] = community_louvain.best_partition(G, weight=weight, resolution=r)
         except:
             partitions[r] = {n: 0 for n in G.nodes()}
-    # Compute stability as NMI between each resolution and the baseline (1.0)
     baseline = partitions.get(1.0, {})
     stability = {}
     for r, part in partitions.items():
         if r == 1.0:
             stability[r] = 1.0
         else:
-            # Convert to list of labels
             labels1 = [baseline.get(n, 0) for n in G.nodes()]
             labels2 = [part.get(n, 0) for n in G.nodes()]
             try:
@@ -517,7 +499,6 @@ def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weig
     return {'partitions': partitions, 'stability': stability}
 
 def comprehensive_centrality(G):
-    """Compute multiple centrality measures."""
     if G.number_of_nodes() == 0:
         return {}
     return {
@@ -530,43 +511,33 @@ def comprehensive_centrality(G):
     }
 
 def k_shortest_paths(G, source, target, k=5, weight='weight'):
-    """Return up to k shortest paths between source and target."""
     try:
         return list(nx.shortest_simple_paths(G, source, target, weight=weight))[:k]
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return []
 
 def trend_detection(values):
-    """Perform Mann-Kendall trend test on a sequence of values."""
     from scipy.stats import mstats
-    # Mann-Kendall test
     n = len(values)
     if n < 3:
         return {'trend': 'insufficient data', 'p': 1.0}
-    # Use scipy's implementation if available, else simple correlation
     try:
         from scipy.stats import kendalltau
         tau, p = kendalltau(range(n), values)
         trend = 'increasing' if tau > 0 else 'decreasing' if tau < 0 else 'no trend'
         return {'trend': trend, 'p': p, 'tau': tau}
     except:
-        # fallback to Pearson correlation
         from scipy.stats import pearsonr
         r, p = pearsonr(range(n), values)
         trend = 'increasing' if r > 0.1 else 'decreasing' if r < -0.1 else 'no trend'
         return {'trend': trend, 'p': p, 'correlation': r}
 
 # ============================================================================
-# PHYSICS INTEGRATION (symbolic verification)
+# PHYSICS INTEGRATION (unchanged)
 # ============================================================================
 def verify_physics_equation(equation_str, variables):
-    """Use sympy to verify that the equation is dimensionally consistent (simplified)."""
     try:
-        # Replace LaTeX with sympy syntax
-        # This is a simplified placeholder; full LaTeX parsing would require more work.
-        # For now, just check that all variables are defined.
         expr = sp.sympify(equation_str.replace('\\', ''))
-        # Check if all variables in expr are in variables list
         free_symbols = expr.free_symbols
         missing = [str(s) for s in free_symbols if str(s) not in variables]
         if missing:
@@ -576,35 +547,26 @@ def verify_physics_equation(equation_str, variables):
         return False, str(e)
 
 def dimensional_analysis(equation, units):
-    """Check if all terms have consistent units (stub)."""
-    # Placeholder – would require unit database.
     return True, "Dimensional analysis not implemented."
 
 # ============================================================================
-# PERFORMANCE OPTIMIZATIONS: PARALLEL EMBEDDING
+# PERFORMANCE OPTIMIZATIONS: PARALLEL EMBEDDING (unchanged)
 # ============================================================================
 def parallel_embedding_compute(texts, n_workers=None):
-    """Compute embeddings in parallel using multiprocessing."""
     if n_workers is None:
         n_workers = cpu_count()
-    # Embeddings are not serializable; we cannot parallelize the model.
-    # Instead, we'll use batch processing. For true parallelism, we'd need to load models in each process,
-    # which is heavy. So we'll just chunk and run sequentially with tqdm.
-    # Using st.progress for UI.
     chunk_size = max(1, len(texts) // (n_workers * 2))
     chunks = [texts[i:i+chunk_size] for i in range(0, len(texts), chunk_size)]
     embeddings = []
     for i, chunk in enumerate(chunks):
-        # Update progress (optional)
         emb = get_scibert_embedding(chunk)
         embeddings.extend(emb)
     return embeddings
 
 # ============================================================================
-# CACHING UTILITIES (Redis, disk)
+# CACHING UTILITIES (unchanged)
 # ============================================================================
 def get_cache():
-    """Get a Redis client if available."""
     if REDIS_AVAILABLE:
         try:
             r = redis.Redis(host='localhost', port=6379, decode_responses=True)
@@ -615,7 +577,6 @@ def get_cache():
     return None
 
 def disk_cache_get(key):
-    """Load from file."""
     cache_dir = os.path.join(DB_DIR, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, f"{key}.pkl")
@@ -625,7 +586,6 @@ def disk_cache_get(key):
     return None
 
 def disk_cache_set(key, value):
-    """Save to file."""
     cache_dir = os.path.join(DB_DIR, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, f"{key}.pkl")
@@ -633,51 +593,78 @@ def disk_cache_set(key, value):
         pickle.dump(value, f)
 
 # ============================================================================
-# LLM LOADER (cached, with support for larger models)
+# LLM LOADER (expanded: multiple models up to 3B, with optional 4‑bit)
 # ============================================================================
-@st.cache_resource(show_spinner="Loading LLM for intelligent parsing...")
-def load_llm(backend: str):
+# Mapping of friendly names to Hugging Face model IDs
+LLM_MODELS = {
+    "Qwen2.5-0.5B-Instruct (CPU friendly)": "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen2.5-1.5B-Instruct (CPU friendly)": "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen2.5-3B-Instruct (needs GPU or high RAM)": "Qwen/Qwen2.5-3B-Instruct",
+    "Phi-2 (2.7B, CPU friendly)": "microsoft/phi-2",
+    "Gemma-2B (2B, CPU friendly)": "google/gemma-2b",
+    "GPT-2 Medium (355M, fastest)": "gpt2-medium",
+    "GPT-2 (124M, ultra-fast)": "gpt2",
+}
+
+@st.cache_resource(show_spinner="Loading LLM...")
+def load_llm(model_name: str, use_4bit: bool = False):
+    """
+    Load a Hugging Face causal LM with optional 4‑bit quantization.
+    Returns (tokenizer, model, loaded_name)
+    """
     if not TRANSFORMERS_AVAILABLE:
-        return None, None, backend
+        return None, None, model_name
+
+    model_id = LLM_MODELS.get(model_name, model_name)
     try:
-        if "GPT-2" in backend:
-            tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-            model = GPT2LMHeadModel.from_pretrained('gpt2')
+        # Determine if we need to use 4‑bit
+        quant_config = None
+        if use_4bit and BITSANDBYTES_AVAILABLE:
+            quant_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4"
+            )
+        # Load tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+        # Set pad token if not present
+        if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
-        elif "Qwen2.5-7B" in backend:
-            # 7B model – requires more memory
-            model_name = "Qwen/Qwen2.5-7B-Instruct"
-            tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype="auto", device_map="auto", trust_remote_code=True)
-            model.eval()
-        elif "Qwen2.5-0.5B" in backend:
-            model_name = "Qwen/Qwen2.5-0.5B-Instruct"
-            tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype="auto", device_map="auto", trust_remote_code=True)
-            model.eval()
+
+        # Load model with appropriate settings
+        if use_4bit and quant_config is not None:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                quantization_config=quant_config,
+                device_map="auto",
+                trust_remote_code=True,
+                torch_dtype=torch.float16
+            )
         else:
-            # Default: Qwen2-0.5B
-            model_name = "Qwen/Qwen2-0.5B-Instruct"
-            tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype="auto", device_map="auto", trust_remote_code=True)
-            model.eval()
-        return tokenizer, model, backend
+            # Use float16 if GPU, else float32
+            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+            model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                device_map="auto" if torch.cuda.is_available() else None,
+                trust_remote_code=True,
+                torch_dtype=torch_dtype
+            )
+        model.eval()
+        return tokenizer, model, model_name
     except Exception as e:
-        st.warning(f"⚠️ Failed to load {backend}: {str(e)}")
-        return None, None, backend
+        st.warning(f"⚠️ Failed to load {model_name}: {str(e)}")
+        return None, None, model_name
 
 def adaptive_temperature(query):
-    """Determine temperature based on query complexity."""
-    # Simple heuristic: longer query -> lower temperature
     return max(0.05, min(0.3, 0.2 * (1 - len(query.split()) / 50)))
 
 def parse_with_validation(text, tokenizer, model) -> ParsedQuery:
-    """Use LLM to generate and validate with Pydantic."""
     prompt = f"""Extract battery degradation parameters from the query as JSON. Output only JSON.
 Query: "{text}"
 JSON:"""
     try:
-        if "Qwen" in st.session_state.get('llm_backend_loaded', ''):
+        if "Qwen" in str(model.__class__) or "Phi" in str(model.__class__):
             messages = [{"role": "user", "content": prompt}]
             prompt_formatted = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         else:
@@ -689,7 +676,6 @@ JSON:"""
             outputs = model.generate(inputs, max_new_tokens=400, temperature=adaptive_temperature(text),
                                      do_sample=True, pad_token_id=tokenizer.eos_token_id)
         generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        # Extract JSON
         match = re.search(r'\{.*\}', generated, re.DOTALL)
         if match:
             json_str = match.group(0)
@@ -701,14 +687,13 @@ JSON:"""
     return ParsedQuery(analysis_type="Centrality Analysis")
 
 # ============================================================================
-# RELEVANCE SCORER (with embedding quality)
+# RELEVANCE SCORER (unchanged)
 # ============================================================================
 class RelevanceScorer:
     def __init__(self, use_scibert=True):
         global scibert_tokenizer, scibert_model
         self.use_scibert = use_scibert and scibert_tokenizer is not None and scibert_model is not None
     def score_query_to_nodes(self, query: str, nodes_list: List[str]) -> Tuple[float, float]:
-        """Return (score, confidence) where confidence is embedding quality."""
         if not query or not nodes_list:
             return 0.5, 0.0
         if self.use_scibert:
@@ -723,7 +708,6 @@ class RelevanceScorer:
                     return 0.5, 0.0
                 sims = [cosine_similarity([q_emb], [n_emb[i]])[0][0] for i in valid]
                 avg_sim = np.mean(sims) if sims else 0.5
-                # Confidence: low if embeddings are None, else high
                 conf = 0.8 if all(e is not None for e in n_emb) else 0.5
                 return float(avg_sim), conf
             except:
@@ -734,10 +718,9 @@ class RelevanceScorer:
             return min(1.0, matches / 50.0), 0.3
 
 # ============================================================================
-# QUERY-DRIVEN GRAPH RECONSTRUCTION (with FAISS, parallel)
+# QUERY-DRIVEN GRAPH RECONSTRUCTION (unchanged)
 # ============================================================================
 def llm_expand_vocabulary(query: str, tokenizer, model) -> List[str]:
-    """Use LLM to generate a list of 15‑25 related technical terms."""
     if tokenizer is None or model is None:
         return []
     prompt = f"""You are a battery degradation expert. Given the user query below, output ONLY a JSON list of 15-25 precise technical terms/phrases that are semantically proximal or causally related (including physics mechanisms, failure modes, materials, etc.).
@@ -761,7 +744,6 @@ JSON list:"""
     return []
 
 def llm_suggest_missing_edges(query: str, current_nodes: List[str], tokenizer, model) -> List[Tuple[str, str, float]]:
-    """Ask LLM to suggest 0‑3 missing edges (source, target, weight 1‑10)."""
     if tokenizer is None or model is None:
         return []
     node_sample = current_nodes[:30]
@@ -800,43 +782,25 @@ def reconstruct_graph_with_attention(G_orig: nx.Graph,
                                      term_embeddings_dict: Dict[str, np.ndarray],
                                      max_nodes: int = 250,
                                      use_faiss: bool = True) -> nx.Graph:
-    """
-    Build a new graph G_influenced from the original G_orig using:
-      - Query embedding
-      - Vocabulary expansion (LLM)
-      - Attention scoring (softmax over cosine similarities)
-      - Multiplicative boosts (physics, degree)
-      - Edge re-weighting
-      - LLM‑suggested missing edges
-      - Top‑K node selection (max_nodes)
-    """
-    # Step 1: Query embedding
     q_emb = get_scibert_embedding(user_query)
     if q_emb is None:
-        return G_orig.copy()  # fallback
+        return G_orig.copy()
 
-    # Step 2: Seed terms from parser
     seed_terms = params.get('focus_terms', []) + params.get('source_terms', []) + params.get('target_terms', [])
     seed_terms = [t for t in seed_terms if t]
-
-    # Step 3: LLM vocabulary expansion
     llm_terms = llm_expand_vocabulary(user_query, tokenizer, model)
     all_seed_terms = list(set(seed_terms + llm_terms))
 
-    # Step 4: Build node list and embedding matrix for nodes that have embeddings
     node_list = [n for n in G_orig.nodes() if term_embeddings_dict.get(n) is not None]
     if not node_list:
         return G_orig.copy()
-    node_embs = np.stack([term_embeddings_dict[n] for n in node_list])  # shape (|V|, 768)
+    node_embs = np.stack([term_embeddings_dict[n] for n in node_list])
 
-    # Step 5: Compute raw attention scores
     tau = 0.1
     logits = np.dot(node_embs, q_emb) / tau
     exp_logits = np.exp(logits - np.max(logits))
     attention_raw = exp_logits / np.sum(exp_logits)
 
-    # Step 6: Multiplicative boosts
-    # a) Semantic proximity to seed terms
     seed_embs = [term_embeddings_dict.get(s) for s in all_seed_terms if term_embeddings_dict.get(s) is not None]
     if seed_embs:
         seed_embs = np.stack(seed_embs)
@@ -844,50 +808,36 @@ def reconstruct_graph_with_attention(G_orig: nx.Graph,
     else:
         sim_to_seeds = np.ones(len(node_list))
 
-    # b) Physics boost
     phys_boost = np.array([1.3 if any(p in n.lower() for p in PHYSICS_TERMS) else 1.0 for n in node_list])
-
-    # c) Degree boost
     degrees = np.array([G_orig.degree(n) for n in node_list])
     max_deg = max(degrees) if max(degrees) > 0 else 1
     deg_boost = 1 + 0.5 * (degrees / max_deg)
-
     attention = attention_raw * sim_to_seeds * phys_boost * deg_boost
 
-    # Step 7: Node selection – top‑K by attention
     if len(attention) > max_nodes:
         selected_idx = np.argsort(attention)[-max_nodes:]
         selected_nodes = [node_list[i] for i in selected_idx]
     else:
         selected_nodes = node_list
 
-    # Map node → attention score
     node_attention = {node_list[i]: attention[i] for i in range(len(node_list))}
-
-    # Step 8: Build influenced subgraph
     G_inf = G_orig.subgraph(selected_nodes).copy()
-
-    # Store attention as node attribute
     for n in G_inf.nodes():
         G_inf.nodes[n]['attention'] = node_attention.get(n, 0)
-
-    # Step 9: Re‑weight edges using average attention
     for u, v, d in G_inf.edges(data=True):
         att_u = node_attention.get(u, 0.5)
         att_v = node_attention.get(v, 0.5)
         d['weight'] = d.get('weight', 1) * (att_u + att_v) / 2 * 1.5
 
-    # Step 10: Add LLM‑suggested missing edges
     if tokenizer is not None and model is not None:
         suggested = llm_suggest_missing_edges(user_query, list(G_inf.nodes()), tokenizer, model)
         for src, tgt, w in suggested:
             if src in G_inf and tgt in G_inf and not G_inf.has_edge(src, tgt):
                 G_inf.add_edge(src, tgt, weight=w, type="LLM-inferred")
-
     return G_inf
 
 # ============================================================================
-# PRIORITY SCORE CALCULATION (with robust scaling)
+# PRIORITY SCORE CALCULATION (unchanged)
 # ============================================================================
 def robust_normalize(values, epsilon=1e-8):
     median = np.median(values)
@@ -900,21 +850,10 @@ def safe_normalize(values, epsilon=1e-8):
     return (values - min_v) / range_v
 
 def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operational_params=None, focus_terms=None):
-    """
-    Priority scoring combining:
-      - Frequency (0.35)
-      - Degree centrality (0.25)
-      - Betweenness centrality (0.20)
-      - Semantic relevance to focus terms or default KEY_TERMS (0.10)
-      - Physics boost (physics_boost_weight, default 0.15)
-    Uses robust scaling for frequencies.
-    """
     global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
-    # Use robust scaling for frequencies
     freq_vals = nodes_df['frequency'].values
     if len(freq_vals) > 0:
         norm_freq = robust_normalize(freq_vals)
-        # Clip to [0,1]
         norm_freq = np.clip(norm_freq, 0, 1)
     else:
         norm_freq = np.array([])
@@ -939,7 +878,6 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
             semantic_scores[node] = 0
             physics_scores[node] = 0
         else:
-            # Semantic relevance to focus terms (if provided) else KEY_TERMS
             if focus_terms:
                 focus_embs = get_scibert_embedding(focus_terms)
                 focus_embs = [e for e in focus_embs if e is not None]
@@ -952,11 +890,8 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
                 sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS if kt_emb is not None]
                 semantic_scores[node] = max(sem_sims, default=0)
 
-            # Physics relevance
             phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
             phys_score = max(phys_sims, default=0)
-
-            # Operational constraint modifiers
             if operational_params:
                 if operational_params.get('temperature', 25) > 45 and any(t in node.lower() for t in ['thermal', 'temp']):
                     phys_score *= 1.3
@@ -967,7 +902,6 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
             physics_scores[node] = min(phys_score, 1.0)
 
     w_f, w_d, w_b, w_s, w_p = 0.35, 0.25, 0.20, 0.10, physics_boost_weight
-    # Use softmax to renormalize if sum not 1
     weights = np.array([w_f, w_d, w_b, w_s, w_p])
     weights = np.exp(weights) / np.sum(np.exp(weights))
     w_f, w_d, w_b, w_s, w_p = weights
@@ -985,7 +919,7 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
     return priority_scores
 
 # ============================================================================
-# FILTER GRAPH (with connected component analysis)
+# FILTER GRAPH (unchanged)
 # ============================================================================
 def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
     Gf = nx.Graph()
@@ -1008,14 +942,13 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
     for u, v, d in G.edges(data=True):
         if u in Gf.nodes and v in Gf.nodes and d.get('weight',0) >= min_weight:
             Gf.add_edge(u, v, **d)
-    # Ensure we keep only the largest connected component if graph is disconnected
     if len(Gf) > 0 and not nx.is_connected(Gf):
         largest_cc = max(nx.connected_components(Gf), key=len)
         Gf = Gf.subgraph(largest_cc).copy()
     return Gf
 
 # ============================================================================
-# STRUCTURED INSIGHT GENERATOR (with uncertainty)
+# STRUCTURED INSIGHT GENERATOR (unchanged)
 # ============================================================================
 class DegradationInsightGenerator:
     @staticmethod
@@ -1027,9 +960,6 @@ class DegradationInsightGenerator:
         user_query: str = "",
         uncertainty: Dict[str, Dict] = None
     ) -> Dict:
-        """
-        Returns a fully numerical, countable JSON object with optional uncertainty.
-        """
         global PHYSICS_TERMS_EMBEDDINGS
         data = {
             "summary": {
@@ -1134,7 +1064,6 @@ class DegradationInsightGenerator:
                 first, last = periods[0], periods[-1]
                 fc_first = analysis_results[first].get('failure_concepts', 0) if isinstance(analysis_results[first], dict) else 0
                 fc_last = analysis_results[last].get('failure_concepts', 0) if isinstance(analysis_results[last], dict) else 0
-                # Trend detection
                 values = [analysis_results[p].get('failure_concepts', 0) for p in periods]
                 trend = trend_detection(values)
                 data["temporal_trend"] = {
@@ -1164,7 +1093,7 @@ class DegradationInsightGenerator:
         return data
 
 # ============================================================================
-# DATA LOADING (cached)
+# DATA LOADING (unchanged)
 # ============================================================================
 @st.cache_data
 def load_data():
@@ -1189,7 +1118,7 @@ def load_data():
     return edges_df, nodes_df
 
 # ============================================================================
-# BATTERY NLP PARSER (regex + LLM)
+# BATTERY NLP PARSER (unchanged)
 # ============================================================================
 class BatteryNLParser:
     def __init__(self):
@@ -1230,7 +1159,6 @@ class BatteryNLParser:
                         break
                     except:
                         continue
-        # Unit parsing
         unit_vals = UnitParser.parse_units(text)
         if 'c_rate' in unit_vals:
             params['c_rate'] = unit_vals['c_rate']
@@ -1238,12 +1166,10 @@ class BatteryNLParser:
             params['voltage'] = unit_vals['voltage']
         if 'temperature' in unit_vals:
             params['temperature'] = unit_vals['temperature']
-        # Analysis type
         for key, val in self.analysis_map.items():
             if key in text_lower:
                 params['analysis_type'] = val
                 break
-        # Source/target terms
         src = re.search(r'from\s+([a-zA-Z\s\-]+?)\s+to', text_lower)
         tgt = re.search(r'to\s+([a-zA-Z\s\-]+?)(?:\s+and|\s*,|$|\.)', text_lower)
         if src:
@@ -1279,7 +1205,7 @@ Examples:
         user = f"{examples}\nText: \"{text}\"\nPreliminary regex: {json.dumps(regex_params, default=str) if regex_params else 'None'}\nJSON:"
         backend = st.session_state.get('llm_backend_loaded', 'GPT-2 (default)')
         try:
-            if "Qwen" in backend:
+            if "Qwen" in backend or "Phi" in backend or "Gemma" in backend:
                 messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
                 prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             else:
@@ -1334,7 +1260,7 @@ Examples:
         return merged
 
 # ============================================================================
-# UNIT PARSER
+# UNIT PARSER (unchanged)
 # ============================================================================
 class UnitParser:
     @staticmethod
@@ -1359,7 +1285,7 @@ class UnitParser:
         return extracted
 
 # ============================================================================
-# FAILURE ANALYSIS FUNCTIONS (some were missing; adding them here)
+# FAILURE ANALYSIS FUNCTIONS (unchanged)
 # ============================================================================
 def analyze_failure_centrality(G_filtered, focus_terms=None):
     if focus_terms is None:
@@ -1491,30 +1417,24 @@ def analyze_failure_correlations(G_filtered):
     return corr, failure_terms
 
 def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
-    """Compute numerical difference metrics between two graphs (both should be filtered/influenced)."""
     nodes1 = set(G1.nodes())
     nodes2 = set(G2.nodes())
     inter_nodes = nodes1 & nodes2
 
-    # Node Jaccard
     node_jaccard = len(inter_nodes) / len(nodes1 | nodes2) if (nodes1 | nodes2) else 0
 
-    # Edge Jaccard (all edges, not just induced on inter_nodes)
     edges1 = set(G1.edges())
     edges2 = set(G2.edges())
     edge_jaccard = len(edges1 & edges2) / len(edges1 | edges2) if (edges1 | edges2) else 0
 
-    # Node count delta
     node_delta_pct = (len(nodes2) - len(nodes1)) / len(nodes1) * 100 if len(nodes1) > 0 else 0
 
-    # Average degree delta (on intersection)
     deg1 = [G1.degree(n) for n in inter_nodes]
     deg2 = [G2.degree(n) for n in inter_nodes]
     avg_deg1 = np.mean(deg1) if deg1 else 0
     avg_deg2 = np.mean(deg2) if deg2 else 0
     avg_deg_delta = avg_deg2 - avg_deg1
 
-    # Centrality correlation (degree centrality on intersection)
     if len(inter_nodes) > 1:
         cent1 = [nx.degree_centrality(G1)[n] for n in inter_nodes]
         cent2 = [nx.degree_centrality(G2)[n] for n in inter_nodes]
@@ -1522,7 +1442,6 @@ def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
     else:
         centrality_corr = 1.0 if len(inter_nodes) == 1 else 0.0
 
-    # Community similarity (NMI) – need to handle case where one graph has no nodes
     nmi = 0.0
     if len(inter_nodes) > 0:
         try:
@@ -1545,19 +1464,141 @@ def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
     return metrics
 
 # ============================================================================
+# PYVIS VISUALIZATION FUNCTION (NEW)
+# ============================================================================
+def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priority_score", use_attention_hover=False, height="600px"):
+    """
+    Create a Pyvis interactive network from a NetworkX graph.
+    Returns an HTML string.
+    """
+    if not PYVIS_AVAILABLE:
+        return None
+
+    # Create a Pyvis Network
+    net = Network(height=height, width="100%", bgcolor="#ffffff", font_color="black")
+    net.set_options("""
+    var options = {
+      nodes: {
+        shape: 'dot',
+        scaling: {
+          min: 10,
+          max: 50,
+          label: {
+            enabled: true,
+            min: 12,
+            max: 24
+          }
+        },
+        font: {
+          size: 12,
+          face: 'Arial'
+        }
+      },
+      edges: {
+        smooth: false,
+        arrows: {
+          to: { enabled: false }
+        },
+        scaling: {
+          min: 1,
+          max: 10,
+          label: {
+            enabled: true,
+            min: 12,
+            max: 20
+          }
+        }
+      },
+      physics: {
+        enabled: true,
+        solver: 'forceAtlas2Based',
+        forceAtlas2Based: {
+          gravitationalConstant: -200,
+          centralGravity: 0.01,
+          springLength: 150,
+          springConstant: 0.08,
+          damping: 0.4,
+          avoidOverlap: 0.5
+        },
+        stabilization: {
+          iterations: 200
+        }
+      },
+      interaction: {
+        hover: true,
+        tooltipDelay: 200,
+        zoomView: true,
+        dragView: true
+      }
+    }
+    """)
+
+    # Map categories to colors
+    categories = set(G.nodes[n].get('category', 'Unknown') for n in G.nodes())
+    color_palette = px.colors.qualitative.Set3
+    color_map = {cat: color_palette[i % len(color_palette)] for i, cat in enumerate(categories)}
+
+    # Node size scaling
+    if size_attr == "attention" and all('attention' in G.nodes[n] for n in G.nodes()):
+        sizes_vals = [G.nodes[n].get('attention', 0) for n in G.nodes()]
+    else:
+        sizes_vals = [G.nodes[n].get('priority_score', 0) for n in G.nodes()]
+
+    min_s, max_s = 10, 50
+    if max(sizes_vals) > min(sizes_vals):
+        sizes = [min_s + (max_s-min_s)*(s-min(sizes_vals))/(max(sizes_vals)-min(sizes_vals)) for s in sizes_vals]
+    else:
+        sizes = [30] * len(sizes_vals)
+
+    # Add nodes
+    for i, node in enumerate(G.nodes()):
+        node_data = G.nodes[node]
+        color = color_map.get(node_data.get('category', 'Unknown'), 'lightgray')
+        # Tooltip
+        tooltip = f"{node}<br>Category: {node_data.get('category','N/A')}<br>Type: {node_data.get('type','N/A')}<br>Frequency: {node_data.get('frequency',0)}"
+        if use_attention_hover and 'attention' in node_data:
+            tooltip += f"<br>Attention: {node_data['attention']:.3f}"
+        else:
+            tooltip += f"<br>Priority: {node_data.get('priority_score',0):.3f}"
+        if 'priority_std' in node_data:
+            tooltip += f"<br>Uncertainty: ±{node_data['priority_std']:.3f}"
+
+        net.add_node(node, label=node, title=tooltip, color=color, size=sizes[i])
+
+    # Add edges
+    edge_weights = [d.get('weight',1) for u,v,d in G.edges(data=True)]
+    if edge_weights:
+        ew_min, ew_max = min(edge_weights), max(edge_weights)
+    else:
+        ew_min = ew_max = 1
+
+    for u, v, d in G.edges(data=True):
+        w = d.get('weight',1)
+        if ew_max > ew_min:
+            width = 1 + 9 * (w - ew_min) / (ew_max - ew_min)
+        else:
+            width = 3
+        title = f"{u} — {v}<br>weight: {w}<br>type: {d.get('type','')}"
+        net.add_edge(u, v, value=width, title=title)
+
+    # Generate HTML
+    html = net.generate_html()
+    return html
+
+# ============================================================================
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    # --- Safe check for networkx module availability (fix for UnboundLocalError) ---
+    # --- Safe check for networkx module availability ---
     try:
-        _ = nx  # This will raise NameError if nx is not defined
+        _ = nx
     except NameError:
         st.error("NetworkX module not available. Please install networkx.")
         st.stop()
 
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
     st.markdown("<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Expanded: performance optimizations, LLM enhancements, advanced analytics, uncertainty quantification, and physics integration.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Expanded: Pyvis graphs, multiple LLMs up to 3B, 4‑bit quantization, advanced analytics.</p>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------------------
     # Initialize global models and embeddings
@@ -1578,7 +1619,6 @@ def main():
 
     # --------------------------------------------------------------------
     # Normalize data and Initialize Graph G
-    # This must happen BEFORE the sidebar uses G.nodes()
     # --------------------------------------------------------------------
     def norm(t): return t.lower().strip() if isinstance(t, str) else ""
     nodes_df["node"] = nodes_df["node"].apply(norm)
@@ -1594,7 +1634,6 @@ def main():
                    relationship=r.get("relationship",""), strength=r.get("strength",0))
 
     G_original = G.copy()
-    # --------------------------------------------------------------------
 
     @st.cache_data
     def compute_node_embeddings_dict(nodes_list):
@@ -1604,7 +1643,6 @@ def main():
     node_list_all = list(G.nodes())
     term_embeddings_dict = compute_node_embeddings_dict(node_list_all)
 
-    # Build FAISS index
     if FAISS_AVAILABLE:
         embeddings_list = [term_embeddings_dict[n] for n in node_list_all]
         EMBEDDING_INDEX, EMBEDDING_INDEX_NODES = build_faiss_index(embeddings_list, node_list_all)
@@ -1682,6 +1720,9 @@ def main():
         use_bootstrap = st.checkbox("Bootstrap centrality", value=False, key="bootstrap")
         bootstrap_samples = st.slider("Bootstrap samples", 10, 200, 50, key="bootstrap_samples") if use_bootstrap else 50
 
+        st.markdown("### 🎨 Visualization")
+        viz_engine = st.selectbox("Visualization Engine", ["Plotly (static)", "Pyvis (interactive)"], index=0, key="viz_engine")
+
     # ------------------------------------------------------------------------
     # Query interface
     # ------------------------------------------------------------------------
@@ -1693,9 +1734,10 @@ def main():
                                       key="user_query")
         with col2:
             st.markdown("### 🧠 LLM Settings")
-            model_choice = st.selectbox("Model", ["GPT-2 (default)", "Qwen2-0.5B-Instruct", "Qwen2.5-0.5B-Instruct", "Qwen2.5-7B-Instruct"], index=0, key="llm_choice")
+            model_choice = st.selectbox("Model", list(LLM_MODELS.keys()), index=0, key="llm_choice")
+            use_4bit = st.checkbox("Use 4‑bit quantization (if available)", value=False, key="use_4bit")
             if TRANSFORMERS_AVAILABLE:
-                tok, mod, loaded = load_llm(model_choice)
+                tok, mod, loaded = load_llm(model_choice, use_4bit=use_4bit)
                 st.session_state.llm_tokenizer = tok
                 st.session_state.llm_model = mod
                 st.session_state.llm_backend_loaded = loaded
@@ -1719,7 +1761,6 @@ def main():
                                              use_ensemble=use_ensemble, ensemble_runs=ensemble_runs)
             else:
                 params = parser.parse_regex(user_query)
-            # Validate with Pydantic
             try:
                 validated = ParsedQuery(**params)
                 params = validated.dict()
@@ -1769,7 +1810,7 @@ def main():
     params['edge_width_factor'] = edge_width
 
     # ------------------------------------------------------------------------
-    # Priority scores (using current params, with Monte Carlo if desired)
+    # Priority scores (using current params)
     # ------------------------------------------------------------------------
     operational = {"c_rate": c_rate, "voltage": voltage, "temperature": temperature}
     priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost,
@@ -1779,14 +1820,12 @@ def main():
         G.nodes[n]['priority_score'] = priority_scores.get(n, 0)
     nodes_df['priority_score'] = nodes_df['node'].apply(lambda x: priority_scores.get(x, 0))
 
-    # Optional Monte Carlo uncertainty for priority scores
     if use_bootstrap:
         with st.spinner("Computing Monte Carlo uncertainty for priority scores..."):
             mean_priority, std_priority = monte_carlo_priority_score(G, nodes_df, n_samples=bootstrap_samples,
                                                                      physics_boost_weight=physics_boost,
                                                                      operational_params=operational,
                                                                      focus_terms=params.get('focus_terms'))
-            # Store uncertainties in node attributes
             for n in G.nodes():
                 G.nodes[n]['priority_mean'] = mean_priority.get(n, priority_scores.get(n, 0))
                 G.nodes[n]['priority_std'] = std_priority.get(n, 0)
@@ -1859,7 +1898,6 @@ def main():
     graph_stats_orig = {'nodes': G_filtered.number_of_nodes(), 'edges': G_filtered.number_of_edges()}
     graph_stats_inf = {'nodes': G_influenced.number_of_nodes(), 'edges': G_influenced.number_of_edges()}
 
-    # Bootstrap uncertainty for centrality if requested
     uncertainty_orig = {}
     if use_bootstrap and results_orig is not None and analysis_type == "Centrality Analysis":
         with st.spinner("Computing bootstrap centrality uncertainty..."):
@@ -1882,7 +1920,7 @@ def main():
         structured_inf = {}
 
     # ------------------------------------------------------------------------
-    # Quantitative Measures Tabs (Reconstruction Mode)
+    # Quantitative Measures Tabs (Reconstruction Mode) – unchanged
     # ------------------------------------------------------------------------
     if use_reconstruction and results_orig is not None and results_inf is not None:
         st.subheader("📊 Structured Insights Comparison")
@@ -1994,9 +2032,9 @@ def main():
                 st.dataframe(df_rank[["name", "composite_weight", "degree", "physics_match", "equation"]])
 
     # ------------------------------------------------------------------------
-    # Visualisation – improved readability (no permanent labels, attention‑based sizing)
+    # Visualization – Plotly or Pyvis
     # ------------------------------------------------------------------------
-    def plot_graph(graph, title, size_attr="priority_score", use_attention_hover=False):
+    def plot_graph_plotly(graph, title, size_attr="priority_score", use_attention_hover=False):
         if graph.number_of_nodes() == 0:
             return None
         cats_in_graph = list(set([graph.nodes[n].get('category','Unknown') for n in graph.nodes()]))
@@ -2006,7 +2044,6 @@ def main():
 
         pos = nx.spring_layout(graph, k=1, iterations=100, seed=42, weight='weight')
 
-        # Sizing based on attribute
         if size_attr == "attention" and all('attention' in graph.nodes[n] for n in graph.nodes()):
             sizes_vals = [graph.nodes[n].get('attention', 0) for n in graph.nodes()]
         else:
@@ -2087,17 +2124,41 @@ def main():
         if use_reconstruction and G_influenced.number_of_nodes() > 0:
             col1, col2 = st.columns(2)
             with col1:
-                fig_orig = plot_graph(G_filtered, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
-                if fig_orig:
-                    st.plotly_chart(fig_orig, use_container_width=True)
+                if viz_engine == "Plotly (static)":
+                    fig_orig = plot_graph_plotly(G_filtered, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
+                    if fig_orig:
+                        st.plotly_chart(fig_orig, use_container_width=True)
+                else:
+                    if PYVIS_AVAILABLE:
+                        html_orig = create_pyvis_network(G_filtered, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
+                        if html_orig:
+                            st.components.v1.html(html_orig, height=650)
+                    else:
+                        st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
             with col2:
-                fig_inf = plot_graph(G_influenced, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
-                if fig_inf:
-                    st.plotly_chart(fig_inf, use_container_width=True)
+                if viz_engine == "Plotly (static)":
+                    fig_inf = plot_graph_plotly(G_influenced, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
+                    if fig_inf:
+                        st.plotly_chart(fig_inf, use_container_width=True)
+                else:
+                    if PYVIS_AVAILABLE:
+                        html_inf = create_pyvis_network(G_influenced, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
+                        if html_inf:
+                            st.components.v1.html(html_inf, height=650)
+                    else:
+                        st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
         else:
-            fig = plot_graph(G_filtered, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
+            if viz_engine == "Plotly (static)":
+                fig = plot_graph_plotly(G_filtered, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
+            else:
+                if PYVIS_AVAILABLE:
+                    html = create_pyvis_network(G_filtered, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
+                    if html:
+                        st.components.v1.html(html, height=650)
+                else:
+                    st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
 
         # Additional Analytics (from original)
         st.subheader("📊 Graph Analytics")
@@ -2115,7 +2176,7 @@ def main():
         fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values, title="Edge Type Distribution")
         st.plotly_chart(fig_edge, use_container_width=True)
 
-    # Export functionality (enhanced)
+    # Export functionality (unchanged)
     with st.sidebar:
         st.markdown("### 💾 Export")
         if st.button("Export Filtered Graph as CSV"):
@@ -2124,7 +2185,6 @@ def main():
             st.download_button("Download Nodes", nodes_exp.to_csv(index=False), "nodes.csv")
             st.download_button("Download Edges", edges_exp.to_csv(index=False), "edges.csv")
         if st.button("Export as GraphML"):
-            # nx is imported globally, no local import needed
             buf = BytesIO()
             nx.write_graphml(G_filtered, buf)
             st.download_button("Download GraphML", buf.getvalue(), "graph.graphml")
