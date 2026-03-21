@@ -3,10 +3,8 @@
 """
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
-Expanded version with Pyvis interactive graphs,
-multiple LLMs up to 3B, 4‑bit quantization support,
-performance optimizations, uncertainty quantification,
-physics integration, and robust FAISS handling.
+Optimized for Streamlit Cloud (CPU‑only) – no 4‑bit quantization,
+CPU‑safe model loading, and full feature set.
 """
 
 import os
@@ -66,6 +64,7 @@ try:
     )
     import torch
     TRANSFORMERS_AVAILABLE = True
+    # bitsandbytes is GPU-only; we will avoid using it on CPU
     try:
         import bitsandbytes as bnb
         BITSANDBYTES_AVAILABLE = True
@@ -587,13 +586,12 @@ def parallel_embedding_compute(texts, n_workers=None):
 # ============================================================================
 def get_cache():
     """Get a Redis client if available."""
-    if REDIS_AVAILABLE:
-        try:
-            r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-            r.ping()
-            return r
-        except:
-            logger.warning("Redis connection failed. Using disk cache.")
+    try:
+        r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        r.ping()
+        return r
+    except:
+        logger.warning("Redis connection failed. Using disk cache.")
     return None
 
 def disk_cache_get(key):
@@ -615,58 +613,53 @@ def disk_cache_set(key, value):
         pickle.dump(value, f)
 
 # ============================================================================
-# LLM LOADER (multiple models up to 3B, with optional 4‑bit)
+# LLM LOADER – SAFE FOR CPU (no bitsandbytes, explicit device map)
 # ============================================================================
-# Mapping of friendly names to Hugging Face model IDs
+# Mapping of friendly names to Hugging Face model IDs – choose CPU-friendly models
 LLM_MODELS = {
-    "Qwen2.5-0.5B-Instruct (CPU friendly)": "Qwen/Qwen2.5-0.5B-Instruct",
-    "Qwen2.5-1.5B-Instruct (CPU friendly)": "Qwen/Qwen2.5-1.5B-Instruct",
-    "Qwen2.5-3B-Instruct (needs GPU or high RAM)": "Qwen/Qwen2.5-3B-Instruct",
-    "Phi-2 (2.7B, CPU friendly)": "microsoft/phi-2",
-    "Gemma-2B (2B, CPU friendly)": "google/gemma-2b",
-    "GPT-2 Medium (355M, fastest)": "gpt2-medium",
-    "GPT-2 (124M, ultra-fast)": "gpt2",
+    "GPT-2 (124M, fastest)": "gpt2",
+    "GPT-2 Medium (355M, fast)": "gpt2-medium",
+    "Phi-2 (2.7B, CPU-friendly)": "microsoft/phi-2",
+    "Qwen2.5-0.5B-Instruct (tiny)": "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen2.5-1.5B-Instruct (CPU)": "Qwen/Qwen2.5-1.5B-Instruct",
+    "Gemma-2B (2B, CPU)": "google/gemma-2b",
+    "Qwen2.5-3B-Instruct (may OOM)": "Qwen/Qwen2.5-3B-Instruct",
 }
 
 @st.cache_resource(show_spinner="Loading LLM...")
-def load_llm(model_name: str, use_4bit: bool = False):
+def load_llm_cpu_safe(model_name: str):
     """
-    Load a Hugging Face causal LM with optional 4‑bit quantization.
-    Returns (tokenizer, model, loaded_name)
+    Load a Hugging Face causal LM safely on CPU (or GPU if available).
+    No 4-bit quantization to avoid hangs on CPU.
     """
     if not TRANSFORMERS_AVAILABLE:
         return None, None, model_name
 
     model_id = LLM_MODELS.get(model_name, model_name)
     try:
-        quant_config = None
-        if use_4bit and BITSANDBYTES_AVAILABLE:
-            quant_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_use_double_quant=True,
-                bnb_4bit_quant_type="nf4"
-            )
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        if use_4bit and quant_config is not None:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                quantization_config=quant_config,
-                device_map="auto",
-                trust_remote_code=True,
-                torch_dtype=torch.float16
-            )
+        # Determine device and precision
+        if torch.cuda.is_available():
+            # GPU available – use half precision and auto device map
+            torch_dtype = torch.float16
+            device_map = "auto"
+            st.info(f"✅ Using GPU for {model_name}")
         else:
-            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-            model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                device_map="auto" if torch.cuda.is_available() else None,
-                trust_remote_code=True,
-                torch_dtype=torch_dtype
-            )
+            # CPU only – use float32 for stability (or float16 if supported, but default to float32)
+            torch_dtype = torch.float32
+            device_map = "cpu"
+            st.info(f"🖥️ Using CPU for {model_name} (float32)")
+
+        # Load model – NEVER use BitsAndBytesConfig on CPU
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch_dtype,
+            device_map=device_map,
+            trust_remote_code=True
+        )
         model.eval()
         return tokenizer, model, model_name
     except Exception as e:
@@ -1599,7 +1592,7 @@ def main():
 
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
     st.markdown("<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Expanded: Pyvis graphs, multiple LLMs up to 3B, 4‑bit quantization, advanced analytics, and robust FAISS.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Optimized for Streamlit Cloud – CPU‑safe, Pyvis graphs, multiple LLMs up to 3B, advanced analytics.</p>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------------------
     # Initialize global models and embeddings
@@ -1741,13 +1734,15 @@ def main():
                                       key="user_query")
         with col2:
             st.markdown("### 🧠 LLM Settings")
-            model_choice = st.selectbox("Model", list(LLM_MODELS.keys()), index=0, key="llm_choice")
-            use_4bit = st.checkbox("Use 4‑bit quantization (if available)", value=False, key="use_4bit")
+            # Simplified model selection – pick only CPU-friendly models
+            model_choice = st.selectbox("Model", 
+                ["GPT-2 (124M, fastest)", "GPT-2 Medium (355M, fast)", "Phi-2 (2.7B, CPU-friendly)", 
+                 "Qwen2.5-0.5B-Instruct (tiny)", "Qwen2.5-1.5B-Instruct (CPU)"], 
+                index=0, key="llm_choice")
+            # No 4‑bit checkbox – removed to avoid confusion
             if TRANSFORMERS_AVAILABLE:
-                tok, mod, loaded = load_llm(model_choice, use_4bit=use_4bit)
-                st.session_state.llm_tokenizer = tok
-                st.session_state.llm_model = mod
-                st.session_state.llm_backend_loaded = loaded
+                # Load the model only when the user clicks Analyze
+                pass  # we load inside run_button condition
             use_llm = st.checkbox("Use LLM parsing", value=True)
             use_ensemble = st.checkbox("Use ensemble", value=False)
             ensemble_runs = 3 if use_ensemble else 1
@@ -1761,7 +1756,17 @@ def main():
                 st.rerun()
 
     if run_button and user_query:
-        with st.spinner("🔍 Parsing query..."):
+        with st.spinner("🔍 Loading LLM (if needed) and parsing query..."):
+            # Load LLM only now, not before
+            if use_llm and TRANSFORMERS_AVAILABLE:
+                tok, mod, loaded = load_llm_cpu_safe(model_choice)
+                st.session_state.llm_tokenizer = tok
+                st.session_state.llm_model = mod
+                st.session_state.llm_backend_loaded = loaded
+            else:
+                st.session_state.llm_tokenizer = None
+                st.session_state.llm_model = None
+
             parser = st.session_state.parser
             if use_llm and st.session_state.llm_tokenizer is not None:
                 params = parser.hybrid_parse(user_query, st.session_state.llm_tokenizer, st.session_state.llm_model,
@@ -1927,7 +1932,7 @@ def main():
         structured_inf = {}
 
     # ------------------------------------------------------------------------
-    # Quantitative Measures Tabs (Reconstruction Mode)
+    # Quantitative Measures Tabs (Reconstruction Mode) – unchanged
     # ------------------------------------------------------------------------
     if use_reconstruction and results_orig is not None and results_inf is not None:
         st.subheader("📊 Structured Insights Comparison")
