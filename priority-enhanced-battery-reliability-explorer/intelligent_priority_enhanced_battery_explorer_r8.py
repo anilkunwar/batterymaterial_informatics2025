@@ -4,8 +4,9 @@
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
 Expanded version with Pyvis interactive graphs,
-multiple LLMs (Qwen 1.5B / 3B, Phi-2, Gemma‑2B, etc.) up to 3B parameters,
-and 4‑bit quantization support for CPU‑friendly operation.
+multiple LLMs up to 3B, 4‑bit quantization support,
+performance optimizations, uncertainty quantification,
+physics integration, and robust FAISS handling.
 """
 
 import os
@@ -42,7 +43,6 @@ from multiprocessing import Pool, cpu_count
 import pickle
 import sympy as sp
 from pydantic import BaseModel, validator, ValidationError
-import faiss
 import redis
 from scipy.stats import bootstrap
 
@@ -50,9 +50,15 @@ warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ----------------------------------------------------------------------------
-# Optional imports
-# ----------------------------------------------------------------------------
+# ============================================================================
+# Optional dependencies flags – defined at the very top to avoid NameError
+# ============================================================================
+
+TRANSFORMERS_AVAILABLE = False
+BITSANDBYTES_AVAILABLE = False
+PYVIS_AVAILABLE = False
+FAISS_AVAILABLE = False
+
 try:
     from transformers import (
         AutoModel, AutoTokenizer, GPT2Tokenizer, GPT2LMHeadModel,
@@ -60,28 +66,31 @@ try:
     )
     import torch
     TRANSFORMERS_AVAILABLE = True
-    BITSANDBYTES_AVAILABLE = False
     try:
         import bitsandbytes as bnb
         BITSANDBYTES_AVAILABLE = True
     except ImportError:
         pass
 except ImportError:
-    TRANSFORMERS_AVAILABLE = False
     AutoModel = AutoTokenizer = GPT2Tokenizer = GPT2LMHeadModel = AutoModelForCausalLM = None
     torch = None
-    BITSANDBYTES_AVAILABLE = False
 
-# Pyvis import (optional)
 try:
     from pyvis.network import Network
     PYVIS_AVAILABLE = True
 except ImportError:
     PYVIS_AVAILABLE = False
 
-# ----------------------------------------------------------------------------
-# Global configuration – data directory
-# ----------------------------------------------------------------------------
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    logger.warning("FAISS not installed. Fast similarity search disabled.")
+
+# ============================================================================
+# Global configuration – data directory detection
+# ============================================================================
 def get_data_dir() -> str:
     env_dir = os.environ.get("BATTERY_DATA_DIR")
     if env_dir:
@@ -250,7 +259,7 @@ OPERATIONAL_CONSTRAINTS = {
 }
 
 # ============================================================================
-# DATA CLASS FOR PARSED PARAMETERS (unchanged)
+# DATA CLASS FOR PARSED PARAMETERS
 # ============================================================================
 @dataclass
 class ParsedParameters:
@@ -323,7 +332,7 @@ class ParsedQuery(BaseModel):
         return max(-20.0, min(80.0, v))
 
 # ============================================================================
-# SCIBERT LOADER & EMBEDDING UTILITIES (unchanged)
+# SCIBERT LOADER & EMBEDDING UTILITIES
 # ============================================================================
 scibert_tokenizer = None
 scibert_model = None
@@ -372,31 +381,33 @@ def compute_embeddings(texts):
     return get_scibert_embedding(texts)
 
 def build_faiss_index(embeddings, nodes):
-    if not FAISS_AVAILABLE:
+    if not FAISS_AVAILABLE or not embeddings:
         return None, None
-    if not embeddings:
-        return None, None
+    # Filter out None embeddings
     valid_idx = [i for i, e in enumerate(embeddings) if e is not None]
     if not valid_idx:
         return None, None
     valid_embeddings = np.array([embeddings[i] for i in valid_idx], dtype=np.float32)
     valid_nodes = [nodes[i] for i in valid_idx]
-    index = faiss.IndexFlatIP(valid_embeddings.shape[1])
+    index = faiss.IndexFlatIP(valid_embeddings.shape[1])  # inner product (cosine for normalized vectors)
     index.add(valid_embeddings)
     return index, valid_nodes
 
 def fast_similarity_search(query_emb, index, nodes_list, k=10):
+    """Return indices and scores of top k similar nodes."""
     if query_emb is None or index is None:
         return [], []
     if len(query_emb.shape) == 1:
         query_emb = query_emb.reshape(1, -1)
     scores, indices = index.search(query_emb.astype(np.float32), k)
+    # scores are cosine similarity because vectors are normalized
     return [nodes_list[i] for i in indices[0]], scores[0]
 
 # ============================================================================
-# UNCERTAINTY QUANTIFICATION FUNCTIONS (unchanged)
+# UNCERTAINTY QUANTIFICATION FUNCTIONS
 # ============================================================================
 def bootstrap_centrality(G, n_samples=100, metric='degree'):
+    """Compute bootstrap confidence intervals for a centrality measure."""
     if G.number_of_nodes() == 0:
         return {}, {}, {}
     nodes = list(G.nodes())
@@ -444,6 +455,7 @@ def bootstrap_centrality(G, n_samples=100, metric='degree'):
     return mean_cent, ci_lower, ci_upper
 
 def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
+    """Compute Monte Carlo uncertainty for priority scores."""
     base_priority = calculate_priority_scores(G, nodes_df, **kwargs)
     samples = []
     for _ in range(n_samples):
@@ -472,9 +484,10 @@ def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
     return mean_priority, std_priority
 
 # ============================================================================
-# ADVANCED GRAPH ANALYTICS (unchanged)
+# ADVANCED GRAPH ANALYTICS
 # ============================================================================
 def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weight'):
+    """Run Louvain community detection at multiple resolutions and compute stability."""
     if G.number_of_nodes() == 0:
         return {}
     partitions = {}
@@ -499,6 +512,7 @@ def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weig
     return {'partitions': partitions, 'stability': stability}
 
 def comprehensive_centrality(G):
+    """Compute multiple centrality measures."""
     if G.number_of_nodes() == 0:
         return {}
     return {
@@ -511,12 +525,14 @@ def comprehensive_centrality(G):
     }
 
 def k_shortest_paths(G, source, target, k=5, weight='weight'):
+    """Return up to k shortest paths between source and target."""
     try:
         return list(nx.shortest_simple_paths(G, source, target, weight=weight))[:k]
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return []
 
 def trend_detection(values):
+    """Perform Mann-Kendall trend test on a sequence of values."""
     from scipy.stats import mstats
     n = len(values)
     if n < 3:
@@ -533,9 +549,10 @@ def trend_detection(values):
         return {'trend': trend, 'p': p, 'correlation': r}
 
 # ============================================================================
-# PHYSICS INTEGRATION (unchanged)
+# PHYSICS INTEGRATION (symbolic verification)
 # ============================================================================
 def verify_physics_equation(equation_str, variables):
+    """Use sympy to verify that the equation is dimensionally consistent (simplified)."""
     try:
         expr = sp.sympify(equation_str.replace('\\', ''))
         free_symbols = expr.free_symbols
@@ -547,12 +564,14 @@ def verify_physics_equation(equation_str, variables):
         return False, str(e)
 
 def dimensional_analysis(equation, units):
+    """Check if all terms have consistent units (stub)."""
     return True, "Dimensional analysis not implemented."
 
 # ============================================================================
-# PERFORMANCE OPTIMIZATIONS: PARALLEL EMBEDDING (unchanged)
+# PERFORMANCE OPTIMIZATIONS: PARALLEL EMBEDDING
 # ============================================================================
 def parallel_embedding_compute(texts, n_workers=None):
+    """Compute embeddings in parallel using multiprocessing."""
     if n_workers is None:
         n_workers = cpu_count()
     chunk_size = max(1, len(texts) // (n_workers * 2))
@@ -564,9 +583,10 @@ def parallel_embedding_compute(texts, n_workers=None):
     return embeddings
 
 # ============================================================================
-# CACHING UTILITIES (unchanged)
+# CACHING UTILITIES
 # ============================================================================
 def get_cache():
+    """Get a Redis client if available."""
     if REDIS_AVAILABLE:
         try:
             r = redis.Redis(host='localhost', port=6379, decode_responses=True)
@@ -577,6 +597,7 @@ def get_cache():
     return None
 
 def disk_cache_get(key):
+    """Load from file."""
     cache_dir = os.path.join(DB_DIR, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, f"{key}.pkl")
@@ -586,6 +607,7 @@ def disk_cache_get(key):
     return None
 
 def disk_cache_set(key, value):
+    """Save to file."""
     cache_dir = os.path.join(DB_DIR, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, f"{key}.pkl")
@@ -593,7 +615,7 @@ def disk_cache_set(key, value):
         pickle.dump(value, f)
 
 # ============================================================================
-# LLM LOADER (expanded: multiple models up to 3B, with optional 4‑bit)
+# LLM LOADER (multiple models up to 3B, with optional 4‑bit)
 # ============================================================================
 # Mapping of friendly names to Hugging Face model IDs
 LLM_MODELS = {
@@ -617,7 +639,6 @@ def load_llm(model_name: str, use_4bit: bool = False):
 
     model_id = LLM_MODELS.get(model_name, model_name)
     try:
-        # Determine if we need to use 4‑bit
         quant_config = None
         if use_4bit and BITSANDBYTES_AVAILABLE:
             quant_config = BitsAndBytesConfig(
@@ -626,13 +647,10 @@ def load_llm(model_name: str, use_4bit: bool = False):
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_quant_type="nf4"
             )
-        # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-        # Set pad token if not present
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        # Load model with appropriate settings
         if use_4bit and quant_config is not None:
             model = AutoModelForCausalLM.from_pretrained(
                 model_id,
@@ -642,7 +660,6 @@ def load_llm(model_name: str, use_4bit: bool = False):
                 torch_dtype=torch.float16
             )
         else:
-            # Use float16 if GPU, else float32
             torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
             model = AutoModelForCausalLM.from_pretrained(
                 model_id,
@@ -664,7 +681,7 @@ def parse_with_validation(text, tokenizer, model) -> ParsedQuery:
 Query: "{text}"
 JSON:"""
     try:
-        if "Qwen" in str(model.__class__) or "Phi" in str(model.__class__):
+        if "Qwen" in st.session_state.get('llm_backend_loaded', '') or "Phi" in st.session_state.get('llm_backend_loaded', '') or "Gemma" in st.session_state.get('llm_backend_loaded', ''):
             messages = [{"role": "user", "content": prompt}]
             prompt_formatted = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         else:
@@ -687,7 +704,7 @@ JSON:"""
     return ParsedQuery(analysis_type="Centrality Analysis")
 
 # ============================================================================
-# RELEVANCE SCORER (unchanged)
+# RELEVANCE SCORER
 # ============================================================================
 class RelevanceScorer:
     def __init__(self, use_scibert=True):
@@ -718,7 +735,7 @@ class RelevanceScorer:
             return min(1.0, matches / 50.0), 0.3
 
 # ============================================================================
-# QUERY-DRIVEN GRAPH RECONSTRUCTION (unchanged)
+# QUERY-DRIVEN GRAPH RECONSTRUCTION
 # ============================================================================
 def llm_expand_vocabulary(query: str, tokenizer, model) -> List[str]:
     if tokenizer is None or model is None:
@@ -837,7 +854,7 @@ def reconstruct_graph_with_attention(G_orig: nx.Graph,
     return G_inf
 
 # ============================================================================
-# PRIORITY SCORE CALCULATION (unchanged)
+# PRIORITY SCORE CALCULATION
 # ============================================================================
 def robust_normalize(values, epsilon=1e-8):
     median = np.median(values)
@@ -919,7 +936,7 @@ def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operationa
     return priority_scores
 
 # ============================================================================
-# FILTER GRAPH (unchanged)
+# FILTER GRAPH
 # ============================================================================
 def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, selected_nodes, excluded_terms, min_priority_score, suppress_low_priority):
     Gf = nx.Graph()
@@ -948,7 +965,7 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
     return Gf
 
 # ============================================================================
-# STRUCTURED INSIGHT GENERATOR (unchanged)
+# STRUCTURED INSIGHT GENERATOR
 # ============================================================================
 class DegradationInsightGenerator:
     @staticmethod
@@ -1093,7 +1110,7 @@ class DegradationInsightGenerator:
         return data
 
 # ============================================================================
-# DATA LOADING (unchanged)
+# DATA LOADING
 # ============================================================================
 @st.cache_data
 def load_data():
@@ -1118,7 +1135,7 @@ def load_data():
     return edges_df, nodes_df
 
 # ============================================================================
-# BATTERY NLP PARSER (unchanged)
+# BATTERY NLP PARSER
 # ============================================================================
 class BatteryNLParser:
     def __init__(self):
@@ -1260,7 +1277,7 @@ Examples:
         return merged
 
 # ============================================================================
-# UNIT PARSER (unchanged)
+# UNIT PARSER
 # ============================================================================
 class UnitParser:
     @staticmethod
@@ -1285,7 +1302,7 @@ class UnitParser:
         return extracted
 
 # ============================================================================
-# FAILURE ANALYSIS FUNCTIONS (unchanged)
+# FAILURE ANALYSIS FUNCTIONS
 # ============================================================================
 def analyze_failure_centrality(G_filtered, focus_terms=None):
     if focus_terms is None:
@@ -1422,11 +1439,9 @@ def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
     inter_nodes = nodes1 & nodes2
 
     node_jaccard = len(inter_nodes) / len(nodes1 | nodes2) if (nodes1 | nodes2) else 0
-
     edges1 = set(G1.edges())
     edges2 = set(G2.edges())
     edge_jaccard = len(edges1 & edges2) / len(edges1 | edges2) if (edges1 | edges2) else 0
-
     node_delta_pct = (len(nodes2) - len(nodes1)) / len(nodes1) * 100 if len(nodes1) > 0 else 0
 
     deg1 = [G1.degree(n) for n in inter_nodes]
@@ -1464,17 +1479,12 @@ def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
     return metrics
 
 # ============================================================================
-# PYVIS VISUALIZATION FUNCTION (NEW)
+# PYVIS VISUALIZATION FUNCTION
 # ============================================================================
 def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priority_score", use_attention_hover=False, height="600px"):
-    """
-    Create a Pyvis interactive network from a NetworkX graph.
-    Returns an HTML string.
-    """
     if not PYVIS_AVAILABLE:
         return None
 
-    # Create a Pyvis Network
     net = Network(height=height, width="100%", bgcolor="#ffffff", font_color="black")
     net.set_options("""
     var options = {
@@ -1533,12 +1543,10 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
     }
     """)
 
-    # Map categories to colors
     categories = set(G.nodes[n].get('category', 'Unknown') for n in G.nodes())
     color_palette = px.colors.qualitative.Set3
     color_map = {cat: color_palette[i % len(color_palette)] for i, cat in enumerate(categories)}
 
-    # Node size scaling
     if size_attr == "attention" and all('attention' in G.nodes[n] for n in G.nodes()):
         sizes_vals = [G.nodes[n].get('attention', 0) for n in G.nodes()]
     else:
@@ -1550,11 +1558,9 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
     else:
         sizes = [30] * len(sizes_vals)
 
-    # Add nodes
     for i, node in enumerate(G.nodes()):
         node_data = G.nodes[node]
         color = color_map.get(node_data.get('category', 'Unknown'), 'lightgray')
-        # Tooltip
         tooltip = f"{node}<br>Category: {node_data.get('category','N/A')}<br>Type: {node_data.get('type','N/A')}<br>Frequency: {node_data.get('frequency',0)}"
         if use_attention_hover and 'attention' in node_data:
             tooltip += f"<br>Attention: {node_data['attention']:.3f}"
@@ -1562,10 +1568,8 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
             tooltip += f"<br>Priority: {node_data.get('priority_score',0):.3f}"
         if 'priority_std' in node_data:
             tooltip += f"<br>Uncertainty: ±{node_data['priority_std']:.3f}"
-
         net.add_node(node, label=node, title=tooltip, color=color, size=sizes[i])
 
-    # Add edges
     edge_weights = [d.get('weight',1) for u,v,d in G.edges(data=True)]
     if edge_weights:
         ew_min, ew_max = min(edge_weights), max(edge_weights)
@@ -1581,15 +1585,12 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
         title = f"{u} — {v}<br>weight: {w}<br>type: {d.get('type','')}"
         net.add_edge(u, v, value=width, title=title)
 
-    # Generate HTML
-    html = net.generate_html()
-    return html
+    return net.generate_html()
 
 # ============================================================================
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    # --- Safe check for networkx module availability ---
     try:
         _ = nx
     except NameError:
@@ -1598,7 +1599,7 @@ def main():
 
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
     st.markdown("<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Expanded: Pyvis graphs, multiple LLMs up to 3B, 4‑bit quantization, advanced analytics.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Expanded: Pyvis graphs, multiple LLMs up to 3B, 4‑bit quantization, advanced analytics, and robust FAISS.</p>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------------------
     # Initialize global models and embeddings
@@ -1610,16 +1611,12 @@ def main():
     KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
     PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
 
-    # Load data
     try:
         edges_df, nodes_df = load_data()
     except Exception as e:
         st.error(f"Data loading failed: {e}")
         st.stop()
 
-    # --------------------------------------------------------------------
-    # Normalize data and Initialize Graph G
-    # --------------------------------------------------------------------
     def norm(t): return t.lower().strip() if isinstance(t, str) else ""
     nodes_df["node"] = nodes_df["node"].apply(norm)
     edges_df["source"] = edges_df["source"].apply(norm)
@@ -1643,13 +1640,23 @@ def main():
     node_list_all = list(G.nodes())
     term_embeddings_dict = compute_node_embeddings_dict(node_list_all)
 
+    # FAISS index building with robust error handling
     if FAISS_AVAILABLE:
-        embeddings_list = [term_embeddings_dict[n] for n in node_list_all]
-        EMBEDDING_INDEX, EMBEDDING_INDEX_NODES = build_faiss_index(embeddings_list, node_list_all)
+        try:
+            embeddings_list = [term_embeddings_dict[n] for n in node_list_all if term_embeddings_dict.get(n) is not None]
+            if embeddings_list:
+                EMBEDDING_INDEX, EMBEDDING_INDEX_NODES = build_faiss_index(embeddings_list, node_list_all)
+            else:
+                EMBEDDING_INDEX = None
+                EMBEDDING_INDEX_NODES = []
+        except Exception as e:
+            logger.error(f"FAISS index build failed: {e}")
+            EMBEDDING_INDEX = None
+            EMBEDDING_INDEX_NODES = []
     else:
-        EMBEDDING_INDEX, EMBEDDING_INDEX_NODES = None, None
+        EMBEDDING_INDEX = None
+        EMBEDDING_INDEX_NODES = []
 
-    # Initialize session state
     if "parser" not in st.session_state:
         st.session_state.parser = BatteryNLParser()
     if "relevance_scorer" not in st.session_state:
@@ -1668,7 +1675,7 @@ def main():
         st.session_state.last_structured_insights = None
 
     # ------------------------------------------------------------------------
-    # Sidebar filters (now G is defined and safe to use)
+    # Sidebar filters
     # ------------------------------------------------------------------------
     with st.sidebar:
         st.markdown("## ⚙️ Manual Filters (optional)")
@@ -1810,7 +1817,7 @@ def main():
     params['edge_width_factor'] = edge_width
 
     # ------------------------------------------------------------------------
-    # Priority scores (using current params)
+    # Priority scores
     # ------------------------------------------------------------------------
     operational = {"c_rate": c_rate, "voltage": voltage, "temperature": temperature}
     priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost,
@@ -1920,7 +1927,7 @@ def main():
         structured_inf = {}
 
     # ------------------------------------------------------------------------
-    # Quantitative Measures Tabs (Reconstruction Mode) – unchanged
+    # Quantitative Measures Tabs (Reconstruction Mode)
     # ------------------------------------------------------------------------
     if use_reconstruction and results_orig is not None and results_inf is not None:
         st.subheader("📊 Structured Insights Comparison")
@@ -2160,7 +2167,7 @@ def main():
                 else:
                     st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
 
-        # Additional Analytics (from original)
+        # Additional Analytics
         st.subheader("📊 Graph Analytics")
         col1, col2 = st.columns(2)
         with col1:
@@ -2176,7 +2183,7 @@ def main():
         fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values, title="Edge Type Distribution")
         st.plotly_chart(fig_edge, use_container_width=True)
 
-    # Export functionality (unchanged)
+    # Export functionality
     with st.sidebar:
         st.markdown("### 💾 Export")
         if st.button("Export Filtered Graph as CSV"):
