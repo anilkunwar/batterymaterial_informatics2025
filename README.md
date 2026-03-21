@@ -69,6 +69,11 @@ Intelligent Models:
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer5gpt-streamlit-red)](https://intelligentbatteryexplorer5-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust, theoretical explanation)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer6gpt-streamlit-red)](https://intelligentbatteryexplorer6-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust, theoretical explanation, more robustness)
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer7gpt-streamlit-red)](https://intelligentbatteryexplorer7-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust, theoretical explanation, more robustness)
+
+
 
 
 
