@@ -31,3 +31,6 @@ accelerate
 #faiss  # for gpu
 faiss-cpu
 redis
+autoawq
+PyMuPDF
+bitsandbytes>=0.41.0
