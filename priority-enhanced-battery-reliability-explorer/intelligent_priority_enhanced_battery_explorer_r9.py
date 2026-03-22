@@ -3,8 +3,7 @@
 """
 INTELLIGENT BATTERY DEGRADATION KNOWLEDGE EXPLORER
 ===================================================
-Optimized for Streamlit Cloud (CPU‑only) – no 4‑bit quantization,
-CPU‑safe model loading, and full feature set.
+Optimized for Streamlit Cloud – CPU‑safe, memory‑efficient, and fast.
 """
 
 import os
@@ -64,7 +63,6 @@ try:
     )
     import torch
     TRANSFORMERS_AVAILABLE = True
-    # bitsandbytes is GPU-only; we will avoid using it on CPU
     try:
         import bitsandbytes as bnb
         BITSANDBYTES_AVAILABLE = True
@@ -342,6 +340,7 @@ EMBEDDING_INDEX_NODES = []
 
 @st.cache_resource
 def load_scibert():
+    """Lazy-load SciBERT – called only when semantic analysis is enabled."""
     if not TRANSFORMERS_AVAILABLE:
         return None, None
     try:
@@ -382,31 +381,27 @@ def compute_embeddings(texts):
 def build_faiss_index(embeddings, nodes):
     if not FAISS_AVAILABLE or not embeddings:
         return None, None
-    # Filter out None embeddings
     valid_idx = [i for i, e in enumerate(embeddings) if e is not None]
     if not valid_idx:
         return None, None
     valid_embeddings = np.array([embeddings[i] for i in valid_idx], dtype=np.float32)
     valid_nodes = [nodes[i] for i in valid_idx]
-    index = faiss.IndexFlatIP(valid_embeddings.shape[1])  # inner product (cosine for normalized vectors)
+    index = faiss.IndexFlatIP(valid_embeddings.shape[1])
     index.add(valid_embeddings)
     return index, valid_nodes
 
 def fast_similarity_search(query_emb, index, nodes_list, k=10):
-    """Return indices and scores of top k similar nodes."""
     if query_emb is None or index is None:
         return [], []
     if len(query_emb.shape) == 1:
         query_emb = query_emb.reshape(1, -1)
     scores, indices = index.search(query_emb.astype(np.float32), k)
-    # scores are cosine similarity because vectors are normalized
     return [nodes_list[i] for i in indices[0]], scores[0]
 
 # ============================================================================
-# UNCERTAINTY QUANTIFICATION FUNCTIONS
+# UNCERTAINTY QUANTIFICATION FUNCTIONS (unchanged)
 # ============================================================================
 def bootstrap_centrality(G, n_samples=100, metric='degree'):
-    """Compute bootstrap confidence intervals for a centrality measure."""
     if G.number_of_nodes() == 0:
         return {}, {}, {}
     nodes = list(G.nodes())
@@ -454,7 +449,6 @@ def bootstrap_centrality(G, n_samples=100, metric='degree'):
     return mean_cent, ci_lower, ci_upper
 
 def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
-    """Compute Monte Carlo uncertainty for priority scores."""
     base_priority = calculate_priority_scores(G, nodes_df, **kwargs)
     samples = []
     for _ in range(n_samples):
@@ -486,7 +480,6 @@ def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
 # ADVANCED GRAPH ANALYTICS
 # ============================================================================
 def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weight'):
-    """Run Louvain community detection at multiple resolutions and compute stability."""
     if G.number_of_nodes() == 0:
         return {}
     partitions = {}
@@ -511,7 +504,6 @@ def multi_resolution_community(G, resolutions=[0.5, 1.0, 1.5, 2.0], weight='weig
     return {'partitions': partitions, 'stability': stability}
 
 def comprehensive_centrality(G):
-    """Compute multiple centrality measures."""
     if G.number_of_nodes() == 0:
         return {}
     return {
@@ -524,14 +516,12 @@ def comprehensive_centrality(G):
     }
 
 def k_shortest_paths(G, source, target, k=5, weight='weight'):
-    """Return up to k shortest paths between source and target."""
     try:
         return list(nx.shortest_simple_paths(G, source, target, weight=weight))[:k]
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return []
 
 def trend_detection(values):
-    """Perform Mann-Kendall trend test on a sequence of values."""
     from scipy.stats import mstats
     n = len(values)
     if n < 3:
@@ -551,7 +541,6 @@ def trend_detection(values):
 # PHYSICS INTEGRATION (symbolic verification)
 # ============================================================================
 def verify_physics_equation(equation_str, variables):
-    """Use sympy to verify that the equation is dimensionally consistent (simplified)."""
     try:
         expr = sp.sympify(equation_str.replace('\\', ''))
         free_symbols = expr.free_symbols
@@ -563,14 +552,12 @@ def verify_physics_equation(equation_str, variables):
         return False, str(e)
 
 def dimensional_analysis(equation, units):
-    """Check if all terms have consistent units (stub)."""
     return True, "Dimensional analysis not implemented."
 
 # ============================================================================
 # PERFORMANCE OPTIMIZATIONS: PARALLEL EMBEDDING
 # ============================================================================
 def parallel_embedding_compute(texts, n_workers=None):
-    """Compute embeddings in parallel using multiprocessing."""
     if n_workers is None:
         n_workers = cpu_count()
     chunk_size = max(1, len(texts) // (n_workers * 2))
@@ -585,7 +572,6 @@ def parallel_embedding_compute(texts, n_workers=None):
 # CACHING UTILITIES
 # ============================================================================
 def get_cache():
-    """Get a Redis client if available."""
     try:
         r = redis.Redis(host='localhost', port=6379, decode_responses=True)
         r.ping()
@@ -595,7 +581,6 @@ def get_cache():
     return None
 
 def disk_cache_get(key):
-    """Load from file."""
     cache_dir = os.path.join(DB_DIR, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, f"{key}.pkl")
@@ -605,7 +590,6 @@ def disk_cache_get(key):
     return None
 
 def disk_cache_set(key, value):
-    """Save to file."""
     cache_dir = os.path.join(DB_DIR, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     path = os.path.join(cache_dir, f"{key}.pkl")
@@ -613,17 +597,20 @@ def disk_cache_set(key, value):
         pickle.dump(value, f)
 
 # ============================================================================
-# LLM LOADER – MEMORY EFFICIENT (CPU & GPU)
+# LLM LOADER – MEMORY EFFICIENT (CPU & GPU) with extended model list
 # ============================================================================
-# Only keep models that fit within 2 GB RAM (CPU) or 6 GB VRAM (GPU)
 LLM_MODELS = {
-    "Qwen2.5-1.5B-Instruct (best on Cloud)": "Qwen/Qwen2.5-1.5B-Instruct",
-    "GPT-2 Medium (355M – fastest)": "gpt2-medium",
-    # "Phi-3-mini (3.8B)": "microsoft/Phi-3-mini-4k-instruct",  # Optional, but >2GB
+    "GPT-2 (124M, fastest)": "gpt2",
+    "GPT-2 Medium (355M, fast)": "gpt2-medium",
+    "Phi-2 (2.7B, CPU-friendly)": "microsoft/phi-2",
+    "Qwen2.5-0.5B-Instruct (tiny)": "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen2.5-1.5B-Instruct (CPU)": "Qwen/Qwen2.5-1.5B-Instruct",
+    "Gemma-2B (2B, CPU)": "google/gemma-2b",
+    "Qwen2.5-3B-Instruct (may OOM)": "Qwen/Qwen2.5-3B-Instruct",
+    "tinyLLAMA (1.1B)": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",  # added tinyLLAMA
 }
 
 def get_memory_info():
-    """Return available memory in GB (simple estimate)."""
     try:
         import psutil
         mem = psutil.virtual_memory()
@@ -637,7 +624,6 @@ def get_memory_info():
     max_entries=1
 )
 def load_llm_memory_efficient(model_name: str):
-    """Load LLM with memory‑optimised settings (8‑bit on GPU, float32 on CPU)."""
     if not TRANSFORMERS_AVAILABLE:
         st.error("transformers not installed. LLM features disabled.")
         return None, None, model_name
@@ -652,10 +638,8 @@ def load_llm_memory_efficient(model_name: str):
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        # Determine device and dtype
         if torch.cuda.is_available():
             device_map = "auto"
-            # Try 8‑bit if bitsandbytes available, otherwise float16
             if BITSANDBYTES_AVAILABLE:
                 try:
                     quantization_config = BitsAndBytesConfig(load_in_8bit=True)
@@ -884,7 +868,7 @@ def reconstruct_graph_with_attention(G_orig: nx.Graph,
     return G_inf
 
 # ============================================================================
-# PRIORITY SCORE CALCULATION
+# PRIORITY SCORE CALCULATION – OPTIMIZED (uses pre‑computed embeddings)
 # ============================================================================
 def robust_normalize(values, epsilon=1e-8):
     median = np.median(values)
@@ -896,68 +880,100 @@ def safe_normalize(values, epsilon=1e-8):
     range_v = max_v - min_v + epsilon
     return (values - min_v) / range_v
 
-def calculate_priority_scores(G, nodes_df, physics_boost_weight=0.15, operational_params=None, focus_terms=None):
+def calculate_priority_scores(
+    G,
+    nodes_df,
+    term_embeddings_dict,          # pre‑computed embeddings for all nodes
+    physics_boost_weight=0.15,
+    operational_params=None,
+    focus_terms=None
+):
     global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+
+    # 1. Frequency normalization (vectorised)
     freq_vals = nodes_df['frequency'].values
     if len(freq_vals) > 0:
-        norm_freq = robust_normalize(freq_vals)
+        median = np.median(freq_vals)
+        iqr = np.percentile(freq_vals, 75) - np.percentile(freq_vals, 25) + 1e-8
+        norm_freq = (freq_vals - median) / iqr
         norm_freq = np.clip(norm_freq, 0, 1)
     else:
         norm_freq = np.array([])
-    nodes_df['norm_frequency'] = norm_freq if len(norm_freq) > 0 else 0
 
-    degree_centrality = nx.degree_centrality(G)
-    betweenness_centrality = nx.betweenness_centrality(G)
+    # 2. Centrality – use approximate for large graphs
+    if G.number_of_nodes() > 500:
+        degree_centrality = nx.degree_centrality(G)
+        # Approximate betweenness (k=50 samples)
+        betweenness_centrality = nx.approximate_betweenness_centrality(G, k=50)
+    else:
+        degree_centrality = nx.degree_centrality(G)
+        betweenness_centrality = nx.betweenness_centrality(G)
+
     try:
-        eigenvector_centrality = nx.eigenvector_centrality(G, max_iter=1000)
+        eigenvector_centrality = nx.eigenvector_centrality(G, max_iter=100)  # limit iterations
     except:
         eigenvector_centrality = {node: 0 for node in G.nodes()}
 
-    node_terms = nodes_df['node'].tolist()
-    term_embeddings = get_scibert_embedding(node_terms)
-    term_embeddings_dict = dict(zip(node_terms, term_embeddings))
-
+    # 3. Semantic & physics scores (use pre‑computed embeddings)
     semantic_scores = {}
     physics_scores = {}
+
+    # Pre‑compute focus embeddings once
+    focus_embs = []
+    if focus_terms:
+        focus_embs = [e for e in get_scibert_embedding(focus_terms) if e is not None]
+
     for node in G.nodes():
         emb = term_embeddings_dict.get(node)
         if emb is None:
             semantic_scores[node] = 0
             physics_scores[node] = 0
+            continue
+
+        # Semantic similarity
+        if focus_embs:
+            sem_sims = [cosine_similarity([emb], [fe])[0][0] for fe in focus_embs]
+            semantic_scores[node] = max(sem_sims, default=0)
         else:
-            if focus_terms:
-                focus_embs = get_scibert_embedding(focus_terms)
-                focus_embs = [e for e in focus_embs if e is not None]
-                if focus_embs:
-                    sem_sims = [cosine_similarity([emb], [fe])[0][0] for fe in focus_embs]
-                    semantic_scores[node] = max(sem_sims, default=0)
-                else:
-                    semantic_scores[node] = 0
-            else:
+            # Use global key terms (cached)
+            if KEY_TERMS_EMBEDDINGS:
                 sem_sims = [cosine_similarity([emb], [kt_emb])[0][0] for kt_emb in KEY_TERMS_EMBEDDINGS if kt_emb is not None]
                 semantic_scores[node] = max(sem_sims, default=0)
+            else:
+                semantic_scores[node] = 0
 
+        # Physics similarity
+        if PHYSICS_TERMS_EMBEDDINGS:
             phys_sims = [cosine_similarity([emb], [pt_emb])[0][0] for pt_emb in PHYSICS_TERMS_EMBEDDINGS if pt_emb is not None]
-            phys_score = max(phys_sims, default=0)
-            if operational_params:
-                if operational_params.get('temperature', 25) > 45 and any(t in node.lower() for t in ['thermal', 'temp']):
-                    phys_score *= 1.3
-                if operational_params.get('c_rate', 1.0) > 2.0 and any(t in node.lower() for t in ['rate', 'power']):
-                    phys_score *= 1.3
-                if operational_params.get('voltage', 3.7) > 4.2 and any(t in node.lower() for t in ['voltage', 'potential']):
-                    phys_score *= 1.3
-            physics_scores[node] = min(phys_score, 1.0)
+            physics_scores[node] = min(max(phys_sims, default=0), 1.0)
+        else:
+            physics_scores[node] = 0
 
+        # Operational boost
+        if operational_params:
+            score = physics_scores[node]
+            if operational_params.get('temperature', 25) > 45 and any(t in node.lower() for t in ['thermal', 'temp']):
+                score *= 1.3
+            if operational_params.get('c_rate', 1.0) > 2.0 and any(t in node.lower() for t in ['rate', 'power']):
+                score *= 1.3
+            if operational_params.get('voltage', 3.7) > 4.2 and any(t in node.lower() for t in ['voltage', 'potential']):
+                score *= 1.3
+            physics_scores[node] = min(score, 1.0)
+
+    # 4. Weighted sum
     w_f, w_d, w_b, w_s, w_p = 0.35, 0.25, 0.20, 0.10, physics_boost_weight
-    weights = np.array([w_f, w_d, w_b, w_s, w_p])
-    weights = np.exp(weights) / np.sum(np.exp(weights))
+    weights = np.exp([w_f, w_d, w_b, w_s, w_p])
+    weights = weights / np.sum(weights)
     w_f, w_d, w_b, w_s, w_p = weights
+
+    # Create mapping from node to normalized frequency index
+    freq_map = {node: freq for node, freq in zip(nodes_df['node'], norm_freq)} if len(norm_freq) > 0 else {}
 
     priority_scores = {}
     for node in G.nodes():
-        freq = nodes_df[nodes_df['node'] == node]['norm_frequency'].iloc[0] if len(nodes_df[nodes_df['node'] == node]) > 0 else 0
+        f_val = freq_map.get(node, 0)
         priority_scores[node] = (
-            w_f * freq +
+            w_f * f_val +
             w_d * degree_centrality.get(node, 0) +
             w_b * betweenness_centrality.get(node, 0) +
             w_s * semantic_scores.get(node, 0) +
@@ -995,7 +1011,7 @@ def filter_graph(G, min_weight, min_freq, selected_categories, selected_types, s
     return Gf
 
 # ============================================================================
-# STRUCTURED INSIGHT GENERATOR
+# STRUCTURED INSIGHT GENERATOR (unchanged)
 # ============================================================================
 class DegradationInsightGenerator:
     @staticmethod
@@ -1618,7 +1634,7 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
     return net.generate_html()
 
 # ============================================================================
-# MAIN APPLICATION
+# MAIN APPLICATION with st.fragment for sidebar isolation
 # ============================================================================
 def main():
     try:
@@ -1629,27 +1645,42 @@ def main():
 
     st.set_page_config(layout="wide", page_title="Intelligent Battery Degradation Explorer")
     st.markdown("<h1 style='text-align:center;'>🔋 Intelligent Battery Degradation Knowledge Explorer</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Optimized for Streamlit Cloud – CPU‑safe, Pyvis graphs, multiple LLMs up to 3B, advanced analytics.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Optimized for Streamlit Cloud – CPU‑safe, memory‑efficient, and fast.</p>", unsafe_allow_html=True)
 
     # Memory warning banner
     st.warning("""
-⚠️ **Memory‑efficient LLM mode active**  
-• On **GPU**: model loaded in 8‑bit (if bitsandbytes available) → ~4× less VRAM  
-• On **CPU**: model uses float32 → stable but slower  
+⚠️ **Memory‑efficient mode active**  
+• On **GPU**: models loaded in 8‑bit (if available) → ~4× less VRAM  
+• On **CPU**: models use float32 → stable but slower  
 • First load may take up to 2 minutes (model is cached afterwards)  
 • Only models ≤ 2 B parameters are offered to avoid OOM.
 """)
 
     # ------------------------------------------------------------------------
-    # Initialize global models and embeddings
+    # Lazy load SciBERT – only when needed
     # ------------------------------------------------------------------------
-    global scibert_tokenizer, scibert_model, KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS, EMBEDDING_INDEX, EMBEDDING_INDEX_NODES
-    scibert_tokenizer, scibert_model = load_scibert()
-    KEY_TERMS_EMBEDDINGS = compute_embeddings(KEY_TERMS)
-    PHYSICS_TERMS_EMBEDDINGS = compute_embeddings(PHYSICS_TERMS)
-    KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
-    PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
+    global scibert_tokenizer, scibert_model, KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+    if "scibert_loaded" not in st.session_state:
+        st.session_state.scibert_loaded = False
 
+    if not st.session_state.scibert_loaded:
+        if st.checkbox("Enable Semantic Analysis (loads SciBERT)", value=True):
+            with st.spinner("Loading SciBERT (once per session)..."):
+                scibert_tokenizer, scibert_model = load_scibert()
+                st.session_state.scibert_loaded = True
+                # Pre‑compute global embeddings only if SciBERT loaded
+                KEY_TERMS_EMBEDDINGS = compute_embeddings(KEY_TERMS)
+                PHYSICS_TERMS_EMBEDDINGS = compute_embeddings(PHYSICS_TERMS)
+                KEY_TERMS_EMBEDDINGS = [emb for emb in KEY_TERMS_EMBEDDINGS if emb is not None]
+                PHYSICS_TERMS_EMBEDDINGS = [emb for emb in PHYSICS_TERMS_EMBEDDINGS if emb is not None]
+        else:
+            scibert_tokenizer, scibert_model = None, None
+            KEY_TERMS_EMBEDDINGS = []
+            PHYSICS_TERMS_EMBEDDINGS = []
+
+    # ------------------------------------------------------------------------
+    # Load data (cached)
+    # ------------------------------------------------------------------------
     try:
         edges_df, nodes_df = load_data()
     except Exception as e:
@@ -1671,35 +1702,38 @@ def main():
 
     G_original = G.copy()
 
-    @st.cache_data
-    def compute_node_embeddings_dict(nodes_list):
-        emb_list = get_scibert_embedding(nodes_list)
-        return dict(zip(nodes_list, emb_list))
+    # Pre‑compute node embeddings once (if SciBERT is loaded)
+    if st.session_state.scibert_loaded:
+        @st.cache_data
+        def compute_node_embeddings_dict(nodes_list):
+            emb_list = get_scibert_embedding(nodes_list)
+            return dict(zip(nodes_list, emb_list))
+        node_list_all = list(G.nodes())
+        term_embeddings_dict = compute_node_embeddings_dict(node_list_all)
 
-    node_list_all = list(G.nodes())
-    term_embeddings_dict = compute_node_embeddings_dict(node_list_all)
-
-    # FAISS index building with robust error handling
-    if FAISS_AVAILABLE:
-        try:
-            embeddings_list = [term_embeddings_dict[n] for n in node_list_all if term_embeddings_dict.get(n) is not None]
-            if embeddings_list:
-                EMBEDDING_INDEX, EMBEDDING_INDEX_NODES = build_faiss_index(embeddings_list, node_list_all)
-            else:
+        # Build FAISS index if available
+        if FAISS_AVAILABLE:
+            try:
+                embeddings_list = [term_embeddings_dict[n] for n in node_list_all if term_embeddings_dict.get(n) is not None]
+                if embeddings_list:
+                    EMBEDDING_INDEX, EMBEDDING_INDEX_NODES = build_faiss_index(embeddings_list, node_list_all)
+                else:
+                    EMBEDDING_INDEX = None
+                    EMBEDDING_INDEX_NODES = []
+            except Exception as e:
+                logger.error(f"FAISS index build failed: {e}")
                 EMBEDDING_INDEX = None
                 EMBEDDING_INDEX_NODES = []
-        except Exception as e:
-            logger.error(f"FAISS index build failed: {e}")
-            EMBEDDING_INDEX = None
-            EMBEDDING_INDEX_NODES = []
     else:
-        EMBEDDING_INDEX = None
-        EMBEDDING_INDEX_NODES = []
+        term_embeddings_dict = {}
 
+    # ------------------------------------------------------------------------
+    # Session state initialisation
+    # ------------------------------------------------------------------------
     if "parser" not in st.session_state:
         st.session_state.parser = BatteryNLParser()
     if "relevance_scorer" not in st.session_state:
-        st.session_state.relevance_scorer = RelevanceScorer(use_scibert=True)
+        st.session_state.relevance_scorer = RelevanceScorer(use_scibert=st.session_state.scibert_loaded)
     if "insight_generator" not in st.session_state:
         st.session_state.insight_generator = DegradationInsightGenerator()
     if "llm_tokenizer" not in st.session_state:
@@ -1712,62 +1746,100 @@ def main():
         st.session_state.last_analysis_results = None
     if "last_structured_insights" not in st.session_state:
         st.session_state.last_structured_insights = None
+    if "graph_cache" not in st.session_state:
+        st.session_state.graph_cache = {}   # simple cache for filtered graphs
 
     # ------------------------------------------------------------------------
-    # Sidebar filters
+    # Sidebar filters – wrapped in st.fragment to avoid full reruns
     # ------------------------------------------------------------------------
-    with st.sidebar:
-        st.markdown("## ⚙️ Manual Filters (optional)")
-        col1, col2 = st.columns(2)
-        with col1:
-            min_weight = st.slider("Min edge weight", int(edges_df["weight"].min()), int(edges_df["weight"].max()), 10, 1, key="min_weight")
-        with col2:
-            min_freq = st.slider("Min node frequency", int(nodes_df["frequency"].min()), int(nodes_df["frequency"].max()), 5, 1, key="min_freq")
+    @st.fragment
+    def sidebar_filters():
+        with st.sidebar:
+            st.markdown("## ⚙️ Manual Filters (optional)")
+            col1, col2 = st.columns(2)
+            with col1:
+                min_weight = st.slider("Min edge weight", int(edges_df["weight"].min()), int(edges_df["weight"].max()), 10, 1, key="min_weight")
+            with col2:
+                min_freq = st.slider("Min node frequency", int(nodes_df["frequency"].min()), int(nodes_df["frequency"].max()), 5, 1, key="min_freq")
 
-        categories = sorted(nodes_df["category"].dropna().unique())
-        selected_cats = st.multiselect("Filter by category", categories, default=categories, key="cats")
-        types = sorted(nodes_df["type"].dropna().unique())
-        selected_types = st.multiselect("Filter by node type", types, default=types, key="types")
+            categories = sorted(nodes_df["category"].dropna().unique())
+            selected_cats = st.multiselect("Filter by category", categories, default=categories, key="cats")
+            types = sorted(nodes_df["type"].dropna().unique())
+            selected_types = st.multiselect("Filter by node type", types, default=types, key="types")
 
-        min_priority = st.slider("Min priority score", 0.0, 1.0, 0.2, 0.05, key="min_priority")
-        selected_nodes = st.multiselect("Include specific nodes", sorted(G.nodes()), default=["electrode cracking", "SEI formation", "capacity fade"] if all(n in G.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else [], key="selected_nodes")
-        excluded_input = st.text_input("Exclude terms (comma-separated)", value="battery, material", key="excluded")
-        excluded_terms = [t.strip().lower() for t in excluded_input.split(',') if t.strip()]
+            min_priority = st.slider("Min priority score", 0.0, 1.0, 0.2, 0.05, key="min_priority")
+            selected_nodes = st.multiselect("Include specific nodes", sorted(G.nodes()), default=["electrode cracking", "SEI formation", "capacity fade"] if all(n in G.nodes() for n in ["electrode cracking", "SEI formation", "capacity fade"]) else [], key="selected_nodes")
+            excluded_input = st.text_input("Exclude terms (comma-separated)", value="battery, material", key="excluded")
+            excluded_terms = [t.strip().lower() for t in excluded_input.split(',') if t.strip()]
 
-        st.markdown("### 🔬 Physics Settings")
-        physics_boost = st.slider("Physics boost weight", 0.0, 0.5, 0.15, 0.05, key="physics_boost")
-        require_physics = st.checkbox("Require physics in pathways", value=False, key="require_physics")
-        min_phys_sim = st.slider("Min physics similarity", 0.0, 1.0, 0.5, 0.1, key="min_phys_sim")
+            st.markdown("### 🔬 Physics Settings")
+            physics_boost = st.slider("Physics boost weight", 0.0, 0.5, 0.15, 0.05, key="physics_boost")
+            require_physics = st.checkbox("Require physics in pathways", value=False, key="require_physics")
+            min_phys_sim = st.slider("Min physics similarity", 0.0, 1.0, 0.5, 0.1, key="min_phys_sim")
 
-        st.markdown("### ⚡ Operational Constraints")
-        c_rate = st.slider("C-rate", OPERATIONAL_CONSTRAINTS["c_rate"]["min"], OPERATIONAL_CONSTRAINTS["c_rate"]["max"], OPERATIONAL_CONSTRAINTS["c_rate"]["default"], OPERATIONAL_CONSTRAINTS["c_rate"]["step"], key="c_rate")
-        voltage = st.slider("Voltage (V)", OPERATIONAL_CONSTRAINTS["voltage"]["min"], OPERATIONAL_CONSTRAINTS["voltage"]["max"], OPERATIONAL_CONSTRAINTS["voltage"]["default"], OPERATIONAL_CONSTRAINTS["voltage"]["step"], key="voltage")
-        temperature = st.slider("Temperature (°C)", OPERATIONAL_CONSTRAINTS["temperature"]["min"], OPERATIONAL_CONSTRAINTS["temperature"]["max"], OPERATIONAL_CONSTRAINTS["temperature"]["default"], OPERATIONAL_CONSTRAINTS["temperature"]["step"], key="temperature")
-        soc = st.slider("SOC (%)", OPERATIONAL_CONSTRAINTS["soc"]["min"], OPERATIONAL_CONSTRAINTS["soc"]["max"], OPERATIONAL_CONSTRAINTS["soc"]["default"], OPERATIONAL_CONSTRAINTS["soc"]["step"], key="soc")
-        dod = st.slider("DOD (%)", OPERATIONAL_CONSTRAINTS["dod"]["min"], OPERATIONAL_CONSTRAINTS["dod"]["max"], OPERATIONAL_CONSTRAINTS["dod"]["default"], OPERATIONAL_CONSTRAINTS["dod"]["step"], key="dod")
+            st.markdown("### ⚡ Operational Constraints")
+            c_rate = st.slider("C-rate", OPERATIONAL_CONSTRAINTS["c_rate"]["min"], OPERATIONAL_CONSTRAINTS["c_rate"]["max"], OPERATIONAL_CONSTRAINTS["c_rate"]["default"], OPERATIONAL_CONSTRAINTS["c_rate"]["step"], key="c_rate")
+            voltage = st.slider("Voltage (V)", OPERATIONAL_CONSTRAINTS["voltage"]["min"], OPERATIONAL_CONSTRAINTS["voltage"]["max"], OPERATIONAL_CONSTRAINTS["voltage"]["default"], OPERATIONAL_CONSTRAINTS["voltage"]["step"], key="voltage")
+            temperature = st.slider("Temperature (°C)", OPERATIONAL_CONSTRAINTS["temperature"]["min"], OPERATIONAL_CONSTRAINTS["temperature"]["max"], OPERATIONAL_CONSTRAINTS["temperature"]["default"], OPERATIONAL_CONSTRAINTS["temperature"]["step"], key="temperature")
+            soc = st.slider("SOC (%)", OPERATIONAL_CONSTRAINTS["soc"]["min"], OPERATIONAL_CONSTRAINTS["soc"]["max"], OPERATIONAL_CONSTRAINTS["soc"]["default"], OPERATIONAL_CONSTRAINTS["soc"]["step"], key="soc")
+            dod = st.slider("DOD (%)", OPERATIONAL_CONSTRAINTS["dod"]["min"], OPERATIONAL_CONSTRAINTS["dod"]["max"], OPERATIONAL_CONSTRAINTS["dod"]["default"], OPERATIONAL_CONSTRAINTS["dod"]["step"], key="dod")
 
-        st.markdown("### 🎯 Highlighting")
-        highlight = st.checkbox("Highlight high-priority nodes", value=True, key="highlight")
-        threshold = st.slider("Highlight threshold", 0.5, 1.0, 0.7, 0.05, key="threshold")
-        suppress = st.checkbox("Suppress low-priority", value=False, key="suppress")
+            st.markdown("### 🎯 Highlighting")
+            highlight = st.checkbox("Highlight high-priority nodes", value=True, key="highlight")
+            threshold = st.slider("Highlight threshold", 0.5, 1.0, 0.7, 0.05, key="threshold")
+            suppress = st.checkbox("Suppress low-priority", value=False, key="suppress")
 
-        st.markdown("### 📝 Labels")
-        show_labels = st.checkbox("Show labels", value=True, key="show_labels")
-        label_size = st.slider("Font size", 10, 100, 16, key="label_size")
-        max_chars = st.slider("Max chars", 10, 30, 15, key="max_chars")
-        edge_width = st.slider("Edge width factor", 0.1, 2.0, 0.5, key="edge_width")
+            st.markdown("### 📝 Labels")
+            show_labels = st.checkbox("Show labels", value=True, key="show_labels")
+            label_size = st.slider("Font size", 10, 100, 16, key="label_size")
+            max_chars = st.slider("Max chars", 10, 30, 15, key="max_chars")
+            edge_width = st.slider("Edge width factor", 0.1, 2.0, 0.5, key="edge_width")
 
-        st.markdown("### 🧠 Query-Driven Reconstruction")
-        use_reconstruction = st.checkbox("Reconstruct graph with LLM attention pooling", value=False, key="use_reconstruction")
-        max_recon_nodes = st.slider("Max nodes in influenced graph", 50, 600, 250, step=25, key="max_recon_nodes")
+            st.markdown("### 🧠 Query-Driven Reconstruction")
+            use_reconstruction = st.checkbox("Reconstruct graph with LLM attention pooling", value=False, key="use_reconstruction")
+            max_recon_nodes = st.slider("Max nodes in influenced graph", 50, 600, 250, step=25, key="max_recon_nodes")
 
-        st.markdown("### 🔬 Advanced Analytics")
-        use_multi_res = st.checkbox("Multi-resolution communities", value=False, key="multi_res")
-        use_bootstrap = st.checkbox("Bootstrap centrality", value=False, key="bootstrap")
-        bootstrap_samples = st.slider("Bootstrap samples", 10, 200, 50, key="bootstrap_samples") if use_bootstrap else 50
+            st.markdown("### 🔬 Advanced Analytics")
+            use_multi_res = st.checkbox("Multi-resolution communities", value=False, key="multi_res")
+            use_bootstrap = st.checkbox("Bootstrap centrality", value=False, key="bootstrap")
+            bootstrap_samples = st.slider("Bootstrap samples", 10, 200, 50, key="bootstrap_samples") if use_bootstrap else 50
 
-        st.markdown("### 🎨 Visualization")
-        viz_engine = st.selectbox("Visualization Engine", ["Plotly (static)", "Pyvis (interactive)"], index=0, key="viz_engine")
+            st.markdown("### 🎨 Visualization")
+            viz_engine = st.selectbox("Visualization Engine", ["Plotly (static)", "Pyvis (interactive)"], index=0, key="viz_engine")
+
+        return {
+            "min_weight": min_weight,
+            "min_freq": min_freq,
+            "selected_cats": selected_cats,
+            "selected_types": selected_types,
+            "min_priority": min_priority,
+            "selected_nodes": selected_nodes,
+            "excluded_terms": excluded_terms,
+            "physics_boost": physics_boost,
+            "require_physics": require_physics,
+            "min_phys_sim": min_phys_sim,
+            "c_rate": c_rate,
+            "voltage": voltage,
+            "temperature": temperature,
+            "soc": soc,
+            "dod": dod,
+            "highlight": highlight,
+            "threshold": threshold,
+            "suppress": suppress,
+            "show_labels": show_labels,
+            "label_size": label_size,
+            "max_chars": max_chars,
+            "edge_width": edge_width,
+            "use_reconstruction": use_reconstruction,
+            "max_recon_nodes": max_recon_nodes,
+            "use_multi_res": use_multi_res,
+            "use_bootstrap": use_bootstrap,
+            "bootstrap_samples": bootstrap_samples,
+            "viz_engine": viz_engine,
+        }
+
+    # Call the fragment to get current sidebar values
+    sidebar_vals = sidebar_filters()
 
     # ------------------------------------------------------------------------
     # Query interface
@@ -1786,7 +1858,7 @@ def main():
                 index=0,
                 key="llm_choice"
             )
-            st.caption("**Qwen2.5-1.5B** = best quality on Cloud. Expect 4–12 tokens/sec.")
+            st.caption("**tinyLLAMA (1.1B)** added; Qwen2.5-1.5B still recommended.")
             use_llm = st.checkbox("Use LLM parsing & expansion", value=True)
             use_ensemble = st.checkbox("Use ensemble (slower but more stable)", value=False)
         with col3:
@@ -1798,9 +1870,11 @@ def main():
                 st.session_state.last_structured_insights = None
                 st.rerun()
 
+    # ------------------------------------------------------------------------
+    # Handle query analysis (only when button clicked)
+    # ------------------------------------------------------------------------
     if run_button and user_query:
         with st.spinner("🔍 Loading LLM (cached) and parsing query..."):
-            # Load LLM only now, using the memory‑efficient loader
             if use_llm and TRANSFORMERS_AVAILABLE:
                 tok, mod, loaded_name = load_llm_memory_efficient(model_choice)
                 st.session_state.llm_tokenizer = tok
@@ -1823,9 +1897,11 @@ def main():
                 st.warning(f"LLM output validation failed: {e}. Using regex parsed.")
             st.session_state.last_params = ParsedParameters(**params)
 
-            all_nodes = list(G.nodes())
-            relevance, conf = st.session_state.relevance_scorer.score_query_to_nodes(user_query, all_nodes[:100])
-            st.info(f"**Semantic Relevance:** {relevance:.3f} (confidence: {conf:.2f})")
+            # Semantic relevance only if SciBERT loaded
+            if st.session_state.scibert_loaded:
+                all_nodes = list(G.nodes())
+                relevance, conf = st.session_state.relevance_scorer.score_query_to_nodes(user_query, all_nodes[:100])
+                st.info(f"**Semantic Relevance:** {relevance:.3f} (confidence: {conf:.2f})")
 
             st.markdown("### 📋 Parsed Parameters")
             cols = st.columns(3)
@@ -1841,73 +1917,105 @@ def main():
             params = asdict(ParsedParameters())
 
     # Override with sidebar values
-    params['min_weight'] = min_weight
-    params['min_freq'] = min_freq
-    params['selected_categories'] = selected_cats
-    params['selected_types'] = selected_types
-    params['min_priority_score'] = min_priority
-    params['selected_nodes'] = selected_nodes
-    params['excluded_terms'] = excluded_terms
-    params['physics_boost_weight'] = physics_boost
-    params['require_physics_in_pathways'] = require_physics
-    params['min_physics_similarity'] = min_phys_sim
-    params['c_rate'] = c_rate
-    params['voltage'] = voltage
-    params['temperature'] = temperature
-    params['soc'] = soc
-    params['dod'] = dod
-    params['highlight_priority'] = highlight
-    params['priority_threshold'] = threshold
-    params['suppress_low_priority'] = suppress
-    params['show_labels'] = show_labels
-    params['label_font_size'] = label_size
-    params['label_max_chars'] = max_chars
-    params['edge_width_factor'] = edge_width
+    params['min_weight'] = sidebar_vals['min_weight']
+    params['min_freq'] = sidebar_vals['min_freq']
+    params['selected_categories'] = sidebar_vals['selected_cats']
+    params['selected_types'] = sidebar_vals['selected_types']
+    params['min_priority_score'] = sidebar_vals['min_priority']
+    params['selected_nodes'] = sidebar_vals['selected_nodes']
+    params['excluded_terms'] = sidebar_vals['excluded_terms']
+    params['physics_boost_weight'] = sidebar_vals['physics_boost']
+    params['require_physics_in_pathways'] = sidebar_vals['require_physics']
+    params['min_physics_similarity'] = sidebar_vals['min_phys_sim']
+    params['c_rate'] = sidebar_vals['c_rate']
+    params['voltage'] = sidebar_vals['voltage']
+    params['temperature'] = sidebar_vals['temperature']
+    params['soc'] = sidebar_vals['soc']
+    params['dod'] = sidebar_vals['dod']
+    params['highlight_priority'] = sidebar_vals['highlight']
+    params['priority_threshold'] = sidebar_vals['threshold']
+    params['suppress_low_priority'] = sidebar_vals['suppress']
+    params['show_labels'] = sidebar_vals['show_labels']
+    params['label_font_size'] = sidebar_vals['label_size']
+    params['label_max_chars'] = sidebar_vals['max_chars']
+    params['edge_width_factor'] = sidebar_vals['edge_width']
 
     # ------------------------------------------------------------------------
-    # Priority scores
+    # Compute priority scores (cached if possible)
     # ------------------------------------------------------------------------
-    operational = {"c_rate": c_rate, "voltage": voltage, "temperature": temperature}
-    priority_scores = calculate_priority_scores(G, nodes_df, physics_boost_weight=physics_boost,
-                                                operational_params=operational,
-                                                focus_terms=params.get('focus_terms'))
-    for n in G.nodes():
-        G.nodes[n]['priority_score'] = priority_scores.get(n, 0)
-    nodes_df['priority_score'] = nodes_df['node'].apply(lambda x: priority_scores.get(x, 0))
+    # Create a hash of parameters that affect priority scores
+    cache_key = f"priority_{hash(frozenset(params.items()))}_{hash(frozenset(G.nodes()))}"
+    if cache_key in st.session_state.graph_cache:
+        priority_scores = st.session_state.graph_cache[cache_key]['priority_scores']
+    else:
+        operational = {"c_rate": params['c_rate'], "voltage": params['voltage'], "temperature": params['temperature']}
+        if st.session_state.scibert_loaded and term_embeddings_dict:
+            priority_scores = calculate_priority_scores(
+                G, nodes_df, term_embeddings_dict,
+                physics_boost_weight=params['physics_boost_weight'],
+                operational_params=operational,
+                focus_terms=params.get('focus_terms')
+            )
+        else:
+            # Fallback without embeddings – use only structural metrics
+            degree = nx.degree_centrality(G)
+            between = nx.betweenness_centrality(G)
+            priority_scores = {}
+            for node in G.nodes():
+                priority_scores[node] = 0.5 * degree.get(node,0) + 0.5 * between.get(node,0)
+        for n in G.nodes():
+            G.nodes[n]['priority_score'] = priority_scores.get(n, 0)
+        nodes_df['priority_score'] = nodes_df['node'].apply(lambda x: priority_scores.get(x, 0))
+        st.session_state.graph_cache[cache_key] = {'priority_scores': priority_scores}
 
-    if use_bootstrap:
+    # ------------------------------------------------------------------------
+    # Bootstrap if requested
+    # ------------------------------------------------------------------------
+    if sidebar_vals['use_bootstrap']:
         with st.spinner("Computing Monte Carlo uncertainty for priority scores..."):
-            mean_priority, std_priority = monte_carlo_priority_score(G, nodes_df, n_samples=bootstrap_samples,
-                                                                     physics_boost_weight=physics_boost,
-                                                                     operational_params=operational,
-                                                                     focus_terms=params.get('focus_terms'))
+            mean_priority, std_priority = monte_carlo_priority_score(
+                G, nodes_df, n_samples=sidebar_vals['bootstrap_samples'],
+                physics_boost_weight=params['physics_boost_weight'],
+                operational_params=operational,
+                focus_terms=params.get('focus_terms')
+            )
             for n in G.nodes():
                 G.nodes[n]['priority_mean'] = mean_priority.get(n, priority_scores.get(n, 0))
                 G.nodes[n]['priority_std'] = std_priority.get(n, 0)
             params['uncertainty'] = {'priority_scores': {n: round(std_priority.get(n, 0), 4) for n in G.nodes() if std_priority.get(n, 0) > 0}}
 
-    G_filtered = filter_graph(G,
-                              min_weight=params['min_weight'],
-                              min_freq=params['min_freq'],
-                              selected_categories=params['selected_categories'],
-                              selected_types=params['selected_types'],
-                              selected_nodes=params['selected_nodes'],
-                              excluded_terms=params['excluded_terms'],
-                              min_priority_score=params['min_priority_score'],
-                              suppress_low_priority=params['suppress_low_priority'])
+    # ------------------------------------------------------------------------
+    # Filter graph (cached)
+    # ------------------------------------------------------------------------
+    filter_key = f"filter_{params['min_weight']}_{params['min_freq']}_{params['selected_categories']}_{params['selected_types']}_{params['selected_nodes']}_{params['excluded_terms']}_{params['min_priority_score']}_{params['suppress_low_priority']}"
+    if filter_key in st.session_state.graph_cache:
+        G_filtered = st.session_state.graph_cache[filter_key]['graph']
+    else:
+        G_filtered = filter_graph(
+            G,
+            min_weight=params['min_weight'],
+            min_freq=params['min_freq'],
+            selected_categories=params['selected_categories'],
+            selected_types=params['selected_types'],
+            selected_nodes=params['selected_nodes'],
+            excluded_terms=params['excluded_terms'],
+            min_priority_score=params['min_priority_score'],
+            suppress_low_priority=params['suppress_low_priority']
+        )
+        st.session_state.graph_cache[filter_key] = {'graph': G_filtered}
 
     st.sidebar.markdown(f"**Graph Stats (filtered):** {G_filtered.number_of_nodes()} nodes, {G_filtered.number_of_edges()} edges")
 
     # ------------------------------------------------------------------------
     # Optional: reconstruct influenced graph
     # ------------------------------------------------------------------------
-    if use_reconstruction and run_button and user_query:
+    if sidebar_vals['use_reconstruction'] and run_button and user_query:
         with st.spinner("🔄 Reconstructing graph with attention + LLM..."):
             G_influenced = reconstruct_graph_with_attention(
                 G_original, user_query, params,
                 st.session_state.llm_tokenizer, st.session_state.llm_model,
-                term_embeddings_dict,
-                max_nodes=max_recon_nodes,
+                term_embeddings_dict if st.session_state.scibert_loaded else {},
+                max_nodes=sidebar_vals['max_recon_nodes'],
                 use_faiss=FAISS_AVAILABLE
             )
             st.session_state.G_influenced = G_influenced
@@ -1926,7 +2034,7 @@ def main():
             focus = params.get('focus_terms', ['crack','fracture','degradation'])
             return analyze_failure_centrality(graph, focus)
         elif analysis_type == "Community Detection":
-            if use_multi_res:
+            if sidebar_vals['use_multi_res']:
                 return multi_resolution_community(graph, weight='weight')
             else:
                 return detect_failure_communities(graph)[0]
@@ -1954,9 +2062,9 @@ def main():
     graph_stats_inf = {'nodes': G_influenced.number_of_nodes(), 'edges': G_influenced.number_of_edges()}
 
     uncertainty_orig = {}
-    if use_bootstrap and results_orig is not None and analysis_type == "Centrality Analysis":
+    if sidebar_vals['use_bootstrap'] and results_orig is not None and analysis_type == "Centrality Analysis":
         with st.spinner("Computing bootstrap centrality uncertainty..."):
-            mean_cent, ci_lower, ci_upper = bootstrap_centrality(G_filtered, n_samples=bootstrap_samples, metric='degree')
+            mean_cent, ci_lower, ci_upper = bootstrap_centrality(G_filtered, n_samples=sidebar_vals['bootstrap_samples'], metric='degree')
             uncertainty_orig['degree_centrality'] = {n: {'mean': mean_cent[n], 'lower': ci_lower[n], 'upper': ci_upper[n]} for n in G_filtered.nodes()}
 
     if results_orig is not None:
@@ -1975,9 +2083,9 @@ def main():
         structured_inf = {}
 
     # ------------------------------------------------------------------------
-    # Quantitative Measures Tabs (Reconstruction Mode) – unchanged
+    # Quantitative Measures Tabs (Reconstruction Mode)
     # ------------------------------------------------------------------------
-    if use_reconstruction and results_orig is not None and results_inf is not None:
+    if sidebar_vals['use_reconstruction'] and results_orig is not None and results_inf is not None:
         st.subheader("📊 Structured Insights Comparison")
         col1, col2 = st.columns(2)
         with col1:
@@ -2087,11 +2195,17 @@ def main():
                 st.dataframe(df_rank[["name", "composite_weight", "degree", "physics_match", "equation"]])
 
     # ------------------------------------------------------------------------
-    # Visualization – Plotly or Pyvis
+    # Visualization – Plotly or Pyvis (with sampling for large graphs)
     # ------------------------------------------------------------------------
     def plot_graph_plotly(graph, title, size_attr="priority_score", use_attention_hover=False):
         if graph.number_of_nodes() == 0:
             return None
+        # Sample if graph is too large ( > 500 nodes)
+        if graph.number_of_nodes() > 500:
+            st.warning("Graph too large (>500 nodes). Showing top 500 by priority.")
+            nodes_to_keep = sorted(graph.nodes(), key=lambda n: graph.nodes[n].get(size_attr, 0), reverse=True)[:500]
+            graph = graph.subgraph(nodes_to_keep).copy()
+
         cats_in_graph = list(set([graph.nodes[n].get('category','Unknown') for n in graph.nodes()]))
         color_pal = px.colors.qualitative.Set3 if len(cats_in_graph) <= 10 else px.colors.qualitative.Alphabet
         color_map = {c: color_pal[i % len(color_pal)] for i, c in enumerate(cats_in_graph)}
@@ -2120,9 +2234,9 @@ def main():
             x0, y0 = pos[u]; x1, y1 = pos[v]
             w = d.get('weight',1)
             if ew_max > ew_min:
-                width = 0.5 + 4.5 * edge_width * (w - ew_min) / (ew_max - ew_min)
+                width = 0.5 + 4.5 * sidebar_vals['edge_width'] * (w - ew_min) / (ew_max - ew_min)
             else:
-                width = 2.0 * edge_width
+                width = 2.0 * sidebar_vals['edge_width']
             edge_traces.append(
                 go.Scatter(
                     x=[x0, x1, None], y=[y0, y1, None],
@@ -2176,62 +2290,81 @@ def main():
         return fig
 
     if G_filtered.number_of_nodes() > 0:
-        if use_reconstruction and G_influenced.number_of_nodes() > 0:
+        if sidebar_vals['use_reconstruction'] and G_influenced.number_of_nodes() > 0:
             col1, col2 = st.columns(2)
             with col1:
-                if viz_engine == "Plotly (static)":
+                if sidebar_vals['viz_engine'] == "Plotly (static)":
                     fig_orig = plot_graph_plotly(G_filtered, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
                     if fig_orig:
                         st.plotly_chart(fig_orig, use_container_width=True)
                 else:
                     if PYVIS_AVAILABLE:
-                        html_orig = create_pyvis_network(G_filtered, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
+                        # Pyvis also benefits from sampling if large
+                        if G_filtered.number_of_nodes() > 500:
+                            nodes_to_keep = sorted(G_filtered.nodes(), key=lambda n: G_filtered.nodes[n].get('priority_score', 0), reverse=True)[:500]
+                            G_viz = G_filtered.subgraph(nodes_to_keep).copy()
+                        else:
+                            G_viz = G_filtered
+                        html_orig = create_pyvis_network(G_viz, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
                         if html_orig:
                             st.components.v1.html(html_orig, height=650)
                     else:
                         st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
             with col2:
-                if viz_engine == "Plotly (static)":
+                if sidebar_vals['viz_engine'] == "Plotly (static)":
                     fig_inf = plot_graph_plotly(G_influenced, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
                     if fig_inf:
                         st.plotly_chart(fig_inf, use_container_width=True)
                 else:
                     if PYVIS_AVAILABLE:
-                        html_inf = create_pyvis_network(G_influenced, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
+                        if G_influenced.number_of_nodes() > 500:
+                            nodes_to_keep = sorted(G_influenced.nodes(), key=lambda n: G_influenced.nodes[n].get('attention', 0), reverse=True)[:500]
+                            G_viz = G_influenced.subgraph(nodes_to_keep).copy()
+                        else:
+                            G_viz = G_influenced
+                        html_inf = create_pyvis_network(G_viz, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
                         if html_inf:
                             st.components.v1.html(html_inf, height=650)
                     else:
                         st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
         else:
-            if viz_engine == "Plotly (static)":
+            if sidebar_vals['viz_engine'] == "Plotly (static)":
                 fig = plot_graph_plotly(G_filtered, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
                 if fig:
                     st.plotly_chart(fig, use_container_width=True)
             else:
                 if PYVIS_AVAILABLE:
-                    html = create_pyvis_network(G_filtered, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
+                    if G_filtered.number_of_nodes() > 500:
+                        nodes_to_keep = sorted(G_filtered.nodes(), key=lambda n: G_filtered.nodes[n].get('priority_score', 0), reverse=True)[:500]
+                        G_viz = G_filtered.subgraph(nodes_to_keep).copy()
+                    else:
+                        G_viz = G_filtered
+                    html = create_pyvis_network(G_viz, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
                     if html:
                         st.components.v1.html(html, height=650)
                 else:
                     st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
 
-        # Additional Analytics
-        st.subheader("📊 Graph Analytics")
-        col1, col2 = st.columns(2)
-        with col1:
-            category_counts = nodes_df['category'].value_counts()
-            fig_cat = px.pie(values=category_counts.values, names=category_counts.index, title="Node Distribution by Category")
-            st.plotly_chart(fig_cat, use_container_width=True)
-        with col2:
-            top_nodes = nodes_df.nlargest(10, 'priority_score')[['node', 'priority_score']]
-            fig_nodes = px.bar(top_nodes, x='priority_score', y='node', orientation='h', title="Top Nodes by Priority Score")
-            st.plotly_chart(fig_nodes, use_container_width=True)
+        # Additional Analytics (only if graph not too large)
+        if G_filtered.number_of_nodes() < 500:
+            st.subheader("📊 Graph Analytics")
+            col1, col2 = st.columns(2)
+            with col1:
+                category_counts = nodes_df['category'].value_counts()
+                fig_cat = px.pie(values=category_counts.values, names=category_counts.index, title="Node Distribution by Category")
+                st.plotly_chart(fig_cat, use_container_width=True)
+            with col2:
+                top_nodes = nodes_df.nlargest(10, 'priority_score')[['node', 'priority_score']]
+                fig_nodes = px.bar(top_nodes, x='priority_score', y='node', orientation='h', title="Top Nodes by Priority Score")
+                st.plotly_chart(fig_nodes, use_container_width=True)
 
-        edge_type_counts = edges_df['type'].value_counts()
-        fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values, title="Edge Type Distribution")
-        st.plotly_chart(fig_edge, use_container_width=True)
+            edge_type_counts = edges_df['type'].value_counts()
+            fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values, title="Edge Type Distribution")
+            st.plotly_chart(fig_edge, use_container_width=True)
+        else:
+            st.info("Graph too large to show detailed analytics. Switch to reconstruction mode or reduce filters.")
 
-    # Export functionality
+    # Export functionality (unchanged)
     with st.sidebar:
         st.markdown("### 💾 Export")
         if st.button("Export Filtered Graph as CSV"):
