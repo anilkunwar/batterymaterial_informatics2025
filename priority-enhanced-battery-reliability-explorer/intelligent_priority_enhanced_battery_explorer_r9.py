@@ -607,7 +607,7 @@ LLM_MODELS = {
     "Qwen2.5-1.5B-Instruct (CPU)": "Qwen/Qwen2.5-1.5B-Instruct",
     "Gemma-2B (2B, CPU)": "google/gemma-2b",
     "Qwen2.5-3B-Instruct (may OOM)": "Qwen/Qwen2.5-3B-Instruct",
-    "tinyLLAMA (1.1B)": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",  # added tinyLLAMA
+    "tinyLLAMA (1.1B)": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
 }
 
 def get_memory_info():
@@ -1634,7 +1634,7 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
     return net.generate_html()
 
 # ============================================================================
-# MAIN APPLICATION with st.fragment for sidebar isolation
+# MAIN APPLICATION – sidebar_filters is now a regular function (no fragment)
 # ============================================================================
 def main():
     try:
@@ -1750,9 +1750,8 @@ def main():
         st.session_state.graph_cache = {}   # simple cache for filtered graphs
 
     # ------------------------------------------------------------------------
-    # Sidebar filters – wrapped in st.fragment to avoid full reruns
+    # Sidebar filters – regular function (no fragment)
     # ------------------------------------------------------------------------
-    @st.fragment
     def sidebar_filters():
         with st.sidebar:
             st.markdown("## ⚙️ Manual Filters (optional)")
@@ -1838,7 +1837,7 @@ def main():
             "viz_engine": viz_engine,
         }
 
-    # Call the fragment to get current sidebar values
+    # Call the function to get current sidebar values
     sidebar_vals = sidebar_filters()
 
     # ------------------------------------------------------------------------
