@@ -42,6 +42,7 @@ import sympy as sp
 from pydantic import BaseModel, validator, ValidationError
 import redis
 from scipy.stats import bootstrap
+from networkx.readwrite import json_graph  # added for JSON export
 
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
@@ -1543,66 +1544,68 @@ def benchmark_graphs(G1: nx.Graph, G2: nx.Graph, analysis_type: str) -> Dict:
     return metrics
 
 # ============================================================================
-# PYVIS VISUALIZATION FUNCTION
+# PYVIS VISUALIZATION FUNCTION – FIXED JSON OPTIONS
 # ============================================================================
 def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priority_score", use_attention_hover=False, height="600px"):
     if not PYVIS_AVAILABLE:
         return None
 
     net = Network(height=height, width="100%", bgcolor="#ffffff", font_color="black")
+
+    # FIX: Use strict JSON format – double quotes, no "var options ="
     net.set_options("""
-    var options = {
-      nodes: {
-        shape: 'dot',
-        scaling: {
-          min: 10,
-          max: 50,
-          label: {
-            enabled: true,
-            min: 12,
-            max: 24
+    {
+      "nodes": {
+        "shape": "dot",
+        "scaling": {
+          "min": 10,
+          "max": 50,
+          "label": {
+            "enabled": true,
+            "min": 12,
+            "max": 24
           }
         },
-        font: {
-          size: 12,
-          face: 'Arial'
+        "font": {
+          "size": 12,
+          "face": "Arial"
         }
       },
-      edges: {
-        smooth: false,
-        arrows: {
-          to: { enabled: false }
+      "edges": {
+        "smooth": false,
+        "arrows": {
+          "to": { "enabled": false }
         },
-        scaling: {
-          min: 1,
-          max: 10,
-          label: {
-            enabled: true,
-            min: 12,
-            max: 20
+        "scaling": {
+          "min": 1,
+          "max": 10,
+          "label": {
+            "enabled": true,
+            "min": 12,
+            "max": 20
           }
         }
       },
-      physics: {
-        enabled: true,
-        solver: 'forceAtlas2Based',
-        forceAtlas2Based: {
-          gravitationalConstant: -200,
-          centralGravity: 0.01,
-          springLength: 150,
-          springConstant: 0.08,
-          damping: 0.4,
-          avoidOverlap: 0.5
+      "physics": {
+        "enabled": true,
+        "solver": "forceAtlas2Based",
+        "forceAtlas2Based": {
+          "gravitationalConstant": -200,
+          "centralGravity": 0.01,
+          "springLength": 150,
+          "springConstant": 0.08,
+          "damping": 0.4,
+          "avoidOverlap": 0.5
         },
-        stabilization: {
-          iterations: 200
+        "stabilization": {
+          "iterations": 200
         }
       },
-      interaction: {
-        hover: true,
-        tooltipDelay: 200,
-        zoomView: true,
-        dragView: true
+      "interaction": {
+        "hover": true,
+        "tooltipDelay": 200,
+        "zoomView": true,
+        "dragView": true
       }
     }
     """)
@@ -1650,6 +1653,89 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
         net.add_edge(u, v, value=width, title=title)
 
     return net.generate_html()
+
+# ============================================================================
+# NEW: PLOTLY NETWORK (Interactive, native)
+# ============================================================================
+def create_plotly_network(G, title="Battery Reliability Explorer", size_attr="priority_score", use_attention_hover=False):
+    """
+    Create an interactive Plotly graph from a NetworkX graph.
+    """
+    # Generate node positions using spring layout
+    pos = nx.spring_layout(G, k=0.5, iterations=50, seed=42)
+
+    # 1. Edges
+    edge_x, edge_y = [], []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='#888'),
+        hoverinfo='none',
+        mode='lines'
+    )
+
+    # 2. Nodes
+    node_x, node_y, node_text, node_size, node_color = [], [], [], [], []
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+
+        # Use priority or attention score for sizing and color
+        if use_attention_hover and 'attention' in G.nodes[node]:
+            score = G.nodes[node].get('attention', 0.5)
+        else:
+            score = G.nodes[node].get('priority_score', 0.5)
+
+        node_size.append(max(5, score * 40))  # scale between 5 and 45
+        node_color.append(score)
+
+        # Build hover text
+        d = G.nodes[node]
+        base = f"<b>{node}</b><br>Category: {d.get('category','N/A')}<br>Type: {d.get('type','N/A')}<br>Frequency: {d.get('frequency',0)}"
+        if use_attention_hover and 'attention' in d:
+            base += f"<br>Attention: {d['attention']:.3f}"
+        else:
+            base += f"<br>Priority: {score:.3f}"
+        if 'priority_std' in d:
+            base += f"<br>Uncertainty: ±{d['priority_std']:.3f}"
+        node_text.append(base)
+
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        text=[n if G.nodes[n].get('priority_score', 0) > 0.7 else "" for n in G.nodes()],  # label only high priority
+        textposition="top center",
+        hoverinfo='text',
+        hovertext=node_text,
+        marker=dict(
+            showscale=True,
+            colorscale='Viridis',
+            reversescale=False,
+            size=node_size,
+            color=node_color,
+            colorbar=dict(thickness=15, title='Priority Score', xanchor='left', titleside='right'),
+            line_width=2
+        )
+    )
+
+    # 3. Figure layout
+    fig = go.Figure(data=[edge_trace, node_trace],
+                   layout=go.Layout(
+                       title=f"<b>{title}</b>",
+                       titlefont_size=16,
+                       showlegend=False,
+                       hovermode='closest',
+                       margin=dict(b=0, l=0, r=0, t=40),
+                       xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                       yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                   ))
+    return fig
 
 # ============================================================================
 # MAIN APPLICATION – sidebar_filters is a regular function (no fragment)
@@ -2222,174 +2308,73 @@ def main():
     # ------------------------------------------------------------------------
     # Visualization – Plotly or Pyvis (with sampling for large graphs)
     # ------------------------------------------------------------------------
-    def plot_graph_plotly(graph, title, size_attr="priority_score", use_attention_hover=False):
-        if graph.number_of_nodes() == 0:
-            return None
-        # Sample if graph is too large ( > 500 nodes)
-        if graph.number_of_nodes() > 500:
-            st.warning("Graph too large (>500 nodes). Showing top 500 by priority.")
-            nodes_to_keep = sorted(graph.nodes(), key=lambda n: graph.nodes[n].get(size_attr, 0), reverse=True)[:500]
-            graph = graph.subgraph(nodes_to_keep).copy()
+    # Define the graph to visualize (original or influenced)
+    if sidebar_vals['use_reconstruction'] and G_influenced.number_of_nodes() > 0:
+        viz_graph = G_influenced
+        size_attr = "attention"
+        use_attention_hover = True
+    else:
+        viz_graph = G_filtered
+        size_attr = "priority_score"
+        use_attention_hover = False
 
-        cats_in_graph = list(set([graph.nodes[n].get('category','Unknown') for n in graph.nodes()]))
-        color_pal = px.colors.qualitative.Set3 if len(cats_in_graph) <= 10 else px.colors.qualitative.Alphabet
-        color_map = {c: color_pal[i % len(color_pal)] for i, c in enumerate(cats_in_graph)}
-        node_colors = [color_map.get(graph.nodes[n].get('category','Unknown'), 'lightgray') for n in graph.nodes()]
+    # If graph is too large, sample top nodes by score
+    if viz_graph.number_of_nodes() > 500:
+        st.warning("Graph too large (>500 nodes). Showing top 500 by priority.")
+        nodes_to_keep = sorted(viz_graph.nodes(), key=lambda n: viz_graph.nodes[n].get(size_attr, 0), reverse=True)[:500]
+        viz_graph = viz_graph.subgraph(nodes_to_keep).copy()
 
-        pos = nx.spring_layout(graph, k=1, iterations=100, seed=42, weight='weight')
-
-        if size_attr == "attention" and all('attention' in graph.nodes[n] for n in graph.nodes()):
-            sizes_vals = [graph.nodes[n].get('attention', 0) for n in graph.nodes()]
-        else:
-            sizes_vals = [graph.nodes[n].get('priority_score', 0) for n in graph.nodes()]
-
-        min_s, max_s = 15, 60
-        if max(sizes_vals) > min(sizes_vals):
-            sizes = [min_s + (max_s-min_s)*(s-min(sizes_vals))/(max(sizes_vals)-min(sizes_vals)) for s in sizes_vals]
-        else:
-            sizes = [30]*len(sizes_vals)
-
-        edge_traces = []
-        edge_weights = [d.get('weight',1) for u,v,d in graph.edges(data=True)]
-        if edge_weights:
-            ew_min, ew_max = min(edge_weights), max(edge_weights)
-        else:
-            ew_min = ew_max = 1
-        for u, v, d in graph.edges(data=True):
-            x0, y0 = pos[u]; x1, y1 = pos[v]
-            w = d.get('weight',1)
-            if ew_max > ew_min:
-                width = 0.5 + 4.5 * sidebar_vals['edge_width'] * (w - ew_min) / (ew_max - ew_min)
-            else:
-                width = 2.0 * sidebar_vals['edge_width']
-            edge_traces.append(
-                go.Scatter(
-                    x=[x0, x1, None], y=[y0, y1, None],
-                    mode='lines',
-                    line=dict(width=width, color="#888"),
-                    hoverinfo='text',
-                    text=f"{u} — {v}<br>weight: {w}<br>type: {d.get('type','')}"
-                )
-            )
-
-        node_x, node_y, hover_texts = [], [], []
-        for node in graph.nodes():
-            x, y = pos[node]
-            node_x.append(x); node_y.append(y)
-            d = graph.nodes[node]
-            base = f"{node}<br>Category: {d.get('category','N/A')}<br>Type: {d.get('type','N/A')}<br>Frequency: {d.get('frequency',0)}"
-            if use_attention_hover and 'attention' in d:
-                base += f"<br>Attention: {d['attention']:.3f}"
-            else:
-                base += f"<br>Priority: {d.get('priority_score',0):.3f}"
-            if 'priority_std' in d:
-                base += f"<br>Uncertainty: ±{d['priority_std']:.3f}"
-            hover_texts.append(base)
-
-        node_trace = go.Scatter(
-            x=node_x, y=node_y,
-            mode='markers',
-            hoverinfo='text',
-            hovertext=hover_texts,
-            marker=dict(
-                color=node_colors,
-                size=sizes,
-                line=dict(width=1, color='darkgray')
-            )
+    # Create tabs for the two visualization engines
+    viz_tabs = st.tabs(["📈 Plotly (Interactive)", "🌐 Pyvis (3D-ish)"])
+    with viz_tabs[0]:
+        # Plotly figure
+        plotly_fig = create_plotly_network(
+            viz_graph,
+            title=f"Battery Degradation Graph - {analysis_type}",
+            size_attr=size_attr,
+            use_attention_hover=use_attention_hover
         )
+        st.plotly_chart(plotly_fig, use_container_width=True)
 
-        fig = go.Figure(data=edge_traces + [node_trace])
-        for cat, col in color_map.items():
-            fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color=col), name=cat, showlegend=True))
-
-        fig.update_layout(
-            title=title,
-            title_font_size=20,
-            showlegend=True,
-            hovermode='closest',
-            margin=dict(b=20, l=5, r=5, t=40),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            height=600
-        )
-        return fig
-
-    if G_filtered.number_of_nodes() > 0:
-        if sidebar_vals['use_reconstruction'] and G_influenced.number_of_nodes() > 0:
-            col1, col2 = st.columns(2)
-            with col1:
-                if sidebar_vals['viz_engine'] == "Plotly (static)":
-                    fig_orig = plot_graph_plotly(G_filtered, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
-                    if fig_orig:
-                        st.plotly_chart(fig_orig, use_container_width=True)
-                else:
-                    if PYVIS_AVAILABLE:
-                        # Pyvis also benefits from sampling if large
-                        if G_filtered.number_of_nodes() > 500:
-                            nodes_to_keep = sorted(G_filtered.nodes(), key=lambda n: G_filtered.nodes[n].get('priority_score', 0), reverse=True)[:500]
-                            G_viz = G_filtered.subgraph(nodes_to_keep).copy()
-                        else:
-                            G_viz = G_filtered
-                        html_orig = create_pyvis_network(G_viz, "Original Filtered Graph", size_attr="priority_score", use_attention_hover=False)
-                        if html_orig:
-                            st.components.v1.html(html_orig, height=650)
-                    else:
-                        st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
-            with col2:
-                if sidebar_vals['viz_engine'] == "Plotly (static)":
-                    fig_inf = plot_graph_plotly(G_influenced, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
-                    if fig_inf:
-                        st.plotly_chart(fig_inf, use_container_width=True)
-                else:
-                    if PYVIS_AVAILABLE:
-                        if G_influenced.number_of_nodes() > 500:
-                            nodes_to_keep = sorted(G_influenced.nodes(), key=lambda n: G_influenced.nodes[n].get('attention', 0), reverse=True)[:500]
-                            G_viz = G_influenced.subgraph(nodes_to_keep).copy()
-                        else:
-                            G_viz = G_influenced
-                        html_inf = create_pyvis_network(G_viz, "LLM‑Influenced Graph", size_attr="attention", use_attention_hover=True)
-                        if html_inf:
-                            st.components.v1.html(html_inf, height=650)
-                    else:
-                        st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
-        else:
-            if sidebar_vals['viz_engine'] == "Plotly (static)":
-                fig = plot_graph_plotly(G_filtered, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
-                if fig:
-                    st.plotly_chart(fig, use_container_width=True)
+    with viz_tabs[1]:
+        # Pyvis HTML (fixed JSON)
+        if PYVIS_AVAILABLE:
+            html = create_pyvis_network(
+                viz_graph,
+                title=f"Battery Degradation Graph - {analysis_type}",
+                size_attr=size_attr,
+                use_attention_hover=use_attention_hover,
+                height="700px"
+            )
+            if html:
+                st.components.v1.html(html, height=750)
             else:
-                if PYVIS_AVAILABLE:
-                    if G_filtered.number_of_nodes() > 500:
-                        nodes_to_keep = sorted(G_filtered.nodes(), key=lambda n: G_filtered.nodes[n].get('priority_score', 0), reverse=True)[:500]
-                        G_viz = G_filtered.subgraph(nodes_to_keep).copy()
-                    else:
-                        G_viz = G_filtered
-                    html = create_pyvis_network(G_viz, f"Battery Degradation Graph - {analysis_type}", size_attr="priority_score", use_attention_hover=False)
-                    if html:
-                        st.components.v1.html(html, height=650)
-                else:
-                    st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
-
-        # Additional Analytics (only if graph not too large)
-        if G_filtered.number_of_nodes() < 500:
-            st.subheader("📊 Graph Analytics")
-            col1, col2 = st.columns(2)
-            with col1:
-                category_counts = nodes_df['category'].value_counts()
-                fig_cat = px.pie(values=category_counts.values, names=category_counts.index, title="Node Distribution by Category")
-                st.plotly_chart(fig_cat, use_container_width=True)
-            with col2:
-                top_nodes = nodes_df.nlargest(10, 'priority_score')[['node', 'priority_score']]
-                fig_nodes = px.bar(top_nodes, x='priority_score', y='node', orientation='h', title="Top Nodes by Priority Score")
-                st.plotly_chart(fig_nodes, use_container_width=True)
-
-            edge_type_counts = edges_df['type'].value_counts()
-            fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values, title="Edge Type Distribution")
-            st.plotly_chart(fig_edge, use_container_width=True)
+                st.warning("Pyvis network generation returned empty.")
         else:
-            st.info("Graph too large to show detailed analytics. Switch to reconstruction mode or reduce filters.")
+            st.warning("Pyvis not installed. Install with `pip install pyvis` to use interactive graphs.")
 
-    # Export functionality (unchanged)
+    # Additional Analytics (only if graph not too large)
+    if G_filtered.number_of_nodes() < 500:
+        st.subheader("📊 Graph Analytics")
+        col1, col2 = st.columns(2)
+        with col1:
+            category_counts = nodes_df['category'].value_counts()
+            fig_cat = px.pie(values=category_counts.values, names=category_counts.index, title="Node Distribution by Category")
+            st.plotly_chart(fig_cat, use_container_width=True)
+        with col2:
+            top_nodes = nodes_df.nlargest(10, 'priority_score')[['node', 'priority_score']]
+            fig_nodes = px.bar(top_nodes, x='priority_score', y='node', orientation='h', title="Top Nodes by Priority Score")
+            st.plotly_chart(fig_nodes, use_container_width=True)
+
+        edge_type_counts = edges_df['type'].value_counts()
+        fig_edge = px.bar(x=edge_type_counts.index, y=edge_type_counts.values, title="Edge Type Distribution")
+        st.plotly_chart(fig_edge, use_container_width=True)
+    else:
+        st.info("Graph too large to show detailed analytics. Switch to reconstruction mode or reduce filters.")
+
+    # ------------------------------------------------------------------------
+    # Export functionality (including JSON graph data)
+    # ------------------------------------------------------------------------
     with st.sidebar:
         st.markdown("### 💾 Export")
         if st.button("Export Filtered Graph as CSV"):
@@ -2413,6 +2398,18 @@ def main():
                 ]
             }
             st.download_button("Download JSON-LD", json.dumps(jsonld, indent=2), "graph.jsonld")
+        st.markdown("---")
+        st.markdown("### 🔬 Graph Data Download")
+        # Convert the graph to JSON-serializable format
+        graph_data = json_graph.node_link_data(viz_graph)
+        json_string = json.dumps(graph_data, indent=4)
+        st.download_button(
+            label="📥 Download Graph Data (JSON)",
+            data=json_string,
+            file_name=f"battery_graph_{analysis_type.lower().replace(' ', '_')}.json",
+            mime="application/json",
+            help="Click to download the full node and edge data for this network."
+        )
 
     # Display example queries
     with st.expander("📚 Example Queries", expanded=False):
