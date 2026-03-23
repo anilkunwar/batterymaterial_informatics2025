@@ -448,20 +448,34 @@ def bootstrap_centrality(G, n_samples=100, metric='degree'):
             ci_upper[n] = 0
     return mean_cent, ci_lower, ci_upper
 
+# ============================================================================
+# FIX: monte_carlo_priority_score now converts lists to tuples for hashability
+# ============================================================================
 def monte_carlo_priority_score(G, nodes_df, n_samples=50, **kwargs):
-    base_priority = calculate_priority_scores(G, nodes_df, **kwargs)
+    # Convert any lists in kwargs to tuples to make them hashable for caching
+    hashable_kwargs = {}
+    for k, v in kwargs.items():
+        if isinstance(v, list):
+            hashable_kwargs[k] = tuple(v)
+        else:
+            hashable_kwargs[k] = v
+
+    base_priority = calculate_priority_scores(G, nodes_df, **hashable_kwargs)
     samples = []
     for _ in range(n_samples):
         nodes_df_perturbed = nodes_df.copy()
         nodes_df_perturbed['frequency'] = nodes_df_perturbed['frequency'] * (1 + np.random.normal(0, 0.05))
-        op_params = kwargs.get('operational_params', {})
+        op_params = hashable_kwargs.get('operational_params', {})
         pert_op = {}
         for k, v in op_params.items():
             pert_op[k] = v * (1 + np.random.normal(0, 0.1))
-        priority = calculate_priority_scores(G, nodes_df_perturbed,
-                                            physics_boost_weight=kwargs.get('physics_boost_weight', 0.15),
-                                            operational_params=pert_op,
-                                            focus_terms=kwargs.get('focus_terms'))
+        priority = calculate_priority_scores(
+            G,
+            nodes_df_perturbed,
+            physics_boost_weight=hashable_kwargs.get('physics_boost_weight', 0.15),
+            operational_params=pert_op,
+            focus_terms=hashable_kwargs.get('focus_terms')
+        )
         samples.append(priority)
     nodes = list(G.nodes())
     mean_priority = {}
@@ -889,6 +903,10 @@ def calculate_priority_scores(
     focus_terms=None
 ):
     global KEY_TERMS_EMBEDDINGS, PHYSICS_TERMS_EMBEDDINGS
+
+    # Convert focus_terms to list if it's a tuple (for caching compatibility)
+    if isinstance(focus_terms, tuple):
+        focus_terms = list(focus_terms)
 
     # 1. Frequency normalization (vectorised)
     freq_vals = nodes_df['frequency'].values
