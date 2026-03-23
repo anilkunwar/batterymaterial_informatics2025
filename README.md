@@ -77,6 +77,9 @@ Intelligent Models:
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer9gpt-streamlit-red)](https://intelligentbatteryexplorer9-gpt.streamlit.app/) (LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust, theoretical explanation, more robustness, CPU friendly interface design, Use of pyvis for Knowledge Graph visualization, Application of methods for compute efficiency required by models with parameters > 0.5B)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryexplorer10gpt-streamlit-red)](https://intelligentbatteryexplorer10-gpt.streamlit.app/) (option for download of json file of the knowledge graph, LLM provides the instruction to knowledge graph, influenced knowledgegraph is robust, theoretical explanation, more robustness, CPU friendly interface design, Use of pyvis for Knowledge Graph visualization, Application of methods for compute efficiency required by models with parameters > 0.5B )
+
+
 
 
 
