@@ -1634,7 +1634,7 @@ def create_pyvis_network(G, title="Battery Degradation Graph", size_attr="priori
     return net.generate_html()
 
 # ============================================================================
-# MAIN APPLICATION – sidebar_filters is now a regular function (no fragment)
+# MAIN APPLICATION – sidebar_filters is a regular function (no fragment)
 # ============================================================================
 def main():
     try:
@@ -1942,8 +1942,16 @@ def main():
     # ------------------------------------------------------------------------
     # Compute priority scores (cached if possible)
     # ------------------------------------------------------------------------
-    # Create a hash of parameters that affect priority scores
-    cache_key = f"priority_{hash(frozenset(params.items()))}_{hash(frozenset(G.nodes()))}"
+    # Create a robust cache key using MD5 hash of parameters and nodes
+    # Convert params to a JSON string (handles lists, dicts, etc.)
+    params_json = json.dumps(params, sort_keys=True, default=str)
+    params_hash = hashlib.md5(params_json.encode()).hexdigest()
+
+    # Hash the sorted list of nodes to capture graph structure changes
+    nodes_hash = hashlib.md5("".join(sorted(G.nodes())).encode()).hexdigest()
+
+    cache_key = f"priority_{params_hash}_{nodes_hash}"
+
     if cache_key in st.session_state.graph_cache:
         priority_scores = st.session_state.graph_cache[cache_key]['priority_scores']
     else:
