@@ -47,7 +47,7 @@ Using LLM to make inferences and NER analysis
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentner2-streamlit-red)](https://intelligent-batteryreliabilityner2.streamlit.app/) (memory consumption high and so runs only in local device)
 
-[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentner2-streamlit-red)](https://intelligent-batteryreliabilityner2.streamlit.app/) (memory optimization for cloud computation, utilizes psutil and accelerate modules)
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentner3-streamlit-red)](https://intelligent-batteryreliabilityner3.streamlit.app/) (memory optimization for cloud computation, utilizes psutil and accelerate modules)
 
 
 ## Priority Enhanced Knowledge Graph (PREKNOWLEDGE)
