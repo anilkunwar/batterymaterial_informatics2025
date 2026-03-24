@@ -1199,7 +1199,7 @@ with st.sidebar:
     st.metric("Current Memory Usage", f"{mem_usage:.1f} MB")
     
     st.subheader("Analysis Parameters")
-    max_papers = st.slider("Max Papers to Process", min_value=100, max_value=2000, value=500, step=100, 
+    max_papers = st.slider("Max Papers to Process", min_value=100, max_value=2000, value=500, step=20, 
                           help="Lower values = less memory usage")
     min_freq = st.slider("Minimum Term Frequency", min_value=1, max_value=20, value=5)
     similarity_threshold = st.slider("Similarity Threshold", min_value=0.5, max_value=0.9, value=0.7, step=0.05)
