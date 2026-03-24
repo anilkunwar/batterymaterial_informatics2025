@@ -22,6 +22,7 @@ import seaborn as sns
 from sklearn.metrics.pairwise import cosine_similarity
 from community import community_louvain
 import json
+import gc  # for garbage collection
 
 # Try to import transformers – if too old, show error and disable LLM
 try:
@@ -145,7 +146,6 @@ def load_llm(model_key: str):
         del st.session_state.llm_model
     if "llm_tokenizer" in st.session_state and st.session_state.llm_tokenizer is not None:
         del st.session_state.llm_tokenizer
-    import gc
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -228,6 +228,30 @@ def get_scibert_embedding(text):
     except Exception as e:
         update_log(f"SciBERT embedding failed for '{text}': {str(e)}")
         return None
+
+# New batched embedding function
+@st.cache_data(ttl=3600)
+def get_scibert_embedding_batch(texts):
+    """
+    Compute embeddings for a list of texts in a single forward pass.
+    """
+    if not texts:
+        return []
+    try:
+        # Tokenize batch
+        inputs = scibert_tokenizer(texts, return_tensors="pt", truncation=True, max_length=64, padding=True)
+        with torch.no_grad():
+            outputs = scibert_model(**inputs, output_hidden_states=True)
+            # Mean pooling
+            last_hidden_state = outputs.hidden_states[-1].mean(dim=1).squeeze().numpy()
+            # Normalize
+            norms = np.linalg.norm(last_hidden_state, axis=1, keepdims=True)
+            norms[norms == 0] = 1  # Avoid division by zero
+            normalized_embeddings = last_hidden_state / norms
+            return list(normalized_embeddings)
+    except Exception as e:
+        update_log(f"SciBERT batch embedding failed: {str(e)}")
+        return [None] * len(texts)
 
 # ==================== DATABASE INSPECTION ====================
 def inspect_database(db_path):
@@ -359,21 +383,21 @@ def inspect_database(db_path):
         update_log(f"Error reading database {os.path.basename(db_path)}: {str(e)}")
         return None
 
-# ==================== TERM CATEGORIZATION ====================
-@st.cache_data(hash_funcs={str: lambda x: x})
-def categorize_terms(db_file, similarity_threshold=0.7, min_freq=5):
+# ==================== OPTIMIZED TERM CATEGORIZATION ====================
+@st.cache_data(ttl=3600, show_spinner="Categorizing terms (this may take a while)...")
+def categorize_terms(db_file, similarity_threshold=0.7, min_freq=5, max_papers=None):
     try:
-        update_log(f"Starting term categorization from {os.path.basename(db_file)}")
+        update_log(f"Starting optimized term categorization from {os.path.basename(db_file)}")
         conn = sqlite3.connect(db_file)
-        query = "SELECT content FROM papers WHERE content IS NOT NULL"
-        df = pd.read_sql_query(query, conn)
-        conn.close()
-        if df.empty:
-            update_log(f"No valid content found in {os.path.basename(db_file)}")
-            st.warning(f"No valid content found in {os.path.basename(db_file)}.")
-            return {}, Counter()
+        cursor = conn.cursor()
 
-        update_log(f"Loaded {len(df)} content entries")
+        # Use a cursor iterator instead of loading all into Pandas
+        query = "SELECT content FROM papers WHERE content IS NOT NULL"
+        if max_papers:
+            query += f" LIMIT {max_papers}"
+
+        cursor.execute(query)
+
         categories = {
             "Deformation": ["plastic deformation", "yield strength", "plastic strain", "ductility", "inelastic strain", "flow stress", "volume expansion", "swelling", "volumetric expansion", "volume change", "dimensional change", "volume deformation", "volume increase", "volumetric strain", "expansion strain", "dilatation", "volume distortion"],
             "Fatigue": ["fatigue life", "cyclic loading", "cycle life", "fatigue crack", "stress cycling", "mechanical fatigue", "low cycle fatigue", "high cycle fatigue", "fatigue damage", "fatigue failure", "cyclic deformation", "cyclic stress", "endurance limit", "S-N curve"],
@@ -382,72 +406,118 @@ def categorize_terms(db_file, similarity_threshold=0.7, min_freq=5):
         }
         component_terms = ["electrode", "electrolyte", "phase", "cathode", "anode", "solid electrolyte", "separator", "current collector"]
         exclude_words = ["et al", "electrochem soc", "phys", "model", "based", "high", "field"]
-        
-        # Generate embeddings for seed terms
-        seed_embeddings = {cat: [get_scibert_embedding(term) for term in terms if get_scibert_embedding(term) is not None] for cat, terms in categories.items()}
-        component_embeddings = [get_scibert_embedding(term) for term in component_terms if get_scibert_embedding(term) is not None]
-        
+
+        term_freqs = Counter()
+        processed_count = 0
+
+        # Process in chunks to allow garbage collection
+        while True:
+            rows = cursor.fetchmany(100)  # Fetch 100 papers at a time
+            if not rows:
+                break
+
+            for (content,) in rows:
+                if not content:
+                    continue
+                if len(content) > nlp.max_length:
+                    content = content[:nlp.max_length]
+
+                doc = nlp(content.lower())
+                # Extract terms directly into Counter, avoid intermediate list
+                phrases = [span.text.strip() for span in doc.noun_chunks if 1 < len(span.text.split()) <= 3]
+                words = [token.text for token in doc if token.text.isalpha() and not token.is_stop and len(token.text) > 3]
+                n_grams = list(chain(ngrams(words, 2), ngrams(words, 3)))
+                n_gram_phrases = [' '.join(gram) for gram in n_grams if 1 < len(gram) <= 3]
+
+                term_freqs.update(phrases + n_gram_phrases + words)
+
+            processed_count += len(rows)
+            # Update progress bar safely
+            if max_papers:
+                st.progress(min(1.0, processed_count / max_papers))
+            else:
+                # Approximate progress if total unknown
+                st.progress(min(1.0, (processed_count / 1000)))
+
+        conn.close()
+
+        if not term_freqs:
+            return {}, Counter()
+
+        # Filter rare terms BEFORE embedding to save massive computation
+        filtered_terms = {term: freq for term, freq in term_freqs.items()
+                          if freq >= min_freq and not any(w in term.lower() for w in exclude_words)}
+
+        # Prepare embeddings in batches
+        unique_terms = list(filtered_terms.keys())
+        term_embeddings = {}
+
+        # Batch size for SciBERT to prevent memory spikes
+        batch_size = 32
+        progress_bar = st.progress(0)
+
+        for i in range(0, len(unique_terms), batch_size):
+            batch = unique_terms[i:i+batch_size]
+            embeddings = get_scibert_embedding_batch(batch)
+            for term, emb in zip(batch, embeddings):
+                if emb is not None:
+                    term_embeddings[term] = emb
+
+            progress_bar.progress((i + len(batch)) / len(unique_terms))
+
+        # Pre-compute seed embeddings once
+        seed_embeddings = {}
+        for cat, terms in categories.items():
+            emb_list = []
+            for term in terms:
+                emb = get_scibert_embedding(term)  # use single embedding for few seeds
+                if emb is not None:
+                    emb_list.append(emb)
+            seed_embeddings[cat] = emb_list
+
+        component_embeddings = []
+        for term in component_terms:
+            emb = get_scibert_embedding(term)
+            if emb is not None:
+                component_embeddings.append(emb)
+
         categorized_terms = {cat: [] for cat in categories}
         categorized_terms["Component"] = []
         other_terms = []
-        term_freqs = Counter()
-        
-        # Extract all terms first
-        all_extracted_terms = []
-        progress_bar = st.progress(0)
-        for i, content in enumerate(df["content"].dropna()):
-            if len(content) > nlp.max_length:
-                content = content[:nlp.max_length]
-                update_log(f"Truncated content for entry {i+1}")
-            doc = nlp(content.lower())
-            phrases = [span.text.strip() for span in doc.noun_chunks if 1 < len(span.text.split()) <= 3]
-            single_words = [token.text for token in doc if token.text.isalpha() and not token.is_stop and len(token.text) > 3]
-            words = [token.text for token in doc if token.text.isalpha() and not token.is_stop]
-            n_grams = list(chain(ngrams(words, 2), ngrams(words, 3)))
-            n_gram_phrases = [' '.join(gram) for gram in n_grams if 1 < len(gram) <= 3]
-            all_terms = phrases + n_gram_phrases + single_words
-            term_freqs.update(all_terms)
-            all_extracted_terms.extend(all_terms)
-            progress_bar.progress((i + 1) / len(df) / 2)
-        
-        # Categorize terms
-        for term in set(all_extracted_terms):
-            if any(w in term.lower() for w in exclude_words):
+
+        for term, freq in filtered_terms.items():
+            term_emb = term_embeddings.get(term)
+            if term_emb is None:
                 continue
-            if term_freqs[term] < min_freq:
-                continue
-                
-            term_embedding = get_scibert_embedding(term)
-            if term_embedding is None:
-                continue
-                
+
             best_cat = None
             best_score = 0
+
             for cat, embeddings in seed_embeddings.items():
                 for seed_emb in embeddings:
-                    if np.linalg.norm(term_embedding) == 0 or np.linalg.norm(seed_emb) == 0:
+                    if np.linalg.norm(term_emb) == 0 or np.linalg.norm(seed_emb) == 0:
                         continue
-                    score = np.dot(term_embedding, seed_emb) / (np.linalg.norm(term_embedding) * np.linalg.norm(seed_emb))
+                    score = np.dot(term_emb, seed_emb) / (np.linalg.norm(term_emb) * np.linalg.norm(seed_emb))
                     if score > similarity_threshold and score > best_score:
                         best_cat = cat
                         best_score = score
-            
+
             if best_cat:
-                categorized_terms[best_cat].append((term, term_freqs[term], best_score))
-            elif any(np.dot(term_embedding, comp_emb) / (np.linalg.norm(term_embedding) * np.linalg.norm(comp_emb)) > similarity_threshold for comp_emb in component_embeddings if np.linalg.norm(term_embedding) != 0 and np.linalg.norm(comp_emb) != 0):
-                categorized_terms["Component"].append((term, term_freqs[term], best_score))
+                categorized_terms[best_cat].append((term, freq, best_score))
+            elif any(np.dot(term_emb, comp_emb) / (np.linalg.norm(term_emb) * np.linalg.norm(comp_emb)) > similarity_threshold
+                     for comp_emb in component_embeddings if np.linalg.norm(term_emb) != 0 and np.linalg.norm(comp_emb) != 0):
+                categorized_terms["Component"].append((term, freq, best_score))
             else:
-                other_terms.append((term, term_freqs[term], best_score))
-            
-            progress_bar.progress(0.5 + (i + 1) / len(df) / 2)
-        
-        # Sort terms by frequency within each category
+                other_terms.append((term, freq, best_score))
+
+        # Sort and limit
         for cat in categorized_terms:
             categorized_terms[cat] = sorted(categorized_terms[cat], key=lambda x: x[1], reverse=True)
-        categorized_terms["Other"] = sorted(other_terms, key=lambda x: x[1], reverse=True)[:50]  # Limit other terms to top 50
-        
+        categorized_terms["Other"] = sorted(other_terms, key=lambda x: x[1], reverse=True)[:50]
+
         update_log(f"Categorized {sum(len(terms) for terms in categorized_terms.values())} terms across {len(categorized_terms)} categories")
         return categorized_terms, term_freqs
+
     except Exception as e:
         update_log(f"Error categorizing terms: {str(e)}")
         st.error(f"Error categorizing terms: {str(e)}")
@@ -464,12 +534,12 @@ def build_knowledge_graph_data(categorized_terms, db_file, min_co_occurrence=2, 
         conn.close()
 
         G = nx.Graph()
-        
+
         # Add category nodes with enhanced attributes
         categories = list(categorized_terms.keys())
         for cat in categories:
             G.add_node(cat, type="category", freq=0, size=2000, color="skyblue")
-        
+
         # Add all terms as nodes with enhanced attributes
         term_freqs = {}
         term_units = {
@@ -480,44 +550,44 @@ def build_knowledge_graph_data(categorized_terms, db_file, min_co_occurrence=2, 
             "Component": "various",
             "Other": "various"
         }
-        
+
         # Create a mapping of all terms to their categories
         term_to_category = {}
         for cat, terms in categorized_terms.items():
             for term, freq, _ in terms:
                 term_to_category[term] = cat
-        
+
         # Add all terms as nodes with proper categorization
         for cat, terms in categorized_terms.items():
             for term, freq, score in terms[:top_n]:
-                G.add_node(term, type="term" if cat != "Component" else "component", 
+                G.add_node(term, type="term" if cat != "Component" else "component",
                           freq=freq, category=cat, unit=term_units.get(cat, "None"),
                           size=500 + 2000 * (freq / max([f for _, f, _ in terms], default=1)),
                           color="salmon" if cat != "Component" else "lightgreen",
                           score=score)
                 G.add_edge(cat, term, weight=1.0, type="category-term", label="belongs_to")
                 term_freqs[term] = freq
-        
+
         # Compute co-occurrences with enhanced relationship detection
         co_occurrence_counts = defaultdict(lambda: defaultdict(int))
-        
+
         for content in df["content"].values:
             content_lower = content.lower()
             doc = nlp(content_lower)
-            
+
             # Extract sentences and find terms in each sentence
             for sent in doc.sents:
                 sent_terms = []
                 for term in term_freqs:
                     if re.search(rf'\b{re.escape(term)}\b', sent.text, re.IGNORECASE):
                         sent_terms.append(term)
-                
+
                 # Create combinations of all terms in the sentence
                 for term1, term2 in combinations(sent_terms, 2):
                     if term1 != term2:
                         co_occurrence_counts[term1][term2] += 1
                         co_occurrence_counts[term2][term1] += 1
-        
+
         # Add co-occurrence edges with enhanced attributes
         for term1, related_terms in co_occurrence_counts.items():
             for term2, count in related_terms.items():
@@ -525,58 +595,58 @@ def build_knowledge_graph_data(categorized_terms, db_file, min_co_occurrence=2, 
                     # Determine relationship type based on categories
                     cat1 = term_to_category.get(term1, "Other")
                     cat2 = term_to_category.get(term2, "Other")
-                    
+
                     if cat1 == cat2:
                         rel_type = "intra_category"
                         label = f"co-occurs_with ({count})"
                     else:
                         rel_type = "inter_category"
                         label = f"related_to ({count})"
-                    
+
                     # Add edge with enhanced attributes
-                    G.add_edge(term1, term2, weight=count, type="term-term", 
+                    G.add_edge(term1, term2, weight=count, type="term-term",
                               relationship=rel_type, label=label, strength=count)
-        
+
         # Add hierarchical relationships between terms
         for term in list(G.nodes):
             if G.nodes[term].get("type") == "term":
                 # Find parent terms (shorter terms that are substrings)
                 for potential_parent in list(G.nodes):
-                    if (G.nodes[potential_parent].get("type") == "term" and 
-                        potential_parent != term and 
+                    if (G.nodes[potential_parent].get("type") == "term" and
+                        potential_parent != term and
                         len(potential_parent) < len(term) and
                         potential_parent in term.lower()):
-                        G.add_edge(potential_parent, term, weight=2.0, 
+                        G.add_edge(potential_parent, term, weight=2.0,
                                   type="hierarchical", label="is_part_of", strength=2.0)
-        
+
         # Generate DataFrames for nodes and edges
-        nodes_df = pd.DataFrame([(n, d["type"], d.get("category", ""), d.get("freq", 0), 
-                                d.get("unit", "None"), d.get("score", 0)) 
-                               for n, d in G.nodes(data=True)], 
+        nodes_df = pd.DataFrame([(n, d["type"], d.get("category", ""), d.get("freq", 0),
+                                d.get("unit", "None"), d.get("score", 0))
+                               for n, d in G.nodes(data=True)],
                               columns=["node", "type", "category", "frequency", "unit", "similarity_score"])
-        
-        edges_df = pd.DataFrame([(u, v, d["weight"], d["type"], d.get("label", ""), 
-                                d.get("relationship", ""), d.get("strength", 0)) 
-                               for u, v, d in G.edges(data=True)], 
+
+        edges_df = pd.DataFrame([(u, v, d["weight"], d["type"], d.get("label", ""),
+                                d.get("relationship", ""), d.get("strength", 0))
+                               for u, v, d in G.edges(data=True)],
                               columns=["source", "target", "weight", "type", "label", "relationship", "strength"])
-        
+
         nodes_csv_filename = f"knowledge_graph_nodes_{uuid.uuid4().hex}.csv"
         edges_csv_filename = f"knowledge_graph_edges_{uuid.uuid4().hex}.csv"
         nodes_csv_path = os.path.join(DB_DIR, nodes_csv_filename)
         edges_csv_path = os.path.join(DB_DIR, edges_csv_filename)
         nodes_df.to_csv(nodes_csv_path, index=False)
         edges_df.to_csv(edges_csv_path, index=False)
-        
+
         with open(nodes_csv_path, "rb") as f:
             nodes_csv_data = f.read()
         with open(edges_csv_path, "rb") as f:
             edges_csv_data = f.read()
-        
+
         # Store the graph in session state for later use
         st.session_state.knowledge_graph = G
-        
+
         return G, (nodes_csv_data, nodes_csv_filename, edges_csv_data, edges_csv_filename)
-    
+
     except Exception as e:
         update_log(f"Error building knowledge graph data: {str(e)}")
         return None, None
@@ -587,54 +657,54 @@ def visualize_knowledge_graph_communities(G):
     """
     if G is None or not G.edges():
         return None
-    
+
     # Detect communities using Louvain method
     partition = community_louvain.best_partition(G)
-    
+
     # Create a color map for communities
     communities = set(partition.values())
     color_map = cm.get_cmap('tab20', len(communities))
-    
+
     # Create figure
     fig, ax = plt.subplots(figsize=(12, 10))
-    
+
     # Position nodes using spring layout
     pos = nx.spring_layout(G, k=1, iterations=50, seed=42)
-    
+
     # Draw nodes with community colors
     node_colors = [color_map(partition[node]) for node in G.nodes()]
     node_sizes = [G.nodes[node].get('size', 500) for node in G.nodes()]
-    
+
     nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8, ax=ax)
-    
+
     # Draw edges
-    edge_widths = [0.5 + 2 * (d['weight'] / max([d2['weight'] for _, _, d2 in G.edges(data=True)], default=1)) 
+    edge_widths = [0.5 + 2 * (d['weight'] / max([d2['weight'] for _, _, d2 in G.edges(data=True)], default=1))
                    for _, _, d in G.edges(data=True)]
     nx.draw_networkx_edges(G, pos, width=edge_widths, alpha=0.5, edge_color='gray', ax=ax)
-    
+
     # Draw labels only for important nodes
-    important_nodes = [node for node in G.nodes() if G.nodes[node].get('type') == 'category' or 
+    important_nodes = [node for node in G.nodes() if G.nodes[node].get('type') == 'category' or
                       G.nodes[node].get('freq', 0) > 10]
     labels = {node: node for node in important_nodes}
     nx.draw_networkx_labels(G, pos, labels, font_size=8, font_weight='bold', ax=ax)
-    
+
     # Add legend for community colors
     community_labels = {}
     for node, comm_id in partition.items():
         if G.nodes[node].get('type') == 'category':
             community_labels[comm_id] = node
-    
+
     legend_elements = []
     for comm_id, label in community_labels.items():
-        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
-                                        markerfacecolor=color_map(comm_id), 
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w',
+                                        markerfacecolor=color_map(comm_id),
                                         markersize=10, label=label))
-    
+
     ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
-    
+
     ax.set_title("Knowledge Graph with Community Detection")
     plt.tight_layout()
-    
+
     return fig
 
 # ==================== NER WITH SCIBERT ====================
@@ -672,7 +742,7 @@ def perform_ner_on_terms(db_file, selected_terms):
         similarity_threshold = 0.7
         ref_embeddings = {cat: [get_scibert_embedding(term) for term in terms if get_scibert_embedding(term) is not None] for cat, terms in categories.items()}
         term_patterns = {term: re.compile(rf'\b{re.escape(term)}\b', re.IGNORECASE) for term in selected_terms}
-        
+
         entities = []
         entity_set = set()
         progress_bar = st.progress(0)
@@ -816,7 +886,7 @@ def perform_ner_on_terms(db_file, selected_terms):
             except Exception as e:
                 update_log(f"Error processing entry {row['paper_id']}: {str(e)}")
         update_log(f"Extracted {len(entities)} entities")
-        
+
         # Enhance NER results with knowledge graph if available
         if st.session_state.knowledge_graph is not None:
             entities_df = pd.DataFrame(entities)
@@ -1001,7 +1071,7 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
     value_df = df[df["value"].notna() & df["unit"].notna()]
     if value_df.empty:
         return []
-    
+
     figs = []
     for category, unit in categories_units.items():
         cat_df = value_df[value_df["entity_label"] == category]
@@ -1010,12 +1080,12 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
         if cat_df.empty:
             update_log(f"No data for {category} with unit {unit}")
             continue
-        
+
         values = cat_df["value"].values
         if len(values) == 0:
             update_log(f"No numerical values for {category} with unit {unit}")
             continue
-        
+
         fig, ax = plt.subplots(figsize=(8, 4))
         color = cm.get_cmap(colormap)(0.5)  # Use a consistent color from colormap
         ax.hist(values, bins=20, color=color, edgecolor="black")
@@ -1024,7 +1094,7 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
         ax.set_title(f"Histogram of {category} Values ({unit})")
         plt.tight_layout()
         figs.append(fig)
-    
+
     return figs
 
 # ==================== MAIN APP ====================
@@ -1063,28 +1133,37 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
             with st.spinner(f"Inspecting {os.path.basename(st.session_state.db_file)}..."):
                 st.session_state.term_counts = inspect_database(st.session_state.db_file)
         st.text_area("Logs", "\n".join(st.session_state.log_buffer), height=150, key="inspection_logs")
-    
+
     with tab2:
         st.header("Term Categorization")
-        analyze_terms_button = st.button("Categorize Terms", key="categorize_terms")
+        # Add a slider for max_papers in the sidebar
         with st.sidebar:
             st.subheader("Analysis Parameters")
             exclude_words = [w.strip().lower() for w in st.text_input("Exclude Words/Phrases (comma-separated)", value="et al, electrochem soc, phys", key="exclude_words").split(",") if w.strip()]
             similarity_threshold = st.slider("Similarity Threshold", min_value=0.5, max_value=0.9, value=0.7, step=0.05, key="similarity_threshold")
             min_freq = st.slider("Minimum Frequency", min_value=1, max_value=20, value=5, key="min_freq")
+            max_papers = st.slider("Max Papers to Process (Memory Saver)", min_value=100, max_value=10000, value=1000, step=100, key="max_papers")
+            st.info("Processing fewer papers reduces memory usage significantly.")
             top_n = st.slider("Number of Top Terms", min_value=5, max_value=30, value=10, key="top_n")
             wordcloud_font_size = st.slider("Word Cloud Font Size", min_value=20, max_value=80, value=40, key="wordcloud_font_size")
             font_type = st.selectbox("Font Type", ["None", "DejaVu Sans"], key="font_type")
             colormap = st.selectbox("Color Map", ["viridis", "plasma", "inferno", "magma", "hot", "cool", "rainbow"], key="colormap")
-        
+
+        analyze_terms_button = st.button("Categorize Terms", key="categorize_terms")
+
         if analyze_terms_button:
             if os.path.exists(UNIVERSE_DB_FILE):
                 with st.spinner(f"Categorizing terms from {os.path.basename(UNIVERSE_DB_FILE)}..."):
-                    st.session_state.categorized_terms, st.session_state.term_counts = categorize_terms(UNIVERSE_DB_FILE, similarity_threshold, min_freq)
+                    st.session_state.categorized_terms, st.session_state.term_counts = categorize_terms(
+                        UNIVERSE_DB_FILE,
+                        similarity_threshold,
+                        min_freq,
+                        max_papers=max_papers
+                    )
             else:
                 st.error(f"Cannot categorize terms: {os.path.basename(UNIVERSE_DB_FILE)} not found.")
                 update_log(f"Cannot categorize terms: {os.path.basename(UNIVERSE_DB_FILE)} not found.")
-        
+
         if st.session_state.categorized_terms:
             filtered_terms = {cat: [(t, f, s) for t, f, s in terms if not any(w in t.lower() for w in exclude_words)] for cat, terms in st.session_state.categorized_terms.items()}
             if not any(filtered_terms.values()):
@@ -1102,7 +1181,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                         if fig:
                             st.pyplot(fig)
         st.text_area("Logs", "\n".join(st.session_state.log_buffer), height=150, key="categorize_logs")
-    
+
     with tab3:
         st.header("Knowledge Graph")
         if st.button("Build Knowledge Graph", key="build_graph"):
@@ -1114,7 +1193,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                             # Create the figure here instead of in the cached function
                             fig, ax = plt.subplots(figsize=(12, 10))
                             pos = nx.spring_layout(G, k=1, iterations=50, seed=42)
-                            
+
                             # Color nodes by type
                             node_colors = []
                             node_sizes = []
@@ -1128,26 +1207,26 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                                 else:
                                     node_colors.append("salmon")
                                     node_sizes.append(G.nodes[node].get("size", 500))
-                            
+
                             # Draw nodes
                             nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=node_sizes, alpha=0.8, ax=ax)
-                            
+
                             # Draw edges with different styles based on type
                             term_term_edges = [(u, v) for u, v, d in G.edges(data=True) if d["type"] == "term-term"]
                             category_term_edges = [(u, v) for u, v, d in G.edges(data=True) if d["type"] == "category-term"]
                             hierarchical_edges = [(u, v) for u, v, d in G.edges(data=True) if d["type"] == "hierarchical"]
-                            
+
                             # Draw edges with different styles
                             nx.draw_networkx_edges(G, pos, edgelist=term_term_edges, width=1.0, alpha=0.5, edge_color="gray", ax=ax)
                             nx.draw_networkx_edges(G, pos, edgelist=category_term_edges, width=2.0, alpha=0.7, edge_color="blue", ax=ax)
                             nx.draw_networkx_edges(G, pos, edgelist=hierarchical_edges, width=1.5, alpha=0.7, edge_color="green", style="dashed", ax=ax)
-                            
+
                             # Draw labels only for important nodes
-                            important_nodes = [node for node in G.nodes() if G.nodes[node].get('type') == 'category' or 
+                            important_nodes = [node for node in G.nodes() if G.nodes[node].get('type') == 'category' or
                                               G.nodes[node].get('freq', 0) > 10]
                             labels = {node: node for node in important_nodes}
                             nx.draw_networkx_labels(G, pos, labels, font_size=8, font_weight='bold', ax=ax)
-                            
+
                             # Add legend
                             from matplotlib.lines import Line2D
                             legend_elements = [
@@ -1156,18 +1235,18 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                                 Line2D([0], [0], color='green', lw=1.5, linestyle='dashed', label='Hierarchical')
                             ]
                             ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
-                            
+
                             ax.set_title(f"Knowledge Graph of Battery Reliability Phenomena (Top {top_n} Terms per Category)")
                             plt.tight_layout()
-                            
+
                             st.pyplot(fig)
-                            
+
                             # Show community detection visualization
                             st.subheader("Community Detection")
                             community_fig = visualize_knowledge_graph_communities(G)
                             if community_fig:
                                 st.pyplot(community_fig)
-                            
+
                             nodes_csv_data, nodes_csv_filename, edges_csv_data, edges_csv_filename = csv_data
                             st.download_button(
                                 label="Download Knowledge Graph Nodes",
@@ -1191,7 +1270,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
             else:
                 st.warning("Run term categorization first.")
         st.text_area("Logs", "\n".join(st.session_state.log_buffer), height=150, key="graph_logs")
-    
+
     with tab4:
         st.header("NER Analysis")
         if st.session_state.categorized_terms or st.session_state.term_counts:
@@ -1204,14 +1283,14 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
             available_terms = sorted(list(set(available_terms)))
             default_terms = [term for term in ["electrode cracking", "SEI formation", "cyclic mechanical damage", "electrolyte degradation", "capacity fade"] if term in available_terms]
             selected_terms = st.multiselect("Select Terms for NER (for heuristic method)", available_terms, default_terms, key="select_terms")
-            
+
             # Add option to use LLM
             use_llm = st.checkbox("🚀 Use LLM for quantified NER (extracts terms, values, units, mechanisms)", value=True)
             if use_llm and TRANSFORMERS_AVAILABLE:
                 model_choice = st.selectbox("Select LLM Model", list(LLM_MODELS.keys()), index=0, key="llm_model_select")
             elif use_llm and not TRANSFORMERS_AVAILABLE:
                 st.error("Transformers is too old. Please upgrade to use LLM features.")
-            
+
             if st.button("Run NER Analysis", key="ner_analyze"):
                 if os.path.exists(UNIVERSE_DB_FILE):
                     with st.spinner("Processing NER analysis..."):
@@ -1242,7 +1321,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                 else:
                     st.error(f"Cannot perform NER analysis: {os.path.basename(UNIVERSE_DB_FILE)} not found.")
                     update_log(f"Cannot perform NER analysis: {os.path.basename(UNIVERSE_DB_FILE)} not found.")
-            
+
             if st.session_state.ner_results is not None and not st.session_state.ner_results.empty:
                 st.success(f"Extracted {len(st.session_state.ner_results)} entities!")
                 st.dataframe(st.session_state.ner_results.head(100), use_container_width=True)
@@ -1302,7 +1381,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                 # Conversational follow-up (if LLM loaded)
                 if use_llm and st.session_state.llm_model is not None:
                     st.subheader("💬 Ask a follow-up question")
-                    user_followup = st.text_input("Ask a question about the extracted entities:", 
+                    user_followup = st.text_input("Ask a question about the extracted entities:",
                                                   placeholder="Why is capacity fade more common than cracking?")
                     if user_followup and st.button("Send", key="followup"):
                         context = json.dumps(st.session_state.last_structured_insights, indent=2)[:4000]
@@ -1336,7 +1415,8 @@ st.markdown("""
 ---
 **Notes**
 - **Database Inspection**: View tables, schemas, and sample data from `battery_reliability.db` or `battery_reliability_universe.db`. Default database is `battery_reliability_universe.db` for full-text analysis of arXiv papers.
-- **Term Categorization**: Groups terms into Deformation, Fatigue, Crack and Fracture, Degradation using SciBERT embeddings, based on full-text content from `battery_reliability_universe.db`.
+- **Term Categorization**: Groups terms into Deformation, Fatigue, Crack and Fracture, Degradation using SciBERT embeddings, based on full-text content from `battery_reliability_universe.db`.  
+  *Memory optimization:* Papers are processed in chunks, term frequencies are counted directly, embeddings are computed in batches, and you can limit the number of papers processed.
 - **Knowledge Graph**: Visualizes relationships between categories, terms, and components with enhanced branching and community detection, using `battery_reliability_universe.db`.
 - **NER Analysis**: Extracts entities with context‑aware unit assignment from `battery_reliability_universe.db`, enhanced with knowledge graph relationships.
 - **LLM Models**: A range of models from 124M to 3B parameters are available. Models are loaded on CPU with low‑memory settings. The previous model is unloaded before loading a new one, preventing memory leaks.
