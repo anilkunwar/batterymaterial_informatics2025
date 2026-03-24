@@ -992,81 +992,131 @@ def perform_ner_on_terms(db_file, selected_terms):
         st.error(f"NER analysis failed: {str(e)}")
         return pd.DataFrame()
 
-# ==================== LLM QUANTIFIED NER ====================
-@st.cache_data(ttl=3600)
-def llm_quantified_ner(db_file: str):
-    """Use the currently loaded LLM to extract quantified terms."""
+# ==================== SCIENTIFIC LLM QUANTIFIED NER (UPDATED) ====================
+@st.cache_data(ttl=3600, show_spinner=False)
+def scientific_llm_quantified_ner(db_file: str, max_papers: int = 500):
+    """Scientific LLM-based quantified NER — fully independent of categorization & graph"""
+
+    if not st.session_state.llm_model or not st.session_state.llm_tokenizer:
+        st.error("LLM not loaded. Select a model in the sidebar first.")
+        return pd.DataFrame()
+
     tokenizer = st.session_state.llm_tokenizer
     model = st.session_state.llm_model
-    
-    if not tokenizer or not model:
-        st.error("No LLM loaded. Please select a model in the sidebar first.")
-        return pd.DataFrame()
-    
+
     conn = sqlite3.connect(db_file)
-    query = "SELECT id as paper_id, title, year, content FROM papers WHERE content IS NOT NULL"
+    query = f"""
+        SELECT id as paper_id, title, year, content
+        FROM papers
+        WHERE content IS NOT NULL
+        LIMIT {max_papers}
+    """
     df = pd.read_sql_query(query, conn)
     conn.close()
-    
+
     if df.empty:
+        st.warning("No papers found in database.")
         return pd.DataFrame()
-    
-    system_prompt = (
-        "You are a battery reliability expert. Extract EVERY quantified degradation term from the text. "
-        "Output ONLY a valid JSON array of objects. Each object must have fields: "
-        "term (string), value (float), unit (string), mechanism (string), context (string). "
-        "Possible mechanisms: Deformation, Fatigue, Crack and Fracture, Degradation. "
-        "If a numerical value is given without an explicit unit, infer the most likely unit from context. "
-        "If no relevant quantification is found, return an empty array. "
-        "Examples: "
-        "[{\"term\": \"capacity fade\", \"value\": 15.2, \"unit\": \"%\", \"mechanism\": \"Degradation\", \"context\": \"after 500 cycles at 45C\"}] "
-        "[{\"term\": \"crack length\", \"value\": 12.5, \"unit\": \"um\", \"mechanism\": \"Crack and Fracture\", \"context\": \"measured at the electrode surface\"}] "
-        "Now process the following paper content:"
-    )
-    
+
+    # ─── Scientific System Prompt (few-shot + ontology + CoT) ───
+    system_prompt = """You are a battery reliability expert specializing in electrode cracking, SEI formation, cyclic mechanical damage, and degradation mechanisms.
+Extract EVERY quantified statement related to battery degradation.
+Return ONLY a valid JSON array of objects. Each object MUST have exactly these keys:
+
+{
+  "paper_id": int,
+  "title": str,
+  "year": int,
+  "term": str,                  // e.g. "electrode cracking", "SEI thickness", "capacity fade", "crack length"
+  "value": float,
+  "unit": str,                  // normalized: %, μm, nm, MPa, cycles, MPa·m^{0.5}, etc.
+  "mechanism": str,             // must be one of: "Deformation", "Fatigue", "Crack and Fracture", "Degradation"
+  "context": str,               // 1-2 sentences from the paper
+  "confidence": float,          // 0.0–1.0 (how certain you are this extraction is correct)
+  "temperature": float or null, // °C if mentioned, else null
+  "cycles": int or null         // cycle number if mentioned
+}
+
+**Ontology of mechanisms (use exactly these labels):**
+- Deformation: plastic deformation, yield strength, volume expansion, swelling, etc.
+- Fatigue: fatigue life, cyclic loading, cycle life, stress cycling
+- Crack and Fracture: electrode cracking, crack propagation, crack growth, fracture toughness
+- Degradation: SEI formation, electrolyte degradation, capacity fade, aging
+
+**Rules:**
+- Normalize units (convert GPa → MPa, kPa → MPa, etc.).
+- If a value is given without unit but context is clear, infer the most common unit.
+- Only extract values that are explicitly numerical and tied to a degradation term.
+- If nothing is found, return [].
+- Think step-by-step before outputting JSON.
+
+Now process the paper below and return the JSON array."""
+
     entities = []
-    progress = st.progress(0)
-    
+    progress_bar = st.progress(0)
+
     for i, row in df.iterrows():
-        text = row["content"]
-        
-        if len(text) > 1200:
-            text = text[:1200] + " ... [truncated]"
-        
-        full_prompt = f"{system_prompt}\nPaper ID: {row['paper_id']}\nTitle: {row['title']}\n{text}"
-        
-        inputs = tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=512)
-        
+        content = row["content"]
+        # Use larger context (most models in the app can handle ~4000 tokens)
+        if len(content) > 3800:
+            content = content[:3800] + "\n...[truncated]"
+
+        full_prompt = f"{system_prompt}\n\nPaper ID: {row['paper_id']}\nTitle: {row['title']}\nYear: {row['year']}\n\n{content}"
+
+        inputs = tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=4096)
         if torch.cuda.is_available():
             inputs = inputs.to("cuda")
-        
+
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=400,
+                max_new_tokens=600,
                 temperature=0.1,
                 do_sample=False,
-                pad_token_id=tokenizer.eos_token_id
+                pad_token_id=tokenizer.eos_token_id,
+                eos_token_id=tokenizer.eos_token_id
             )
-        
+
         generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        json_match = re.search(r'\[.*\]', generated, re.DOTALL)
+
+        # Extract JSON array with robust regex
+        json_match = re.search(r'\[\s*\{.*\}\s*\]', generated, re.DOTALL)
         if json_match:
             try:
                 items = json.loads(json_match.group(0))
                 for item in items:
-                    if all(k in item for k in ("term", "value", "unit", "mechanism")):
-                        item["paper_id"] = row["paper_id"]
-                        item["title"] = row["title"]
-                        item["year"] = row["year"]
-                        entities.append(item)
-            except json.JSONDecodeError:
-                pass
-        
-        progress.progress((i + 1) / len(df))
-    
-    return pd.DataFrame(entities)
+                    # Add missing fields safely
+                    item.setdefault("paper_id", row["paper_id"])
+                    item.setdefault("title", row["title"])
+                    item.setdefault("year", row["year"])
+                    item.setdefault("confidence", 0.7)
+                    if isinstance(item.get("value"), str):
+                        try:
+                            item["value"] = float(item["value"])
+                        except:
+                            continue
+                    entities.append(item)
+            except (json.JSONDecodeError, TypeError):
+                pass  # skip malformed output
+
+        progress_bar.progress((i + 1) / len(df))
+        del inputs, outputs  # memory cleanup
+
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    df_entities = pd.DataFrame(entities)
+
+    # Optional final scientific post-processing
+    if not df_entities.empty:
+        # Unit normalization (extra safety)
+        df_entities["unit"] = df_entities["unit"].str.replace("GPa", "MPa").str.replace("kPa", "MPa")
+        # Confidence filter (optional)
+        df_entities = df_entities[df_entities["confidence"] >= 0.6]
+
+    update_log(f"Scientific LLM NER extracted {len(df_entities)} quantified entities")
+    return df_entities
 
 # ==================== NARRATIVE GENERATION ====================
 def generate_narrative_insight(structured_json: dict):
@@ -1371,12 +1421,13 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                 st.error("Transformers is too old. Please upgrade to use LLM features.")
             
             if st.button("Run NER Analysis", key="ner_analyze"):
-                if os.path.exists(UNIVERSE_DB_FILE):
+                if os.path.exists(st.session_state.db_file):
                     with st.spinner("Processing NER analysis..."):
                         if use_llm and TRANSFORMERS_AVAILABLE:
                             tokenizer, model, loaded_key = load_llm(model_choice)
                             if tokenizer and model:
-                                llm_df = llm_quantified_ner(UNIVERSE_DB_FILE)
+                                # Use the new scientific function
+                                llm_df = scientific_llm_quantified_ner(st.session_state.db_file, max_papers=max_papers)
                                 st.session_state.ner_results = llm_df
                                 if not llm_df.empty:
                                     st.session_state.last_structured_insights = {
@@ -1389,7 +1440,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                             if not selected_terms:
                                 st.warning("Select at least one term for heuristic NER.")
                             else:
-                                ner_df = perform_ner_on_terms(UNIVERSE_DB_FILE, selected_terms)
+                                ner_df = perform_ner_on_terms(st.session_state.db_file, selected_terms)
                                 st.session_state.ner_results = ner_df
                                 if not ner_df.empty:
                                     st.session_state.last_structured_insights = {
@@ -1397,8 +1448,8 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                                         "summary": f"Extracted {len(ner_df)} entities using heuristic method."
                                     }
                 else:
-                    st.error(f"Cannot perform NER analysis: {os.path.basename(UNIVERSE_DB_FILE)} not found.")
-                    update_log(f"Cannot perform NER analysis: {os.path.basename(UNIVERSE_DB_FILE)} not found.")
+                    st.error(f"Cannot perform NER analysis: {os.path.basename(st.session_state.db_file)} not found.")
+                    update_log(f"Cannot perform NER analysis: {os.path.basename(st.session_state.db_file)} not found.")
                 
                 if st.session_state.ner_results is not None and not st.session_state.ner_results.empty:
                     st.success(f"Extracted {len(st.session_state.ner_results)} entities!")
