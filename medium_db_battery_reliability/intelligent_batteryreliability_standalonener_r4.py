@@ -71,15 +71,12 @@ def clear_memory(verbose=True):
     if verbose:
         st.info("Clearing memory caches...")
     
-    # Clear Streamlit caches
     st.cache_data.clear()
     st.cache_resource.clear()
     
-    # Clear PyTorch cache
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
-    # Force garbage collection
     gc.collect()
     
     if verbose:
@@ -658,10 +655,10 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
         st.error(f"NER analysis failed: {str(e)}")
         return pd.DataFrame()
 
-# ==================== SCIENTIFIC LLM QUANTIFIED NER ====================
+# ==================== SCIENTIFIC LLM QUANTIFIED NER (with chunking) ====================
 @st.cache_data(ttl=3600, show_spinner=False)
 def scientific_llm_quantified_ner(db_file: str, max_papers: int = 500):
-    """Scientific LLM-based quantified NER — fully independent of categorization & graph"""
+    """Scientific LLM-based quantified NER with automatic text chunking."""
 
     if not st.session_state.llm_model or not st.session_state.llm_tokenizer:
         st.error("LLM not loaded. Select a model in the sidebar first.")
@@ -684,7 +681,14 @@ def scientific_llm_quantified_ner(db_file: str, max_papers: int = 500):
         st.warning("No papers found in database.")
         return pd.DataFrame()
 
-    # ─── Scientific System Prompt (few-shot + ontology + CoT) ───
+    # ─── Determine the model's maximum context length ─────────────────
+    if hasattr(model.config, "max_position_embeddings"):
+        max_context = model.config.max_position_embeddings
+    else:
+        # Fallback to a safe value (most models support at least 1024)
+        max_context = 1024
+
+    # ─── System prompt (same as before) ─────────────────────────────────
     system_prompt = """You are a battery reliability expert specializing in electrode cracking, SEI formation, cyclic mechanical damage, and degradation mechanisms.
 Extract EVERY quantified statement related to battery degradation.
 Return ONLY a valid JSON array of objects. Each object MUST have exactly these keys:
@@ -718,68 +722,108 @@ Return ONLY a valid JSON array of objects. Each object MUST have exactly these k
 
 Now process the paper below and return the JSON array."""
 
-    entities = []
+    # Reserve tokens for the fixed prompt parts (system + metadata)
+    placeholder = "PLACEHOLDER"
+    sample_metadata = f"Paper ID: {placeholder}\nTitle: {placeholder}\nYear: {placeholder}\n\n"
+    system_tokens = tokenizer.encode(system_prompt, add_special_tokens=False)
+    metadata_tokens = tokenizer.encode(sample_metadata, add_special_tokens=False)
+    overhead_tokens = len(system_tokens) + len(metadata_tokens) + 10  # safety margin
+    max_chunk_tokens = max_context - overhead_tokens
+    if max_chunk_tokens <= 0:
+        st.error(f"Model context too small ({max_context} tokens) – cannot fit the prompt. Use a larger model.")
+        return pd.DataFrame()
+
+    update_log(f"Model max context: {max_context} tokens, using {max_chunk_tokens} tokens per chunk")
+
+    all_entities = []
     progress_bar = st.progress(0)
 
     for i, row in df.iterrows():
         content = row["content"]
-        # Use larger context (most models in the app can handle ~4000 tokens)
-        if len(content) > 3800:
-            content = content[:3800] + "\n...[truncated]"
+        # Tokenize the content to see how many tokens it uses
+        content_tokens = tokenizer.encode(content, add_special_tokens=False)
+        total_tokens = overhead_tokens + len(content_tokens)
 
-        full_prompt = f"{system_prompt}\n\nPaper ID: {row['paper_id']}\nTitle: {row['title']}\nYear: {row['year']}\n\n{content}"
+        if total_tokens <= max_context:
+            # Single chunk – process normally
+            chunks = [content]
+        else:
+            # Split content into chunks that fit
+            # Split by sentences (using simple regex)
+            sentences = re.split(r'(?<=[.!?])\s+', content)
+            chunks = []
+            current_chunk = ""
+            current_len = 0
+            for sent in sentences:
+                sent_tokens = tokenizer.encode(sent, add_special_tokens=False)
+                if current_len + len(sent_tokens) <= max_chunk_tokens:
+                    current_chunk += sent + " "
+                    current_len += len(sent_tokens)
+                else:
+                    if current_chunk:
+                        chunks.append(current_chunk.strip())
+                    current_chunk = sent + " "
+                    current_len = len(sent_tokens)
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            update_log(f"Paper {row['paper_id']} split into {len(chunks)} chunks")
 
-        inputs = tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=4096)
-        if torch.cuda.is_available():
-            inputs = inputs.to("cuda")
+        # Process each chunk
+        for chunk_idx, chunk in enumerate(chunks):
+            metadata = f"Paper ID: {row['paper_id']}\nTitle: {row['title']}\nYear: {row['year']}\n\n"
+            full_prompt = f"{system_prompt}\n\n{metadata}{chunk}"
 
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=600,
-                temperature=0.1,
-                do_sample=False,
-                pad_token_id=tokenizer.eos_token_id,
-                eos_token_id=tokenizer.eos_token_id
-            )
+            inputs = tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=max_context)
+            if torch.cuda.is_available():
+                inputs = inputs.to("cuda")
 
-        generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            with torch.no_grad():
+                outputs = model.generate(
+                    **inputs,
+                    max_new_tokens=600,
+                    temperature=0.1,
+                    do_sample=False,
+                    pad_token_id=tokenizer.eos_token_id,
+                    eos_token_id=tokenizer.eos_token_id
+                )
 
-        # Extract JSON array with robust regex
-        json_match = re.search(r'\[\s*\{.*\}\s*\]', generated, re.DOTALL)
-        if json_match:
-            try:
-                items = json.loads(json_match.group(0))
-                for item in items:
-                    # Add missing fields safely
-                    item.setdefault("paper_id", row["paper_id"])
-                    item.setdefault("title", row["title"])
-                    item.setdefault("year", row["year"])
-                    item.setdefault("confidence", 0.7)
-                    if isinstance(item.get("value"), str):
-                        try:
-                            item["value"] = float(item["value"])
-                        except:
-                            continue
-                    entities.append(item)
-            except (json.JSONDecodeError, TypeError):
-                pass  # skip malformed output
+            generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            # Extract JSON array with robust regex
+            json_match = re.search(r'\[\s*\{.*\}\s*\]', generated, re.DOTALL)
+            if json_match:
+                try:
+                    items = json.loads(json_match.group(0))
+                    for item in items:
+                        # Add missing fields safely
+                        item.setdefault("paper_id", row["paper_id"])
+                        item.setdefault("title", row["title"])
+                        item.setdefault("year", row["year"])
+                        item.setdefault("confidence", 0.7)
+                        if isinstance(item.get("value"), str):
+                            try:
+                                item["value"] = float(item["value"])
+                            except:
+                                continue
+                        all_entities.append(item)
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
         progress_bar.progress((i + 1) / len(df))
-        del inputs, outputs  # memory cleanup
+        # Clear memory after each paper
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
-    df_entities = pd.DataFrame(entities)
-
-    # Optional final scientific post-processing
+    # Post‑processing
+    df_entities = pd.DataFrame(all_entities)
     if not df_entities.empty:
-        # Unit normalization (extra safety)
+        # Unit normalization
         df_entities["unit"] = df_entities["unit"].str.replace("GPa", "MPa").str.replace("kPa", "MPa")
         # Confidence filter (optional)
         df_entities = df_entities[df_entities["confidence"] >= 0.6]
+        # Deduplicate (same term, value, unit, mechanism, paper_id)
+        df_entities = df_entities.drop_duplicates(subset=["paper_id", "term", "value", "unit", "mechanism"])
 
     update_log(f"Scientific LLM NER extracted {len(df_entities)} quantified entities")
     return df_entities
