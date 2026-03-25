@@ -51,6 +51,9 @@ Using LLM to make inferences and NER analysis
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentstandalonener4-streamlit-red)](https://intelligent-batteryreliabilityner4.streamlit.app/) (memory optimization for cloud computation, utilizes psutil and accelerate modules, ner analysis directly starts from data inspection)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentstandalonener5-streamlit-red)](https://intelligent-batteryreliabilityner5.streamlit.app/) (memory optimization for cloud computation, utilizes psutil and accelerate modules, ner analysis directly starts from data inspection)
+
+
 
 ## Priority Enhanced Knowledge Graph (PREKNOWLEDGE)
 
