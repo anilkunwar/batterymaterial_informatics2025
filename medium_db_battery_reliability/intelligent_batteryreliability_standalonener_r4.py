@@ -17,7 +17,6 @@ import uuid
 import json
 import gc
 import psutil
-
 # Try to import transformers – if too old, show error and disable LLM
 try:
     from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
@@ -46,20 +45,16 @@ plt.rcParams.update({
     'figure.dpi': 200,
     'savefig.transparent': True
 })
-
 DB_DIR = os.path.dirname(os.path.abspath(__file__))
 RELIABILITY_DB_FILE = os.path.join(DB_DIR, "battery_reliability.db")
 UNIVERSE_DB_FILE = os.path.join(DB_DIR, "battery_reliability_universe.db")
-
 logging.basicConfig(
     filename=os.path.join(DB_DIR, 'battery_reliability_analysis.log'),
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
-
 st.set_page_config(page_title="Battery Reliability Analysis Tool (SciBERT + LLM)", layout="wide")
 st.title("Battery Reliability Analysis: Electrode Cracking, SEI Formation, Degradation")
-
 st.markdown("""
 This tool inspects SQLite databases and performs NER analysis using SciBERT and optional LLM‑based quantified extraction.
 Select a database, then use the tabs to inspect and extract entities with numerical values.
@@ -70,15 +65,11 @@ def clear_memory(verbose=True):
     """Clear all caches and run garbage collection"""
     if verbose:
         st.info("Clearing memory caches...")
-    
     st.cache_data.clear()
     st.cache_resource.clear()
-    
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    
     gc.collect()
-    
     if verbose:
         st.success("Memory cleared successfully!")
 
@@ -99,7 +90,9 @@ def load_spacy_model():
         
         @Language.component("custom_tokenizer")
         def custom_tokenizer(doc):
-            hyphenated_phrases = ["electrode-cracking", "SEI-formation", "cyclic-mechanical-damage", "diffusion-induced-stress", "electrolyte-degradation", "capacity-fade", "lithium-ion", "Li-ion", "crack-propagation"]
+            hyphenated_phrases = ["electrode-cracking", "SEI-formation", "cyclic-mechanical-damage", 
+                                  "diffusion-induced-stress", "electrolyte-degradation", "capacity-fade", 
+                                  "lithium-ion", "Li-ion", "crack-propagation"]
             for phrase in hyphenated_phrases:
                 if phrase.lower() in doc.text.lower():
                     with doc.retokenize() as retokenizer:
@@ -116,7 +109,6 @@ def load_spacy_model():
         
         if "custom_tokenizer" not in nlp_model.pipe_names:
             nlp_model.add_pipe("custom_tokenizer", before="parser")
-        
         return nlp_model
     except Exception as e:
         st.error(f"Failed to load spaCy: {e}")
@@ -138,7 +130,6 @@ def load_scibert():
     """Load SciBERT with memory optimization"""
     if not TRANSFORMERS_AVAILABLE:
         return None, None
-    
     try:
         tokenizer = AutoTokenizer.from_pretrained(
             "allenai/scibert_scivocab_uncased",
@@ -152,7 +143,6 @@ def load_scibert():
         )
         model.eval()
         model = model.to("cpu")
-        
         return tokenizer, model
     except Exception as e:
         st.error(f"Failed to load SciBERT: {e}")
@@ -161,27 +151,21 @@ def load_scibert():
 def get_scibert_models():
     """Get SciBERT models, loading if necessary"""
     global scibert_tokenizer, scibert_model
-    
     if scibert_tokenizer is None or scibert_model is None:
         scibert_tokenizer, scibert_model = load_scibert()
-    
     return scibert_tokenizer, scibert_model
 
 def unload_scibert():
     """Unload SciBERT to free memory"""
     global scibert_tokenizer, scibert_model
-    
     if scibert_model is not None:
         del scibert_model
         scibert_model = None
-    
     if scibert_tokenizer is not None:
         del scibert_tokenizer
         scibert_tokenizer = None
-    
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    
     gc.collect()
 
 # ==================== LLM SETUP ====================
@@ -201,7 +185,6 @@ def load_llm(model_key: str):
     """Load the selected LLM, unloading any previously loaded model to save memory."""
     if not TRANSFORMERS_AVAILABLE:
         return None, None, None
-    
     if model_key not in LLM_MODELS:
         st.error(f"Unknown model: {model_key}")
         return None, None, None
@@ -213,7 +196,6 @@ def load_llm(model_key: str):
         del st.session_state.llm_model
     if "llm_tokenizer" in st.session_state and st.session_state.llm_tokenizer is not None:
         del st.session_state.llm_tokenizer
-    
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -235,7 +217,6 @@ def load_llm(model_key: str):
         st.session_state.llm_tokenizer = tokenizer
         st.session_state.llm_model = model
         st.success(f"Loaded {model_key} (approx {model.num_parameters()/1e9:.2f}B parameters) on CPU.")
-        
         return tokenizer, model, model_key
     except Exception as e:
         st.error(f"Failed to load {model_key}: {str(e)}")
@@ -279,37 +260,169 @@ def get_scibert_embedding_batch(texts):
     """Compute embeddings for a list of texts in a single forward pass."""
     if not texts:
         return []
-    
     tokenizer, model = get_scibert_models()
     if tokenizer is None or model is None:
         return [None] * len(texts)
-    
     try:
         batch_size = 16
         all_embeddings = []
-        
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
             inputs = tokenizer(batch, return_tensors="pt", truncation=True, max_length=64, padding=True)
-            
             with torch.no_grad():
                 outputs = model(**inputs, output_hidden_states=True)
                 last_hidden_state = outputs.hidden_states[-1].mean(dim=1).squeeze().numpy()
-                
                 norms = np.linalg.norm(last_hidden_state, axis=1, keepdims=True)
                 norms[norms == 0] = 1
                 normalized_embeddings = last_hidden_state / norms
-                
                 all_embeddings.extend(list(normalized_embeddings))
-            
-            del inputs, outputs, last_hidden_state
+                del inputs, outputs, last_hidden_state
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-        
         return all_embeddings
     except Exception as e:
         update_log(f"SciBERT batch embedding failed: {str(e)}")
         return [None] * len(texts)
+
+# ==================== NEW: TEXT CHUNKING FUNCTION FOR GPT ====================
+def chunk_text_for_llm(text, tokenizer, model, max_context_safety_margin=100):
+    """
+    Split text into chunks that fit within the model's context window.
+    
+    Args:
+        text: Input text to chunk
+        tokenizer: HuggingFace tokenizer
+        model: HuggingFace model
+        max_context_safety_margin: Tokens to reserve for prompt/output (default 100)
+    
+    Returns:
+        List of text chunks that fit within model's context window
+    """
+    # Get model's maximum position embeddings
+    if hasattr(model.config, "max_position_embeddings"):
+        max_context = model.config.max_position_embeddings
+    else:
+        max_context = 1024  # Safe fallback for most models
+    
+    # Calculate available tokens for content
+    available_tokens = max_context - max_context_safety_margin
+    
+    if available_tokens <= 0:
+        update_log(f"ERROR: Model context ({max_context}) too small for safety margin ({max_context_safety_margin})")
+        return [text[:1000]]  # Fallback to character-based truncation
+    
+    # Tokenize the full text to check length
+    tokens = tokenizer.encode(text, add_special_tokens=False)
+    
+    # If text fits within context, return as single chunk
+    if len(tokens) <= available_tokens:
+        update_log(f"Text fits in context: {len(tokens)}/{available_tokens} tokens")
+        return [text]
+    
+    update_log(f"Text too long: {len(tokens)} tokens, need to chunk into {available_tokens} token segments")
+    
+    # Split by sentences for better coherence
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    
+    chunks = []
+    current_chunk = ""
+    current_token_count = 0
+    
+    for sent in sentences:
+        sent_tokens = tokenizer.encode(sent, add_special_tokens=False)
+        sent_token_count = len(sent_tokens)
+        
+        # If single sentence is too long, split by words
+        if sent_token_count > available_tokens:
+            words = sent.split()
+            word_chunk = ""
+            word_token_count = 0
+            
+            for word in words:
+                word_tokens = tokenizer.encode(word + " ", add_special_tokens=False)
+                word_token_len = len(word_tokens)
+                
+                if word_token_count + word_token_len <= available_tokens:
+                    word_chunk += word + " "
+                    word_token_count += word_token_len
+                else:
+                    if word_chunk:
+                        chunks.append(word_chunk.strip())
+                    word_chunk = word + " "
+                    word_token_count = word_token_len
+            
+            if word_chunk:
+                chunks.append(word_chunk.strip())
+        # If sentence fits in current chunk, add it
+        elif current_token_count + sent_token_count <= available_tokens:
+            current_chunk += sent + " "
+            current_token_count += sent_token_count
+        # Otherwise, save current chunk and start new one
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            current_chunk = sent + " "
+            current_token_count = sent_token_count
+    
+    # Add remaining chunk
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    
+    update_log(f"Split text into {len(chunks)} chunks")
+    
+    # Verify each chunk fits
+    for i, chunk in enumerate(chunks):
+        chunk_tokens = tokenizer.encode(chunk, add_special_tokens=False)
+        if len(chunk_tokens) > available_tokens:
+            update_log(f"WARNING: Chunk {i} still too long ({len(chunk_tokens)} tokens), truncating")
+            chunks[i] = tokenizer.decode(chunk_tokens[:available_tokens])
+    
+    return chunks
+
+
+def validate_input_before_generate(inputs, tokenizer, model, function_name="model.generate"):
+    """
+    Validate input tensors before calling model.generate() to prevent IndexError.
+    
+    Args:
+        inputs: Tokenized inputs dict
+        tokenizer: HuggingFace tokenizer
+        model: HuggingFace model
+        function_name: Name of function calling this validation
+    
+    Returns:
+        bool: True if inputs are valid, False otherwise
+    """
+    if "input_ids" not in inputs:
+        update_log(f"ERROR: {function_name} - input_ids missing from inputs")
+        return False
+    
+    input_length = inputs["input_ids"].shape[1]
+    
+    # Get model's maximum position embeddings
+    if hasattr(model.config, "max_position_embeddings"):
+        max_context = model.config.max_position_embeddings
+    else:
+        max_context = 1024
+    
+    if input_length >= max_context:
+        update_log(f"ERROR: {function_name} - Input length ({input_length}) exceeds model context ({max_context})")
+        st.error(f"Input too long for model! Length: {input_length}, Max: {max_context}. Text will be truncated.")
+        
+        # Truncate inputs to fit
+        truncate_length = max_context - 1  # Leave 1 token for safety
+        inputs["input_ids"] = inputs["input_ids"][:, :truncate_length]
+        if "attention_mask" in inputs:
+            inputs["attention_mask"] = inputs["attention_mask"][:, :truncate_length]
+        if "position_ids" in inputs:
+            inputs["position_ids"] = inputs["position_ids"][:, :truncate_length]
+        
+        update_log(f"Truncated inputs to {truncate_length} tokens")
+        return True
+    
+    update_log(f"Input validation passed: {input_length}/{max_context} tokens")
+    return True
+
 
 # ==================== DATABASE INSPECTION ====================
 def inspect_database(db_path):
@@ -317,7 +430,6 @@ def inspect_database(db_path):
         update_log(f"Inspecting database: {os.path.basename(db_path)}")
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = cursor.fetchall()
         st.subheader("Tables in Database")
@@ -333,7 +445,6 @@ def inspect_database(db_path):
             schema = cursor.fetchall()
             schema_df = pd.DataFrame(schema, columns=["cid", "name", "type", "notnull", "dflt_value", "pk"])
             st.dataframe(schema_df[["name", "type", "notnull", "dflt_value", "pk"]], use_container_width=True)
-            
             available_columns = [col[1] for col in schema]
             update_log(f"Available columns in 'papers' table: {', '.join(available_columns)}")
             
@@ -374,7 +485,8 @@ def inspect_database(db_path):
             st.write(f"{total_papers} papers")
             
             # Simple term frequency (optional)
-            terms_to_search = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "electrolyte degradation", "capacity fade"]
+            terms_to_search = ["electrode cracking", "SEI formation", "cyclic mechanical damage", 
+                             "electrolyte degradation", "capacity fade"]
             st.subheader("Term Frequency in Available Text Columns")
             term_counts = {}
             for term in terms_to_search:
@@ -452,10 +564,25 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
             return pd.DataFrame()
         
         categories = {
-            "Deformation": ["plastic deformation", "yield strength", "plastic strain", "ductility", "inelastic strain", "flow stress", "volume expansion", "swelling", "volumetric expansion", "volume change", "dimensional change", "volume deformation", "volume increase", "volumetric strain", "expansion strain", "dilatation", "volume distortion"],
-            "Fatigue": ["fatigue life", "cyclic loading", "cycle life", "fatigue crack", "stress cycling", "mechanical fatigue", "low cycle fatigue", "high cycle fatigue", "fatigue damage", "fatigue failure", "cyclic deformation", "cyclic stress", "endurance limit", "S-N curve"],
-            "Crack and Fracture": ["electrode cracking", "crack propagation", "crack growth", "crack initiation", "micro-cracking", "fracture", "fracture toughness", "brittle fracture", "ductile fracture", "crack branching", "crack tip", "stress intensity factor", "fracture mechanics", "J-integral", "cleavage fracture"],
-            "Degradation": ["SEI formation", "electrolyte degradation", "capacity fade", "cycle degradation", "electrode degradation", "electrolyte decomposition", "aging", "thermal degradation", "mechanical degradation", "capacity loss", "fading", "deterioration", "corrosion", "passivation", "side reaction"]
+            "Deformation": ["plastic deformation", "yield strength", "plastic strain", "ductility", 
+                          "inelastic strain", "flow stress", "volume expansion", "swelling", 
+                          "volumetric expansion", "volume change", "dimensional change", 
+                          "volume deformation", "volume increase", "volumetric strain", 
+                          "expansion strain", "dilatation", "volume distortion"],
+            "Fatigue": ["fatigue life", "cyclic loading", "cycle life", "fatigue crack", 
+                       "stress cycling", "mechanical fatigue", "low cycle fatigue", 
+                       "high cycle fatigue", "fatigue damage", "fatigue failure", 
+                       "cyclic deformation", "cyclic stress", "endurance limit", "S-N curve"],
+            "Crack and Fracture": ["electrode cracking", "crack propagation", "crack growth", 
+                                  "crack initiation", "micro-cracking", "fracture", 
+                                  "fracture toughness", "brittle fracture", "ductile fracture", 
+                                  "crack branching", "crack tip", "stress intensity factor", 
+                                  "fracture mechanics", "J-integral", "cleavage fracture"],
+            "Degradation": ["SEI formation", "electrolyte degradation", "capacity fade", 
+                          "cycle degradation", "electrode degradation", "electrolyte decomposition", 
+                          "aging", "thermal degradation", "mechanical degradation", 
+                          "capacity loss", "fading", "deterioration", "corrosion", 
+                          "passivation", "side reaction"]
         }
         
         valid_units = {
@@ -475,15 +602,18 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
         numerical_pattern = r"(\d+\.?\d*[eE]?-?\d*|\d+)\s*(mpa|gpa|kpa|pa|%|μm|nm|MPa·m\^0\.5|cycles|MPa|GPa)"
         similarity_threshold = 0.7
         
-        ref_embeddings = {cat: [get_scibert_embedding_batch([term])[0] if get_scibert_embedding_batch([term])[0] is not None else None for term in terms] for cat, terms in categories.items()}
+        ref_embeddings = {cat: [get_scibert_embedding_batch([term])[0] 
+                               if get_scibert_embedding_batch([term])[0] is not None 
+                               else None for term in terms] 
+                         for cat, terms in categories.items()}
         ref_embeddings = {cat: [e for e in embs if e is not None] for cat, embs in ref_embeddings.items()}
         
-        term_patterns = {term: re.compile(rf'\b{re.escape(term)}\b', re.IGNORECASE) for term in selected_terms}
+        term_patterns = {term: re.compile(rf'\b{re.escape(term)}\b', re.IGNORECASE) 
+                        for term in selected_terms}
         
         entities = []
         entity_set = set()
         progress_bar = st.progress(0)
-        
         nlp_model = get_nlp()
         
         for i, row in df.iterrows():
@@ -523,7 +653,9 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
                     
                     term_matched = False
                     for term in selected_terms:
-                        if term_patterns[term].search(span_text) or term_patterns[term].search(orig_sent) or term_patterns[term].search(nearby_sent):
+                        if (term_patterns[term].search(span_text) or 
+                            term_patterns[term].search(orig_sent) or 
+                            term_patterns[term].search(nearby_sent)):
                             term_matched = True
                             break
                     
@@ -531,11 +663,14 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
                         span_embedding = get_scibert_embedding_batch([span_text])[0]
                         if span_embedding is None:
                             continue
-                        
-                        term_embeddings = [get_scibert_embedding_batch([term])[0] for term in selected_terms if get_scibert_embedding_batch([term])[0] is not None]
+                        term_embeddings = [get_scibert_embedding_batch([term])[0] 
+                                          for term in selected_terms 
+                                          if get_scibert_embedding_batch([term])[0] is not None]
                         similarities = [
-                            np.dot(span_embedding, t_emb) / (np.linalg.norm(span_embedding) * np.linalg.norm(t_emb))
-                            for t_emb in term_embeddings if np.linalg.norm(span_embedding) != 0 and np.linalg.norm(t_emb) != 0
+                            np.dot(span_embedding, t_emb) / 
+                            (np.linalg.norm(span_embedding) * np.linalg.norm(t_emb))
+                            for t_emb in term_embeddings 
+                            if np.linalg.norm(span_embedding) != 0 and np.linalg.norm(t_emb) != 0
                         ]
                         if any(s > 0.5 for s in similarities):
                             term_matched = True
@@ -546,7 +681,6 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
                     value_match = re.match(numerical_pattern, span_text, re.IGNORECASE)
                     value = None
                     unit = None
-                    
                     if value_match:
                         try:
                             value = float(value_match.group(1))
@@ -573,12 +707,12 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
                     
                     best_label = None
                     best_score = 0
-                    
                     for label, ref_embeds in ref_embeddings.items():
                         for ref_embed in ref_embeds:
                             if np.linalg.norm(span_embedding) == 0 or np.linalg.norm(ref_embed) == 0:
                                 continue
-                            similarity = np.dot(span_embedding, ref_embed) / (np.linalg.norm(span_embedding) * np.linalg.norm(ref_embed))
+                            similarity = np.dot(span_embedding, ref_embed) / \
+                                       (np.linalg.norm(span_embedding) * np.linalg.norm(ref_embed))
                             if similarity > similarity_threshold and similarity > best_score:
                                 best_label = label
                                 best_score = similarity
@@ -592,36 +726,36 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
                             context_embedding = get_scibert_embedding_batch([context])[0]
                             if context_embedding is None:
                                 continue
-                            
                             unit_valid = False
                             for v_unit in valid_units.get(best_label, []):
                                 unit_embedding = get_scibert_embedding_batch([f"{span_text} {v_unit}"])[0]
                                 if unit_embedding is None:
                                     continue
-                                unit_score = np.dot(context_embedding, unit_embedding) / (np.linalg.norm(context_embedding) * np.linalg.norm(unit_embedding))
+                                unit_score = np.dot(context_embedding, unit_embedding) / \
+                                          (np.linalg.norm(context_embedding) * np.linalg.norm(unit_embedding))
                                 if unit_score > 0.6:
                                     unit_valid = True
                                     unit = v_unit
                                     break
-                            
                             if not unit_valid:
                                 continue
-                            
-                            range_valid = False
-                            for min_val, max_val, expected_unit in valid_ranges.get(best_label, [(None, None, None)]):
-                                if expected_unit == unit and min_val is not None and max_val is not None:
-                                    if min_val <= value <= max_val:
-                                        range_valid = True
-                                        break
-                            
-                            if not range_valid:
-                                continue
-                        elif any(v is None for v in valid_units.get(best_label, [])):
-                            pass
-                        else:
+                        
+                        range_valid = False
+                        for min_val, max_val, expected_unit in valid_ranges.get(best_label, [(None, None, None)]):
+                            if expected_unit == unit and min_val is not None and max_val is not None:
+                                if min_val <= value <= max_val:
+                                    range_valid = True
+                                    break
+                        if not range_valid:
                             continue
+                    elif any(v is None for v in valid_units.get(best_label, [])):
+                        pass
+                    else:
+                        continue
                     
-                    entity_key = (row["paper_id"], span_text, best_label, value if value is not None else "", unit if unit is not None else "")
+                    entity_key = (row["paper_id"], span_text, best_label, 
+                                 value if value is not None else "", 
+                                 unit if unit is not None else "")
                     if entity_key in entity_set:
                         continue
                     entity_set.add(entity_key)
@@ -643,196 +777,213 @@ def perform_ner_on_terms(db_file, selected_terms, max_papers=500):
                     })
                 
                 progress_bar.progress((i + 1) / len(df))
-                
             except Exception as e:
                 update_log(f"Error processing entry {row['paper_id']}: {str(e)}")
         
         update_log(f"Extracted {len(entities)} entities")
         return pd.DataFrame(entities)
-        
     except Exception as e:
         update_log(f"NER analysis failed: {str(e)}")
         st.error(f"NER analysis failed: {str(e)}")
         return pd.DataFrame()
 
-# ==================== SCIENTIFIC LLM QUANTIFIED NER (with chunking) ====================
+# ==================== SCIENTIFIC LLM QUANTIFIED NER (WITH IMPROVED CHUNKING) ====================
 @st.cache_data(ttl=3600, show_spinner=False)
 def scientific_llm_quantified_ner(db_file: str, max_papers: int = 500):
-    """Scientific LLM-based quantified NER with automatic text chunking."""
-
+    """Scientific LLM-based quantified NER with automatic text chunking and input validation."""
     if not st.session_state.llm_model or not st.session_state.llm_tokenizer:
         st.error("LLM not loaded. Select a model in the sidebar first.")
         return pd.DataFrame()
-
+    
     tokenizer = st.session_state.llm_tokenizer
     model = st.session_state.llm_model
-
-    conn = sqlite3.connect(db_file)
-    query = f"""
-        SELECT id as paper_id, title, year, content
-        FROM papers
-        WHERE content IS NOT NULL
-        LIMIT {max_papers}
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-
-    if df.empty:
-        st.warning("No papers found in database.")
-        return pd.DataFrame()
-
-    # ─── Determine the model's maximum context length ─────────────────
+    
+    # Get model context window
     if hasattr(model.config, "max_position_embeddings"):
         max_context = model.config.max_position_embeddings
     else:
-        # Fallback to a safe value (most models support at least 1024)
         max_context = 1024
-
-    # ─── System prompt (same as before) ─────────────────────────────────
+    
+    update_log(f"Using model with max context: {max_context} tokens")
+    
+    conn = sqlite3.connect(db_file)
+    query = f"""
+    SELECT id as paper_id, title, year, content
+    FROM papers
+    WHERE content IS NOT NULL
+    LIMIT {max_papers}
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    
+    if df.empty:
+        st.warning("No papers found in database.")
+        return pd.DataFrame()
+    
+    # ─── System prompt ─────────────────────────────────
     system_prompt = """You are a battery reliability expert specializing in electrode cracking, SEI formation, cyclic mechanical damage, and degradation mechanisms.
 Extract EVERY quantified statement related to battery degradation.
 Return ONLY a valid JSON array of objects. Each object MUST have exactly these keys:
-
 {
-  "paper_id": int,
-  "title": str,
-  "year": int,
-  "term": str,                  // e.g. "electrode cracking", "SEI thickness", "capacity fade", "crack length"
-  "value": float,
-  "unit": str,                  // normalized: %, μm, nm, MPa, cycles, MPa·m^{0.5}, etc.
-  "mechanism": str,             // must be one of: "Deformation", "Fatigue", "Crack and Fracture", "Degradation"
-  "context": str,               // 1-2 sentences from the paper
-  "confidence": float,          // 0.0–1.0 (how certain you are this extraction is correct)
-  "temperature": float or null, // °C if mentioned, else null
-  "cycles": int or null         // cycle number if mentioned
+"paper_id": int,
+"title": str,
+"year": int,
+"term": str,
+"value": float,
+"unit": str,
+"mechanism": str,
+"context": str,
+"confidence": float,
+"temperature": float or null,
+"cycles": int or null
 }
-
 **Ontology of mechanisms (use exactly these labels):**
 - Deformation: plastic deformation, yield strength, volume expansion, swelling, etc.
 - Fatigue: fatigue life, cyclic loading, cycle life, stress cycling
 - Crack and Fracture: electrode cracking, crack propagation, crack growth, fracture toughness
 - Degradation: SEI formation, electrolyte degradation, capacity fade, aging
-
 **Rules:**
 - Normalize units (convert GPa → MPa, kPa → MPa, etc.).
-- If a value is given without unit but context is clear, infer the most common unit.
 - Only extract values that are explicitly numerical and tied to a degradation term.
 - If nothing is found, return [].
-- Think step-by-step before outputting JSON.
-
 Now process the paper below and return the JSON array."""
-
-    # Reserve tokens for the fixed prompt parts (system + metadata)
+    
+    # Calculate overhead tokens for prompt
     placeholder = "PLACEHOLDER"
-    sample_metadata = f"Paper ID: {placeholder}\nTitle: {placeholder}\nYear: {placeholder}\n\n"
+    sample_metadata = f"Paper ID: {placeholder}\nTitle: {placeholder}\nYear: {placeholder}\n"
     system_tokens = tokenizer.encode(system_prompt, add_special_tokens=False)
     metadata_tokens = tokenizer.encode(sample_metadata, add_special_tokens=False)
-    overhead_tokens = len(system_tokens) + len(metadata_tokens) + 10  # safety margin
+    overhead_tokens = len(system_tokens) + len(metadata_tokens) + 50  # safety margin for output
+    
+    # Calculate max chunk size
     max_chunk_tokens = max_context - overhead_tokens
+    
     if max_chunk_tokens <= 0:
         st.error(f"Model context too small ({max_context} tokens) – cannot fit the prompt. Use a larger model.")
         return pd.DataFrame()
-
+    
     update_log(f"Model max context: {max_context} tokens, using {max_chunk_tokens} tokens per chunk")
-
+    
     all_entities = []
     progress_bar = st.progress(0)
-
+    error_count = 0
+    
     for i, row in df.iterrows():
         content = row["content"]
-        # Tokenize the content to see how many tokens it uses
-        content_tokens = tokenizer.encode(content, add_special_tokens=False)
-        total_tokens = overhead_tokens + len(content_tokens)
-
-        if total_tokens <= max_context:
-            # Single chunk – process normally
-            chunks = [content]
-        else:
-            # Split content into chunks that fit
-            # Split by sentences (using simple regex)
-            sentences = re.split(r'(?<=[.!?])\s+', content)
-            chunks = []
-            current_chunk = ""
-            current_len = 0
-            for sent in sentences:
-                sent_tokens = tokenizer.encode(sent, add_special_tokens=False)
-                if current_len + len(sent_tokens) <= max_chunk_tokens:
-                    current_chunk += sent + " "
-                    current_len += len(sent_tokens)
-                else:
-                    if current_chunk:
-                        chunks.append(current_chunk.strip())
-                    current_chunk = sent + " "
-                    current_len = len(sent_tokens)
-            if current_chunk:
-                chunks.append(current_chunk.strip())
-            update_log(f"Paper {row['paper_id']} split into {len(chunks)} chunks")
-
+        
+        # ─── CHUNK THE TEXT ─────────────────────────────────
+        chunks = chunk_text_for_llm(content, tokenizer, model, max_context_safety_margin=overhead_tokens)
+        update_log(f"Paper {row['paper_id']} split into {len(chunks)} chunks")
+        
         # Process each chunk
         for chunk_idx, chunk in enumerate(chunks):
-            metadata = f"Paper ID: {row['paper_id']}\nTitle: {row['title']}\nYear: {row['year']}\n\n"
-            full_prompt = f"{system_prompt}\n\n{metadata}{chunk}"
-
-            inputs = tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=max_context)
-            if torch.cuda.is_available():
-                inputs = inputs.to("cuda")
-
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=600,
-                    temperature=0.1,
-                    do_sample=False,
-                    pad_token_id=tokenizer.eos_token_id,
-                    eos_token_id=tokenizer.eos_token_id
+            try:
+                metadata = f"Paper ID: {row['paper_id']}\nTitle: {row['title']}\nYear: {row['year']}\n"
+                full_prompt = f"{system_prompt}\n{metadata}{chunk}"
+                
+                # Tokenize with truncation
+                inputs = tokenizer(
+                    full_prompt, 
+                    return_tensors="pt", 
+                    truncation=True, 
+                    max_length=max_context - 1  # Leave 1 token safety margin
                 )
-
-            generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            # Extract JSON array with robust regex
-            json_match = re.search(r'\[\s*\{.*\}\s*\]', generated, re.DOTALL)
-            if json_match:
+                
+                # ─── VALIDATE INPUT BEFORE GENERATE ─────────────────────────────────
+                if not validate_input_before_generate(inputs, tokenizer, model, "scientific_llm_quantified_ner"):
+                    update_log(f"Skipping chunk {chunk_idx} due to validation failure")
+                    continue
+                
+                # Move to device if CUDA available
+                if torch.cuda.is_available():
+                    inputs = {k: v.to("cuda") for k, v in inputs.items()}
+                
+                # Generate with error handling
                 try:
-                    items = json.loads(json_match.group(0))
-                    for item in items:
-                        # Add missing fields safely
-                        item.setdefault("paper_id", row["paper_id"])
-                        item.setdefault("title", row["title"])
-                        item.setdefault("year", row["year"])
-                        item.setdefault("confidence", 0.7)
-                        if isinstance(item.get("value"), str):
-                            try:
-                                item["value"] = float(item["value"])
-                            except:
-                                continue
-                        all_entities.append(item)
-                except (json.JSONDecodeError, TypeError):
-                    pass
-
-        progress_bar.progress((i + 1) / len(df))
+                    with torch.no_grad():
+                        outputs = model.generate(
+                            **inputs,
+                            max_new_tokens=600,
+                            temperature=0.1,
+                            do_sample=False,
+                            pad_token_id=tokenizer.eos_token_id,
+                            eos_token_id=tokenizer.eos_token_id,
+                            use_cache=True
+                        )
+                    
+                    generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                    
+                    # Extract JSON array with robust regex
+                    json_match = re.search(r'\[\s*\{.*\}\s*\]', generated, re.DOTALL)
+                    if json_match:
+                        try:
+                            items = json.loads(json_match.group(0))
+                            for item in items:
+                                item.setdefault("paper_id", row["paper_id"])
+                                item.setdefault("title", row["title"])
+                                item.setdefault("year", row["year"])
+                                item.setdefault("confidence", 0.7)
+                                if isinstance(item.get("value"), str):
+                                    try:
+                                        item["value"] = float(item["value"])
+                                    except:
+                                        continue
+                                all_entities.append(item)
+                        except (json.JSONDecodeError, TypeError) as je:
+                            update_log(f"JSON parse error in chunk {chunk_idx}: {str(je)}")
+                            pass
+                    
+                    # Clear tensors
+                    del outputs, inputs
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    
+                except IndexError as ie:
+                    update_log(f"IndexError in chunk {chunk_idx}: {str(ie)}")
+                    error_count += 1
+                    # Try with more aggressive truncation
+                    if "input_ids" in inputs:
+                        inputs["input_ids"] = inputs["input_ids"][:, :max_context - 100]
+                        if "attention_mask" in inputs:
+                            inputs["attention_mask"] = inputs["attention_mask"][:, :max_context - 100]
+                    continue
+                except Exception as ge:
+                    update_log(f"Generation error in chunk {chunk_idx}: {str(ge)}")
+                    error_count += 1
+                    continue
+                
+            except Exception as e:
+                update_log(f"Error processing chunk {chunk_idx} of paper {row['paper_id']}: {str(e)}")
+                error_count += 1
+                continue
+        
         # Clear memory after each paper
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-
+        
+        progress_bar.progress((i + 1) / len(df))
+    
+    if error_count > 0:
+        st.warning(f"{error_count} chunks encountered errors during processing")
+    
     # Post‑processing
     df_entities = pd.DataFrame(all_entities)
     if not df_entities.empty:
         # Unit normalization
         df_entities["unit"] = df_entities["unit"].str.replace("GPa", "MPa").str.replace("kPa", "MPa")
-        # Confidence filter (optional)
+        # Confidence filter
         df_entities = df_entities[df_entities["confidence"] >= 0.6]
-        # Deduplicate (same term, value, unit, mechanism, paper_id)
+        # Deduplicate
         df_entities = df_entities.drop_duplicates(subset=["paper_id", "term", "value", "unit", "mechanism"])
-
-    update_log(f"Scientific LLM NER extracted {len(df_entities)} quantified entities")
+        update_log(f"Scientific LLM NER extracted {len(df_entities)} quantified entities")
+    
     return df_entities
 
 # ==================== NARRATIVE GENERATION ====================
 def generate_narrative_insight(structured_json: dict):
     tokenizer = st.session_state.llm_tokenizer
     model = st.session_state.llm_model
-    
     if not tokenizer or not model:
         return "LLM not loaded. Please select a model."
     
@@ -842,8 +993,12 @@ Use the exact node names and equations when relevant.
     
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     
+    # Validate before generate
+    if not validate_input_before_generate(inputs, tokenizer, model, "generate_narrative_insight"):
+        return "Error: Input too long for model."
+    
     if torch.cuda.is_available():
-        inputs = inputs.to("cuda")
+        inputs = {k: v.to("cuda") for k, v in inputs.items()}
     
     with torch.no_grad():
         outputs = model.generate(
@@ -856,7 +1011,6 @@ Use the exact node names and equations when relevant.
     
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     answer = answer.replace(prompt, "").strip()
-    
     return answer
 
 # ==================== VISUALIZATION HELPERS ====================
@@ -864,11 +1018,9 @@ Use the exact node names and equations when relevant.
 def plot_ner_histogram(df, top_n, colormap):
     if df.empty:
         return None
-    
     label_counts = df["entity_label"].value_counts().head(top_n)
     labels = label_counts.index.tolist()
     counts = label_counts.values
-    
     fig, ax = plt.subplots(figsize=(8, 4))
     colors = [cm.get_cmap(colormap)(i / len(labels)) for i in range(len(labels))]
     ax.bar(labels, counts, color=colors, edgecolor="black")
@@ -877,47 +1029,38 @@ def plot_ner_histogram(df, top_n, colormap):
     ax.set_title(f"Histogram of Top {top_n} NER Entities")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    
     return fig
 
 @st.cache_data(ttl=1800)
 def plot_ner_value_boxplot(df, top_n, colormap):
     if df.empty or df["value"].isna().all():
         return None
-    
     value_df = df[df["value"].notna() & df["unit"].notna()]
     if value_df.empty:
         return None
-    
     label_counts = value_df["entity_label"].value_counts().head(top_n)
     labels = label_counts.index.tolist()
     data = [value_df[value_df["entity_label"] == label]["value"].values for label in labels]
     units = [value_df[value_df["entity_label"] == label]["unit"].iloc[0] for label in labels]
-    
     fig, ax = plt.subplots(figsize=(10, 5))
     colors = [cm.get_cmap(colormap)(i / len(labels)) for i in range(len(labels))]
     box = ax.boxplot(data, patch_artist=True, labels=[f"{label} ({unit})" for label, unit in zip(labels, units)])
-    
     for patch, color in zip(box['boxes'], colors):
         patch.set_facecolor(color)
-    
     ax.set_xlabel("Entity Labels")
     ax.set_ylabel("Value")
     ax.set_title(f"Box Plot of Numerical Values for Top {top_n} NER Entities")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    
     return fig
 
 @st.cache_data(ttl=1800)
 def plot_ner_value_histograms(df, categories_units, top_n, colormap):
     if df.empty or df["value"].isna().all():
         return []
-    
     value_df = df[df["value"].notna() & df["unit"].notna()]
     if value_df.empty:
         return []
-    
     figs = []
     for category, unit in categories_units.items():
         cat_df = value_df[value_df["entity_label"] == category]
@@ -926,12 +1069,10 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
         if cat_df.empty:
             update_log(f"No data for {category} with unit {unit}")
             continue
-        
         values = cat_df["value"].values
         if len(values) == 0:
             update_log(f"No numerical values for {category} with unit {unit}")
             continue
-        
         fig, ax = plt.subplots(figsize=(8, 4))
         color = cm.get_cmap(colormap)(0.5)
         ax.hist(values, bins=20, color=color, edgecolor="black")
@@ -940,48 +1081,42 @@ def plot_ner_value_histograms(df, categories_units, top_n, colormap):
         ax.set_title(f"Histogram of {category} Values ({unit})")
         plt.tight_layout()
         figs.append(fig)
-    
     return figs
 
 # ==================== MAIN APP ====================
 st.header("Select or Upload Database")
-
 with st.sidebar:
     st.subheader("Memory Management")
-    
     if st.button("Clear All Memory & Cache"):
         clear_memory()
         st.rerun()
-    
     mem_usage = get_memory_usage()
     st.metric("Current Memory Usage", f"{mem_usage:.1f} MB")
     
     st.subheader("NER Parameters")
-    max_papers = st.slider("Max Papers to Process", min_value=100, max_value=2000, value=500, step=20, 
+    max_papers = st.slider("Max Papers to Process", min_value=100, max_value=2000, value=500, step=20,
                           help="Lower values = less memory usage")
     top_n = st.slider("Top N Entities to Show in Plots", min_value=5, max_value=30, value=10)
-
-db_files = glob.glob(os.path.join(DB_DIR, "*.db"))
-db_options = [os.path.basename(f) for f in db_files if f in [RELIABILITY_DB_FILE, UNIVERSE_DB_FILE]] + ["Upload a new .db file"]
-
-if os.path.basename(UNIVERSE_DB_FILE) not in db_options and os.path.exists(UNIVERSE_DB_FILE):
-    db_options.insert(0, os.path.basename(UNIVERSE_DB_FILE))
-
-default_index = db_options.index(os.path.basename(UNIVERSE_DB_FILE)) if os.path.basename(UNIVERSE_DB_FILE) in db_options else 0
-db_selection = st.selectbox("Select Database", db_options, index=default_index, key="db_select")
-
-if db_selection == "Upload a new .db file":
-    uploaded_file = st.file_uploader("Upload SQLite Database (.db)", type=["db"], key="db_upload")
-    if uploaded_file:
-        temp_db_path = os.path.join(DB_DIR, f"uploaded_{uuid.uuid4().hex}.db")
-        with open(temp_db_path, "wb") as f:
-            f.write(uploaded_file.read())
-        st.session_state.db_file = temp_db_path
-else:
-    if db_selection == os.path.basename(UNIVERSE_DB_FILE):
-        st.session_state.db_file = UNIVERSE_DB_FILE
+    
+    db_files = glob.glob(os.path.join(DB_DIR, "*.db"))
+    db_options = [os.path.basename(f) for f in db_files if f in [RELIABILITY_DB_FILE, UNIVERSE_DB_FILE]] + ["Upload a new .db file"]
+    if os.path.basename(UNIVERSE_DB_FILE) not in db_options and os.path.exists(UNIVERSE_DB_FILE):
+        db_options.insert(0, os.path.basename(UNIVERSE_DB_FILE))
+    default_index = db_options.index(os.path.basename(UNIVERSE_DB_FILE)) if os.path.basename(UNIVERSE_DB_FILE) in db_options else 0
+    db_selection = st.selectbox("Select Database", db_options, index=default_index, key="db_select")
+    
+    if db_selection == "Upload a new .db file":
+        uploaded_file = st.file_uploader("Upload SQLite Database (.db)", type=["db"], key="db_upload")
+        if uploaded_file:
+            temp_db_path = os.path.join(DB_DIR, f"uploaded_{uuid.uuid4().hex}.db")
+            with open(temp_db_path, "wb") as f:
+                f.write(uploaded_file.read())
+            st.session_state.db_file = temp_db_path
     else:
-        st.session_state.db_file = os.path.join(DB_DIR, db_selection)
+        if db_selection == os.path.basename(UNIVERSE_DB_FILE):
+            st.session_state.db_file = UNIVERSE_DB_FILE
+        else:
+            st.session_state.db_file = os.path.join(DB_DIR, db_selection)
 
 if st.session_state.db_file and os.path.exists(st.session_state.db_file):
     tab1, tab2 = st.tabs(["Database Inspection", "NER Analysis"])
@@ -994,7 +1129,6 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
     
     with tab2:
         st.header("NER Analysis")
-        
         use_llm = st.checkbox("Use LLM for quantified NER", value=True)
         
         if use_llm and TRANSFORMERS_AVAILABLE:
@@ -1005,8 +1139,9 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
         # For heuristic NER, allow manual term input
         if not use_llm:
             st.subheader("Heuristic NER Settings")
-            default_terms = ["electrode cracking", "SEI formation", "cyclic mechanical damage", "electrolyte degradation", "capacity fade"]
-            term_input = st.text_area("Enter terms (one per line or comma-separated)", 
+            default_terms = ["electrode cracking", "SEI formation", "cyclic mechanical damage", 
+                           "electrolyte degradation", "capacity fade"]
+            term_input = st.text_area("Enter terms (one per line or comma-separated)",
                                      value="\n".join(default_terms),
                                      help="Terms to search for in the text. You can also use multi-word phrases.")
             if term_input:
@@ -1021,13 +1156,20 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                     if use_llm and TRANSFORMERS_AVAILABLE:
                         tokenizer, model, loaded_key = load_llm(model_choice)
                         if tokenizer and model:
-                            llm_df = scientific_llm_quantified_ner(st.session_state.db_file, max_papers=max_papers)
-                            st.session_state.ner_results = llm_df
-                            if not llm_df.empty:
-                                st.session_state.last_structured_insights = {
-                                    "entities": llm_df.to_dict(orient="records"),
-                                    "summary": f"Extracted {len(llm_df)} quantified entities."
-                                }
+                            try:
+                                llm_df = scientific_llm_quantified_ner(st.session_state.db_file, max_papers=max_papers)
+                                st.session_state.ner_results = llm_df
+                                if not llm_df.empty:
+                                    st.session_state.last_structured_insights = {
+                                        "entities": llm_df.to_dict(orient="records"),
+                                        "summary": f"Extracted {len(llm_df)} quantified entities."
+                                    }
+                            except IndexError as ie:
+                                st.error(f"IndexError occurred: {str(ie)}. This usually means input text exceeded model context. Try a smaller max_papers value or different model.")
+                                update_log(f"IndexError in NER: {str(ie)}")
+                            except Exception as e:
+                                st.error(f"LLM NER failed: {str(e)}")
+                                update_log(f"LLM NER error: {str(e)}")
                         else:
                             st.error("Failed to load LLM. Check logs.")
                     else:
@@ -1041,9 +1183,9 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                                     "entities": ner_df.to_dict(orient="records"),
                                     "summary": f"Extracted {len(ner_df)} entities using heuristic method."
                                 }
-            else:
-                st.error(f"Cannot perform NER analysis: {os.path.basename(st.session_state.db_file)} not found.")
-                update_log(f"Cannot perform NER analysis: {os.path.basename(st.session_state.db_file)} not found.")
+                        else:
+                            st.error(f"Cannot perform NER analysis: {os.path.basename(st.session_state.db_file)} not found.")
+                            update_log(f"Cannot perform NER analysis: {os.path.basename(st.session_state.db_file)} not found.")
             
             if st.session_state.ner_results is not None and not st.session_state.ner_results.empty:
                 st.success(f"Extracted {len(st.session_state.ner_results)} entities!")
@@ -1059,11 +1201,10 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                     fig_box = plot_ner_value_boxplot(st.session_state.ner_results, top_n, "viridis")
                     if fig_box:
                         st.pyplot(fig_box)
-                    
                     categories_units = {
                         "Deformation": "%",
                         "Fatigue": "cycles",
-                        "Crack and Fracture": "um",
+                        "Crack and Fracture": "μm",
                         "Degradation": "%"
                     }
                     figs_hist_values = plot_ner_value_histograms(st.session_state.ner_results, categories_units, top_n, "viridis")
@@ -1071,7 +1212,6 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                         st.subheader("Value Distribution Histograms")
                         for fig in figs_hist_values:
                             st.pyplot(fig)
-                
                 elif "mechanism" in st.session_state.ner_results.columns:
                     st.subheader("Distribution of Mechanisms")
                     mech_counts = st.session_state.ner_results["mechanism"].value_counts()
@@ -1082,7 +1222,6 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                     ax.set_title("Count of Entities by Mechanism")
                     plt.xticks(rotation=45, ha="right")
                     st.pyplot(fig)
-                    
                     st.subheader("Value Distribution per Mechanism")
                     for mech in st.session_state.ner_results["mechanism"].unique():
                         mech_df = st.session_state.ner_results[st.session_state.ner_results["mechanism"] == mech]
@@ -1102,40 +1241,38 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
                 if use_llm and st.session_state.llm_model is not None:
                     st.subheader("Ask a follow-up question")
                     user_followup = st.text_input("Ask a question about the extracted entities:",
-                                                placeholder="Why is capacity fade more common than cracking?")
+                                                 placeholder="Why is capacity fade more common than cracking?")
                     if user_followup and st.button("Send", key="followup"):
                         context = json.dumps(st.session_state.last_structured_insights, indent=2)[:4000]
                         prompt = f"""You are a battery degradation expert. Use only the following structured insights:
 {context}
 User question: {user_followup}
 Answer in 2-3 concise sentences with references to specific entities."""
-                        
                         tokenizer = st.session_state.llm_tokenizer
                         model = st.session_state.llm_model
-                        
                         if tokenizer and model:
                             inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
-                            if torch.cuda.is_available():
-                                inputs = inputs.to("cuda")
                             
-                            with torch.no_grad():
-                                outputs = model.generate(**inputs, max_new_tokens=300, temperature=0.2, do_sample=True)
-                            
-                            answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-                            answer = answer.replace(prompt, "").strip()
-                            
-                            st.session_state.chat_history.append(("user", user_followup))
-                            st.session_state.chat_history.append(("assistant", answer))
-                            
-                            for role, msg in st.session_state.chat_history[-6:]:
-                                st.markdown(f"**{role.capitalize()}**: {msg}")
+                            # Validate before generate
+                            if validate_input_before_generate(inputs, tokenizer, model, "chat_followup"):
+                                if torch.cuda.is_available():
+                                    inputs = {k: v.to("cuda") for k, v in inputs.items()}
+                                with torch.no_grad():
+                                    outputs = model.generate(**inputs, max_new_tokens=300, temperature=0.2, do_sample=True)
+                                answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                                answer = answer.replace(prompt, "").strip()
+                                st.session_state.chat_history.append(("user", user_followup))
+                                st.session_state.chat_history.append(("assistant", answer))
+                                for role, msg in st.session_state.chat_history[-6:]:
+                                    st.markdown(f"**{role.capitalize()}**: {msg}")
+                            else:
+                                st.error("Input too long for model.")
                         else:
                             st.error("LLM not loaded. Please select a model and re-run.")
-                
-                st.text_area("Logs", "\n".join(st.session_state.log_buffer[-20:]), height=150, key="ner_logs")
+            
+            st.text_area("Logs", "\n".join(st.session_state.log_buffer[-20:]), height=150, key="ner_logs")
         else:
             st.info("Click 'Run NER Analysis' to start extraction.")
-
 else:
     st.warning(f"Select or upload a database file. Ensure {os.path.basename(UNIVERSE_DB_FILE)} is available.")
 
@@ -1146,4 +1283,5 @@ st.markdown("""
 - Click "Clear All Memory" between heavy operations
 - Use smaller models if enabling LLM features
 - Close other applications to free RAM
+- **NEW**: Text is now automatically chunked to fit model context window
 """)
