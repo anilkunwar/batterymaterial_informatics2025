@@ -58,6 +58,11 @@ Using LLM to make inferences and NER analysis
 
 [![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentstandalonener7-streamlit-red)](https://intelligent-batteryreliabilityner7.streamlit.app/) (memory optimization for cloud computation, utilizes psutil and accelerate modules, ner analysis directly starts from data inspection, robust Sentence Index using rank-bm25 + SciBERT embeddings)
 
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/batteryintelligentstandalonener8-streamlit-red)](https://intelligent-batteryreliabilityner8.streamlit.app/) (memory optimization for cloud computation, utilizes psutil and accelerate modules, ner analysis directly starts from data inspection, robust Sentence Index using rank-bm25 + SciBERT embeddings)
+
+
+
+[![machinelearningbatterytensormechanics](https://img.shields.io/badge/sentenceindex1-streamlit-red)](https://sentence-index-batterydb1.streamlit.app/) (robust Sentence Index using rank-bm25 + SciBERT embeddings, conversion of sqlite db into sentence index,  data available for download in faiss.index, metadata.pkl bm25.pkl, and tokenized_sentences.pkl )
 
 
 ## Priority Enhanced Knowledge Graph (PREKNOWLEDGE)
