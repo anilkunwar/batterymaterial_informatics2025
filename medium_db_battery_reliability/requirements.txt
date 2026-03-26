@@ -28,3 +28,4 @@ pyvis==0.3.2
 ################
 psutil
 accelerate
+faiss-cpu
