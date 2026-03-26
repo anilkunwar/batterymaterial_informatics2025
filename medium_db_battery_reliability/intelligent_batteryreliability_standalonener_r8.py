@@ -1,32 +1,3 @@
-### Why `build_sentence_index` Might Fail
-
-Based on the provided code, here are the primary reasons why `build_sentence_index` might not succeed:
-
-1.  **Empty Embeddings Crash:** If `get_scibert_embedding_batch` fails (e.g., model not loaded, OOM) and returns `None` for all sentences, `valid_embeddings` becomes an empty numpy array. Accessing `valid_embeddings.shape[1]` to determine dimensions for FAISS will raise an `IndexError`.
-2.  **Memory Overflow (OOM):** The function loads **all** paper content into a pandas DataFrame, extracts **all** sentences, computes embeddings for **all** sentences, and builds the FAISS index in RAM. For large databases, this exceeds available system memory, causing the process to kill itself or crash.
-3.  **Missing Dependencies:** If `en_core_web_sm` (spaCy) or `allenai/scibert_scivocab_uncased` (Transformers) are not downloaded/cached correctly, the loading functions return `None`, leading to downstream errors.
-4.  **Temporary Directory Permissions:** The index is saved to `tempfile.gettempdir()`. In some restricted environments (e.g., certain corporate servers or containerized apps), writing to `/tmp` might be restricted or cleared unexpectedly.
-5.  **Database Locking:** If the SQLite database is open in another process (e.g., a DB viewer), `sqlite3.connect` might fail or hang.
-
-### How to Make the LLM Access the Sentence Index Content
-
-The LLM accesses the index content through a **Retrieve-then-Generate** workflow implemented in `scientific_llm_quantified_ner_retrieval`. To ensure this works robustly:
-
-1.  **Explicit Index Loading:** The function must verify the index exists (FAISS + BM25 + Metadata) before attempting retrieval.
-2.  **Context Window Management:** The retrieved sentences must be filtered to fit within the LLM's maximum token limit. Simply concatenating all retrieved sentences often exceeds this limit, causing truncation that cuts off critical data or instructions.
-3.  **Hybrid Search Utilization:** The code uses `hybrid_search` to find relevant sentences based on both keyword (BM25) and semantic (SciBERT) similarity. These retrieved sentences are formatted into a text block (`context_text`) and injected into the LLM prompt.
-4.  **Memory Swapping:** Since both SciBERT (for retrieval embeddings) and the LLM (for generation) are memory-heavy, the code should ideally unload SciBERT after index building if memory is tight, or ensure batch sizes are small enough to coexist.
-
-### Corrected and Expanded Code
-
-Below is the full, corrected code. Key improvements include:
-*   **Safety Checks:** Prevents crashes on empty embeddings.
-*   **Context Truncation:** Intelligently limits retrieved sentences to fit the LLM context window *before* tokenization.
-*   **Memory Management:** Added explicit garbage collection and optional SciBERT unloading.
-*   **Error Handling:** Robust `try-except` blocks around database and model operations.
-*   **LLM Prompting:** Improved prompt structure to ensure JSON output reliability.
-
-```python
 # ==================== IMPORTS ====================
 import os
 import sqlite3
@@ -1339,4 +1310,4 @@ st.markdown("""
 - Use smaller models if enabling LLM features
 - Close other applications to free RAM
 """)
-```
+
