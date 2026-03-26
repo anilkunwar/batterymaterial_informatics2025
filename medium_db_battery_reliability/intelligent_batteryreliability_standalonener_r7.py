@@ -21,6 +21,8 @@ import pickle
 import faiss
 from rank_bm25 import BM25Okapi
 import time
+import tempfile
+import hashlib
 
 # Try to import transformers – if too old, show error and disable LLM
 try:
@@ -55,13 +57,21 @@ DB_DIR = os.path.dirname(os.path.abspath(__file__))
 RELIABILITY_DB_FILE = os.path.join(DB_DIR, "battery_reliability.db")
 UNIVERSE_DB_FILE = os.path.join(DB_DIR, "battery_reliability_universe.db")
 
-# Index storage paths
-INDEX_DIR = os.path.join(DB_DIR, "sentence_index")
-os.makedirs(INDEX_DIR, exist_ok=True)
-FAISS_INDEX_PATH = os.path.join(INDEX_DIR, "faiss.index")
-METADATA_PATH = os.path.join(INDEX_DIR, "metadata.pkl")
-BM25_PATH = os.path.join(INDEX_DIR, "bm25.pkl")
-TOKENIZED_SENTENCES_PATH = os.path.join(INDEX_DIR, "tokenized_sentences.pkl")
+# Index storage in a temporary directory – cleared on reboot
+def get_index_dir(db_path):
+    """Return a unique path under /tmp for the given database."""
+    # Hash the absolute path to avoid collisions
+    db_hash = hashlib.sha256(os.path.abspath(db_path).encode()).hexdigest()[:16]
+    index_dir = os.path.join(tempfile.gettempdir(), f"sentence_index_{db_hash}")
+    os.makedirs(index_dir, exist_ok=True)
+    return index_dir
+
+# We'll compute the actual index directory later when we know the database path
+# But we need to keep these path constants for later use
+FAISS_INDEX_PATH = None
+METADATA_PATH = None
+BM25_PATH = None
+TOKENIZED_SENTENCES_PATH = None
 
 logging.basicConfig(
     filename=os.path.join(DB_DIR, 'battery_reliability_analysis.log'),
@@ -76,6 +86,9 @@ st.markdown("""
 This tool uses a **retrieve‑then‑extract** architecture: pre‑computed sentence embeddings + BM25 index,
 then two‑stage retrieval to feed only the most relevant sentences to the LLM or heuristic NER.
 Speedups of 10–50× are typical.
+
+**Index storage**: The sentence index is stored in a temporary directory (e.g., `/tmp` on Linux) and
+is automatically cleared on system reboot. No persistent files are left behind.
 """)
 
 # ==================== MEMORY MANAGEMENT UTILITIES ====================
@@ -333,14 +346,20 @@ def get_embedding_for_text(text):
     emb = get_scibert_embedding_batch([text])
     return emb[0] if emb else None
 
-# ==================== SENTENCE INDEX BUILDING ====================
+# ==================== SENTENCE INDEX BUILDING (EPHEMERAL) ====================
 def build_sentence_index(db_path):
     """
     Build FAISS index and BM25 index for all sentences in the database.
-    Stores them on disk for later reuse.
+    Stores them in a temporary directory (cleared on reboot).
     """
-    if os.path.exists(FAISS_INDEX_PATH) and os.path.exists(METADATA_PATH) and os.path.exists(BM25_PATH):
-        update_log("Sentence index already exists, skipping build.")
+    index_dir = get_index_dir(db_path)
+    faiss_path = os.path.join(index_dir, "faiss.index")
+    metadata_path = os.path.join(index_dir, "metadata.pkl")
+    bm25_path = os.path.join(index_dir, "bm25.pkl")
+    tokenized_path = os.path.join(index_dir, "tokenized_sentences.pkl")
+
+    if os.path.exists(faiss_path) and os.path.exists(metadata_path) and os.path.exists(bm25_path):
+        update_log("Sentence index already exists in temp dir, skipping build.")
         return True
 
     update_log("Building sentence index... This may take a while.")
@@ -393,35 +412,41 @@ def build_sentence_index(db_path):
     dim = valid_embeddings.shape[1]
     index = faiss.IndexFlatIP(dim)   # inner product = cosine (since embeddings are normalized)
     index.add(valid_embeddings)
-    faiss.write_index(index, FAISS_INDEX_PATH)
+    faiss.write_index(index, faiss_path)
 
     # Save metadata
-    with open(METADATA_PATH, "wb") as f:
+    with open(metadata_path, "wb") as f:
         pickle.dump(valid_sentences, f)
 
     # Build BM25 index
     bm25 = BM25Okapi(valid_tokenized)
-    with open(BM25_PATH, "wb") as f:
+    with open(bm25_path, "wb") as f:
         pickle.dump(bm25, f)
 
     # Save tokenized sentences for BM25 (optional, but needed for later search)
-    with open(TOKENIZED_SENTENCES_PATH, "wb") as f:
+    with open(tokenized_path, "wb") as f:
         pickle.dump(valid_tokenized, f)
 
-    update_log(f"Index built: {len(valid_sentences)} sentences indexed.")
-    st.success("Sentence index built and saved.")
+    update_log(f"Index built: {len(valid_sentences)} sentences indexed in {index_dir}.")
+    st.success(f"Sentence index built and saved in temporary directory: {index_dir}")
     return True
 
-def load_sentence_index():
-    """Load FAISS index and metadata if they exist."""
-    if not (os.path.exists(FAISS_INDEX_PATH) and os.path.exists(METADATA_PATH) and os.path.exists(BM25_PATH)):
+def load_sentence_index(db_path):
+    """Load FAISS index and metadata from temporary directory."""
+    index_dir = get_index_dir(db_path)
+    faiss_path = os.path.join(index_dir, "faiss.index")
+    metadata_path = os.path.join(index_dir, "metadata.pkl")
+    bm25_path = os.path.join(index_dir, "bm25.pkl")
+    tokenized_path = os.path.join(index_dir, "tokenized_sentences.pkl")
+
+    if not (os.path.exists(faiss_path) and os.path.exists(metadata_path) and os.path.exists(bm25_path)):
         return None, None, None, None
-    index = faiss.read_index(FAISS_INDEX_PATH)
-    with open(METADATA_PATH, "rb") as f:
+    index = faiss.read_index(faiss_path)
+    with open(metadata_path, "rb") as f:
         metadata = pickle.load(f)
-    with open(BM25_PATH, "rb") as f:
+    with open(bm25_path, "rb") as f:
         bm25 = pickle.load(f)
-    with open(TOKENIZED_SENTENCES_PATH, "rb") as f:
+    with open(tokenized_path, "rb") as f:
         tokenized_sentences = pickle.load(f)
     return index, metadata, bm25, tokenized_sentences
 
@@ -641,7 +666,7 @@ def scientific_llm_quantified_ner_retrieval(db_file: str, max_papers: int = 500)
         return pd.DataFrame()
 
     # Ensure index is loaded
-    index, metadata, bm25, tokenized_sentences = load_sentence_index()
+    index, metadata, bm25, tokenized_sentences = load_sentence_index(db_file)
     if index is None:
         st.error("Sentence index not built. Please build it first.")
         return pd.DataFrame()
@@ -796,7 +821,6 @@ def query_with_cache(term, db_file, retrieval_func, *args, **kwargs):
 
 # ==================== DATABASE INSPECTION (unchanged) ====================
 def inspect_database(db_path):
-    # ... (unchanged, kept as original) ...
     try:
         update_log(f"Inspecting database: {os.path.basename(db_path)}")
         conn = sqlite3.connect(db_path)
@@ -1095,7 +1119,7 @@ else:
 if st.session_state.db_file and os.path.exists(st.session_state.db_file):
     # Ensure index is loaded
     if not st.session_state.sentence_index_loaded:
-        index, metadata, bm25, tokenized_sentences = load_sentence_index()
+        index, metadata, bm25, tokenized_sentences = load_sentence_index(st.session_state.db_file)
         if index is None:
             st.warning("Sentence index not found. Please build it using the sidebar button.")
             st.session_state.sentence_index_loaded = False
@@ -1105,7 +1129,7 @@ if st.session_state.db_file and os.path.exists(st.session_state.db_file):
             st.session_state.metadata = metadata
             st.session_state.bm25 = bm25
             st.session_state.tokenized_sentences = tokenized_sentences
-            st.success("Sentence index loaded.")
+            st.success("Sentence index loaded from temporary directory.")
 
     tab1, tab2 = st.tabs(["Database Inspection", "NER Analysis"])
     
